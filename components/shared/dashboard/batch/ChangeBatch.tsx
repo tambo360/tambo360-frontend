@@ -286,29 +286,19 @@ const ChangeBatch = ({
                 )}
               </div>
 
-              {/* cantidad rodeo */}
-              <div className="space-y-2 w-full h-full">
-                <Label className="font-bold">Cantidad de vacas *</Label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="0.00"
-                  {...register('cantRaza')}
-                />
-
-                {errors.cantRaza && (
-                  <span className="text-xs text-red-600">
-                    {errors.cantRaza.message}
-                  </span>
-                )}
-              </div>
+              {/*
+                TODO (pendiente de backend): el Figma pide un campo "Hora"
+                junto a la fecha. No existe en BatchSchema (types/batch.ts)
+                ni en el modelo LoteProduccion del backend (prisma/schema.prisma).
+                Falta que backend agregue el campo antes de poder mostrarlo aquí.
+              */}
             </div>
 
-            {/* Razas y cantidades de la raza */}
+            {/* Rodeo Origen y Volumen Total Bruto */}
             <div className="flex items-center justify-between gap-2 w-full">
               {/* razas */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Tipo de rodeo *</Label>
+                <Label className="font-bold">Rodeo Origen *</Label>
                 <Select
                   defaultValue={batch ? batch.rodeo.idRodeo : ''}
                   onValueChange={(e) => setValue('idRodeo', e)}
@@ -335,6 +325,28 @@ const ChangeBatch = ({
                 )}
               </div>
 
+              {/* Cantidad producida (Volumen Total Bruto) */}
+              <div className="space-y-2 w-full">
+                <Label className="font-bold">
+                  Volumen Total Bruto (Litros) *
+                </Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0.00"
+                  {...register('cantidad')}
+                />
+
+                {errors.cantidad && (
+                  <span className="text-xs text-red-600">
+                    {errors.cantidad.message}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Destino y Temperatura del tanque */}
+            <div className="flex items-center justify-between gap-2 w-full">
               {/* Destino */}
               <div className="space-y-2 w-full">
                 <Label className="font-bold">Destino *</Label>
@@ -363,6 +375,51 @@ const ChangeBatch = ({
                 {errors.destino && (
                   <span className="text-xs text-red-600">
                     {errors.destino.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Temperatura del tanque */}
+              <div className="space-y-2 w-full">
+                <Label className="font-bold">
+                  Temperatura del tanque (°C) *
+                </Label>
+                <Input
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="4.2"
+                  {...register('tempTanque')}
+                />
+
+                {errors.tempTanque && (
+                  <span className="text-xs text-red-600">
+                    {errors.tempTanque.message}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/*
+              Campos requeridos por BatchSchema que NO aparecen en el Figma.
+              Se dejan agrupados aquí abajo: quitarlos rompería la validación
+              (el formulario nunca podría enviarse). Si el diseño definitivo
+              no los contempla, hay que confirmar con quien diseñó el Figma
+              antes de eliminarlos.
+            */}
+            <div className="flex items-center justify-between gap-2 w-full pt-2 border-t">
+              {/* cantidad rodeo */}
+              <div className="space-y-2 w-full h-full">
+                <Label className="font-bold">Cantidad de vacas *</Label>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0.00"
+                  {...register('cantRaza')}
+                />
+
+                {errors.cantRaza && (
+                  <span className="text-xs text-red-600">
+                    {errors.cantRaza.message}
                   </span>
                 )}
               </div>
@@ -443,50 +500,20 @@ const ChangeBatch = ({
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-2 w-full">
-              {/* Cantidad producida */}
-              <div className="space-y-2">
-                <Label className="font-bold">
-                  Cant producida (Kg / Litros) *
-                </Label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="0.00"
-                  {...register('cantidad')}
-                />
-
-                {errors.cantidad && (
-                  <span className="text-xs text-red-600">
-                    {errors.cantidad.message}
-                  </span>
-                )}
-              </div>
-
-              {/* Temperatura del tanque */}
-              <div className="space-y-2">
-                <Label className="font-bold">
-                  Temperatura del tanque (°C) *
-                </Label>
-                <Input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="4.2"
-                  {...register('tempTanque')}
-                />
-
-                {errors.tempTanque && (
-                  <span className="text-xs text-red-600">
-                    {errors.tempTanque.message}
-                  </span>
-                )}
-              </div>
-            </div>
             <span className="flex items-center gap-2 text-xs">
               <AlertCircle className="size-5" /> Verifica que los datos sean
               correctos antes de crear el lote.
             </span>
-            <DialogFooter>
+            <DialogFooter className="flex flex-row gap-2 w-full">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex items-center justify-center w-full h-16 text-xl font-bold"
+                onClick={() => onClose()}
+              >
+                Cancelar
+              </Button>
+
               <Button
                 variant="default"
                 className="flex items-center justify-center w-full h-16 text-xl font-bold"

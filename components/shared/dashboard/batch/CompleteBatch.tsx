@@ -7,16 +7,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { ArrowRight } from 'lucide-react'
+import { Card } from '@/components/ui/card'
+import { ArrowRight, Thermometer, Droplets, Sun } from 'lucide-react'
 import { useState } from 'react'
 import { useCompleteBatch } from '@/hooks/batch/useCompleteBatch'
 import Link from 'next/link'
 import ChangeBatch from '@/components/shared/dashboard/batch/ChangeBatch'
+import { Lote } from '@/types/batch'
 
 interface CompleteBatchProps {
   open: boolean
   onClose: () => void
   batchId?: string
+  batch?: Lote
   refetch: () => void
 }
 
@@ -24,6 +27,7 @@ const CompleteBatch = ({
   open,
   onClose,
   batchId,
+  batch,
   refetch,
 }: CompleteBatchProps) => {
   const [finished, setFinished] = useState(false)
@@ -82,19 +86,89 @@ const CompleteBatch = ({
             </div>
           </DialogContent>
         ) : (
-          <DialogContent className="p-10 flex flex-col items-center text-center">
-            <img src="/alertIcon.svg" alt="Completar lote" />
-
-            <DialogHeader className="items-center">
-              <DialogTitle className="text-[32px] font-bold leading-tight">
-                ¿Completar lote?
+          <DialogContent className="p-8 flex flex-col text-left space-y-4">
+            <DialogHeader>
+              <DialogTitle className="text-[28px] font-bold leading-tight">
+                Cerrar Lote
               </DialogTitle>
-              <DialogDescription className="text-center text-base text-gray-600 mt-2">
-                Una vez completado, el lote se cerrará permanentemente. No
-                podrás editar la información ni registrar nuevas mamas o costos
-                asociados.
+              <DialogDescription className="text-base text-gray-600">
+                Revisa el resumen detallado antes de finalizar la jornada
+                productiva.
               </DialogDescription>
             </DialogHeader>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 border rounded-xl p-4">
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase">
+                  N° Lote
+                </p>
+                <p className="font-medium">
+                  {batch
+                    ? String(batch.numeroLote).padStart(3, '0')
+                    : (batchId ?? '—')}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase">
+                  Producto
+                </p>
+                <p className="font-medium">{batch?.producto?.nombre ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase">
+                  Fecha
+                </p>
+                <p className="font-medium">
+                  {batch?.fechaProduccion
+                    ? batch.fechaProduccion
+                        .slice(0, 10)
+                        .split('-')
+                        .reverse()
+                        .join('/')
+                    : '—'}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 font-bold uppercase">
+                  Cantidad Total
+                </p>
+                <p className="font-medium">
+                  {batch ? `${batch.cantidad} ${batch.unidad}` : '—'}
+                </p>
+              </div>
+            </div>
+
+            {/*
+              TODO (pendiente de backend / integración externa): no existe
+              ninguna fuente de datos climáticos en el proyecto todavía.
+              "Resumen Climático" se muestra mockeado por ahora.
+            */}
+            <Card className="bg-[#F3FAEA] border-none p-4">
+              <p className="text-sm font-bold mb-3">Resumen Climático</p>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="flex items-center gap-2">
+                  <Thermometer className="size-4 text-green-main" />
+                  <div>
+                    <p className="text-xs text-gray-500">Temperatura</p>
+                    <p className="font-bold text-sm">24.5°C</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Droplets className="size-4 text-green-main" />
+                  <div>
+                    <p className="text-xs text-gray-500">Humedad</p>
+                    <p className="font-bold text-sm">68%</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Sun className="size-4 text-green-main" />
+                  <div>
+                    <p className="text-xs text-gray-500">Estado</p>
+                    <p className="font-bold text-sm">Soleado</p>
+                  </div>
+                </div>
+              </div>
+            </Card>
 
             {error && (
               <p className="text-sm text-red-600 font-medium">
@@ -103,22 +177,22 @@ const CompleteBatch = ({
               </p>
             )}
 
-            <div className="flex flex-col w-full gap-3 mt-8">
-              <Button
-                className="h-14 text-xl font-bold flex items-center justify-center gap-2"
-                onClick={handleComplete}
-                disabled={isPending}
-              >
-                {isPending ? 'Procesando...' : 'Si, completar lote'}
-              </Button>
-
+            <div className="flex items-center gap-3 pt-2">
               <Button
                 variant="outline"
-                className="h-14 text-xl font-bold border-gray-300"
+                className="w-full h-14 text-lg font-bold border-gray-300"
                 onClick={handleCloseAll}
                 disabled={isPending}
               >
                 Cancelar
+              </Button>
+
+              <Button
+                className="w-full h-14 text-lg font-bold flex items-center justify-center gap-2"
+                onClick={handleComplete}
+                disabled={isPending}
+              >
+                {isPending ? 'Procesando...' : 'Confirmar'}
               </Button>
             </div>
           </DialogContent>

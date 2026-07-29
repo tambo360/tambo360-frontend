@@ -3,6 +3,7 @@ import ComparacionHistorica from '@/components/shared/dashboard/ComparacionHisto
 import DailyProductionLog from '@/components/shared/dashboard/DailyProductionLog'
 import AlertsSection from '@/components/shared/dashboard/AlertsSection'
 import { useCurrentMonth } from '@/hooks/dashboard/useCurrentMonth'
+import { useCurrentUser } from '@/hooks/auth/useCurrentUser'
 import { StatCard } from '@/components/shared/StatCard'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
 import { usePathname } from 'next/navigation'
@@ -13,6 +14,8 @@ const Dashboard = () => {
   const { data: establishment } = useEstablishment({
     id: pathname.split('/')[3],
   })
+  const { data: currentUser } = useCurrentUser()
+  const primerNombre = currentUser?.data?.nombre?.split(' ')[0]
   const totalProduccion =
     (data?.data.actual.quesos || 0) + (data?.data.actual.leches || 0)
 
@@ -30,14 +33,14 @@ const Dashboard = () => {
             {establishment?.data.establecimiento?.nombre || 'Establecimiento'}
           </p>
           <h1 className="text-2xl sm:text-3xl font-bold text-[#252525] tracking-tight">
-            Reporte Mensual
+            {primerNombre ? `¡Bienvenido ${primerNombre}!` : 'Reporte Mensual'}
           </h1>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
         <StatCard
-          title="Queso Producido"
+          title="Sólidos"
           value={data?.data.actual.quesos}
           unit=" Kg"
           trend={
@@ -53,7 +56,7 @@ const Dashboard = () => {
         />
 
         <StatCard
-          title="Leche Producida"
+          title="Líquidos"
           value={data?.data.actual.leches}
           trend={
             data?.data.variaciones.leches != null
@@ -69,7 +72,7 @@ const Dashboard = () => {
         />
 
         <StatCard
-          title="Mermas Totales"
+          title="Mermas totales"
           value={porcentajeMermas.toFixed(2)}
           unit="%"
           trend={
@@ -98,6 +101,28 @@ const Dashboard = () => {
           }
           description={'vs ' + data?.data.mesPrevio}
           isPending={isPending}
+        />
+
+        {/*
+          TODO (pendiente de backend): "Litros Libres" y "Precio de mercado"
+          no existen en /dashboard/mes-actual (dashboardService.listarPorMes).
+          Se muestran mockeadas por ahora para respetar el diseño; falta que
+          backend agregue estos 2 datos al endpoint.
+        */}
+        <StatCard
+          title="Litros Libres (100% Grasa)"
+          value={1850}
+          unit="L"
+          trend={{ value: 2.5, isPositive: true }}
+          description="vs ayer (mock)"
+          isPending={false}
+        />
+
+        <StatCard
+          title="Precio de mercado hoy"
+          value={385.5}
+          unit="$ "
+          isPending={false}
         />
       </div>
 

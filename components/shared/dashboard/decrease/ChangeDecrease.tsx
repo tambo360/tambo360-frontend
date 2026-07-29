@@ -8,6 +8,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -138,7 +139,7 @@ const ChangeDecrease = ({
         </DialogHeader>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2">
-            <Label>Tipo de merma*</Label>
+            <Label>Motivo de merma*</Label>
             <Controller
               name="tipo"
               control={control}
@@ -225,7 +226,7 @@ const ChangeDecrease = ({
 
           <div className="space-y-2">
             <Label>Observaciones</Label>
-            <Input
+            <Textarea
               placeholder="Anota la información que consideres importante"
               {...register('observacion')}
               disabled={isPending || isPendingUpdate}
@@ -243,13 +244,28 @@ const ChangeDecrease = ({
             correctos antes de {decrease ? 'actualizar' : 'registrar'} la merma
           </span>
 
-          <Button
-            className="w-full h-14"
-            type="submit"
-            disabled={isPending || isPendingUpdate}
-          >
-            {decrease ? 'Actualizar merma' : 'Registrar merma'}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full h-14"
+              onClick={() => {
+                onClose()
+                reset()
+              }}
+              disabled={isPending || isPendingUpdate}
+            >
+              Cancelar
+            </Button>
+
+            <Button
+              className="w-full h-14"
+              type="submit"
+              disabled={isPending || isPendingUpdate}
+            >
+              Guardar
+            </Button>
+          </div>
         </form>
       </DialogContent>
       <ConnectionErrorModal

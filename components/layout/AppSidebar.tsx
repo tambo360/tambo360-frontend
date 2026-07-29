@@ -1,5 +1,12 @@
 'use client'
-import { LayoutDashboard, Milk, Cpu, User, ArrowLeft } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Milk,
+  Cpu,
+  User,
+  ArrowLeft,
+  History,
+} from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -46,6 +53,12 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
       icon: Cpu,
       url: baseUrl + '/alertas',
       data: "data-test-id='tambo-engine'",
+    },
+    {
+      title: 'Historial',
+      icon: History,
+      url: baseUrl + '/historial',
+      data: "data-test-id='historial'",
     },
   ]
 

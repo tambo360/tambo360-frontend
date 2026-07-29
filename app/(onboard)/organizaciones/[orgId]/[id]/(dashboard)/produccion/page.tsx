@@ -204,16 +204,23 @@ const Produccion: React.FC = () => {
                   Cantidad
                 </TableHead>
                 <TableHead className="w-[13%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Rodeo
+                  TemperaturaA(°C)
                 </TableHead>
-                <TableHead className="w-[13%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  N° Animales
-                </TableHead>
+
+                {/*
+                  TODO (pendiente de backend):
+                  Figma también pide columnas "Turno" y "Tipo de Rodeo".
+                  - "Turno": no existe el campo en el modelo LoteProduccion (prisma/schema.prisma).
+                    Falta que backend lo agregue a la tabla y al endpoint /lote/listar.
+                  - "Tipo de Rodeo" (batch.rodeo.label): el campo idRodeo existe en el modelo,
+                    pero la relación "rodeo" no está incluida en el include de listarLotes()
+                    (src/services/batchService.ts). Falta que backend agregue `rodeo: true`
+                    al include de esa consulta.
+                  No se agregan estas columnas todavía para no mostrar datos undefined.
+                */}
+
                 <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                   Merma
-                </TableHead>
-                <TableHead className="w-[9%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Costo
                 </TableHead>
                 <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                   Estado
@@ -248,15 +255,7 @@ const Produccion: React.FC = () => {
                       </TableCell>
 
                       <TableCell>
-                        <div className="h-4 w-20 bg-gray-200 rounded" />
-                      </TableCell>
-
-                      <TableCell>
                         <div className="h-4 w-12 bg-gray-200 rounded" />
-                      </TableCell>
-
-                      <TableCell>
-                        <div className="h-4 w-16 bg-gray-200 rounded" />
                       </TableCell>
 
                       <TableCell>
@@ -308,12 +307,8 @@ const Produccion: React.FC = () => {
                           {batch.unidad}
                         </TableCell>
 
-                        {/*   <TableCell className="truncate">
-                          {batch.rodeo.label || 'Rodeo desconocido'}
-                        </TableCell> */}
-
                         <TableCell className="truncate">
-                          {batch.cantAnimales ? batch.cantAnimales : 'N/A'}
+                          {batch.tempTanque ?? 'N/A'}
                         </TableCell>
 
                         <TableCell className="truncate">
@@ -334,24 +329,12 @@ const Produccion: React.FC = () => {
                           </Link>
                         </TableCell>
 
-                        <TableCell className="truncate">
-                          <Link
-                            href={`produccion/lote/${batch.idLote}/#costos`}
-                          >
-                            {(batch.costosDirectos &&
-                              batch.costosDirectos.length > 0) ||
-                              '$'}{' '}
-                            {batch.costosDirectos
-                              ?.reduce((total, m) => {
-                                const qty =
-                                  typeof m.monto === 'string'
-                                    ? parseFloat(m.monto)
-                                    : (m.monto ?? 0)
-                                return total + qty
-                              }, 0)
-                              .toLocaleString('es-AR')}
-                          </Link>
-                        </TableCell>
+                        {/*
+                          TODO: columna "Costo" oculta para calzar con el Figma
+                          (que no la muestra en el listado). El dato sigue disponible
+                          en batch.costosDirectos por si se necesita reactivar,
+                          y también se puede ver en el detalle del lote (#costos).
+                        */}
 
                         <TableCell>
                           <Tooltip open={batch.estado ? false : undefined}>
@@ -567,6 +550,7 @@ const Produccion: React.FC = () => {
           setSelectedBatch(null)
         }}
         batchId={selectedBatch?.idLote}
+        batch={selectedBatch ?? undefined}
         refetch={refetch}
       />
     </div>

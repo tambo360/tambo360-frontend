@@ -15,9 +15,10 @@ import { AlertCardBatch } from '@/components/shared/dashboard/batch/AlertCardBat
 import { useBatch } from '@/hooks/batch/useBatch'
 import { useDeleteBatch } from '@/hooks/batch/useDeleteBatch'
 import { Alert } from '@/types/alerts'
-import { Droplet, Factory, TrendingDown } from 'lucide-react'
+import { Droplet, Factory, TrendingDown, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
+import Link from 'next/link'
 
 interface BatchDetailsProps {
   id: string
@@ -33,6 +34,9 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
   const { data: batch, isPending, refetch } = useBatch({ id: id })
   const { mutateAsync, isPending: isPendingDelete, error } = useDeleteBatch()
   const navigate = useRouter()
+  const pathname = usePathname()
+  // Quita "/lote/[loteId]" del final para volver al listado de producción
+  const produccionUrl = pathname.split('/').slice(0, -2).join('/')
 
   useEffect(() => {
     const hash = window.location.hash
@@ -116,6 +120,19 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
 
   return (
     <div className="min-h-screen space-y-6 w-full">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm text-[#959595]">
+          {batch!.data?.establecimiento?.nombre || 'Establecimiento'}
+        </p>
+        <Link
+          href={produccionUrl}
+          className="flex items-center gap-1 text-sm text-[#959595] hover:text-black transition-colors w-fit"
+        >
+          <ChevronLeft className="size-4" />
+          Lista de producción
+        </Link>
+      </div>
+
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-col gap-0.5 w-full">
           <Badge variant={batch!.data?.estado ? 'success' : 'destructive'}>
@@ -123,7 +140,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
           </Badge>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-[32px] font-bold">
-              Lote #{String(batch!.data?.numeroLote).padStart(3, '0')} –
+              Lote {String(batch!.data?.numeroLote).padStart(3, '0')} -{' '}
               {batch!.data?.producto?.nombre}
             </h1>
           </div>
@@ -167,7 +184,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
           />
           <StatCard
             icon={<Factory />}
-            title="Costo de producción"
+            title="Costo Operativo Total"
             value={
               batch!.data?.costosDirectos
                 ? batch!.data.costosDirectos
@@ -204,6 +221,17 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
             ))}
           </div>
         )}
+
+        {/*
+          TODO (pendiente de backend): no existe el campo "observaciones"
+          en el modelo LoteProduccion (prisma/schema.prisma). Por ahora
+          se muestra siempre "Sin observaciones." como placeholder visual
+          hasta que backend agregue el campo y lo devuelva en /lote/buscar/:idLote.
+        */}
+        <Card className="p-4">
+          <p className="text-md font-bold mb-1">Observaciones</p>
+          <p className="text-sm text-[#959595]">Sin observaciones.</p>
+        </Card>
 
         <Card className="py-2" id="mermas">
           <div className="px-4 py-2 flex items-center justify-between gap-3 flex-wrap">
@@ -290,6 +318,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
         open={isCompleteBatchOpen}
         onClose={() => setIsCompleteBatchOpen(false)}
         batchId={id}
+        batch={batch!.data}
         refetch={refetch}
       />
     </div>
