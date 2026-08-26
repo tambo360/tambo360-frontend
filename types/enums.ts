@@ -8,6 +8,25 @@ export type Categoria = 'quesos' | 'leches'
 
 export type TipoToken = 'verificacion' | 'recuperacion'
 
+export enum TipoSeguimiento {
+  RODEO = 'RODEO',
+  INDIVIDUAL = 'INDIVIDUAL',
+  RODEO_UNICO = 'RODEO_UNICO',
+}
+
+enum CategoriaAnimal {
+  ORDENE = 'ORDENE',
+  SECAS = 'SECAS',
+  PREPARTO = 'PREPARTO',
+}
+
+enum EstadoAnimal {
+  MATITIS = 'MASTITIS',
+  TRATAMIENTO = 'TRATAMIENTO',
+  PREPARTO = 'PREPARTO',
+  DESCARTE = 'DESCARTE',
+}
+
 export enum TipoMerma {
   MASTITIS = 'MASTITIS',
   ESTRES_CALORICO = 'ESTRES_CALORICO',
