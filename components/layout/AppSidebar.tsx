@@ -5,7 +5,7 @@ import {
   Cpu,
   User,
   ArrowLeft,
-  History,
+  Wallet,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -49,16 +49,16 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
       data: "data-test-id='produccion'",
     },
     {
+      title: 'Costos Generales',
+      icon: Wallet,
+      url: baseUrl + '/costos',
+      data: "data-test-id='costos-generales'",
+    },
+    {
       title: 'TamboEngine',
       icon: Cpu,
       url: baseUrl + '/alertas',
       data: "data-test-id='tambo-engine'",
-    },
-    {
-      title: 'Historial',
-      icon: History,
-      url: baseUrl + '/historial',
-      data: "data-test-id='historial'",
     },
   ]
 

@@ -285,10 +285,12 @@ const Produccion: React.FC = () => {
 
                         <TableCell suppressHydrationWarning>
                           {batch.fechaProduccion
-                            .slice(0, 10)
-                            .split('-')
-                            .reverse()
-                            .join('/')}
+                            ? batch.fechaProduccion
+                                .slice(0, 10)
+                                .split('-')
+                                .reverse()
+                                .join('/')
+                            : '-'}
                         </TableCell>
 
                         <TableCell>

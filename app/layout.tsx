@@ -48,7 +48,7 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>
           {children}
           <PWAInstallToast />
