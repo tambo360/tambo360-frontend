@@ -1,15 +1,18 @@
 'use client'
-import React, { useState } from 'react'
-import { Wallet, Search, X, ArrowUp, ArrowDown, CloudOff } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
+
+import React from 'react'
 import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardDescription,
-} from '@/components/ui/card'
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+  Utensils,
+  FileText,
+  TrendingUp,
+  Loader2,
+  CloudOff,
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -18,249 +21,229 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
-import { StatCard } from '@/components/shared/StatCard'
-import { TIPO_COSTO_LABELS } from '@/types/cost'
-import { TipoCosto } from '@/types/enums'
 
-// TODO (pendiente de backend): no existe todavía un endpoint que agregue
-// costos de TODOS los lotes de un establecimiento (solo hay costos por
-// lote individual vía batch.costosDirectos, ver CostTable.tsx).
-// Mientras tanto se usan datos mockeados para poder maquetar la vista
-// según Figma. Reemplazar `mockCostos` por un hook real (ej. useCostosGenerales)
-// apuntando a algo como GET /costos/establecimiento/:id cuando exista.
-
-interface CostoGeneral {
-  idCostoDirecto: string
-  fechaCreacion: string
-  tipoCosto: TipoCosto
-  monto: number
-  loteNombre: string
-  observaciones?: string
+export interface GastoGeneral {
+  idGasto: string
+  fecha: string
+  categoria: string
+  descripcion: string
+  valor: number
 }
 
-const mockCostos: CostoGeneral[] = [
-  {
-    idCostoDirecto: '1',
-    fechaCreacion: '2026-08-01',
-    tipoCosto: 'ALIMENTACION' as TipoCosto,
-    monto: 152000,
-    loteNombre: '#001',
-    observaciones: 'Compra de forraje mensual',
-  },
-  {
-    idCostoDirecto: '2',
-    fechaCreacion: '2026-08-02',
-    tipoCosto: 'SANIDAD' as TipoCosto,
-    monto: 48000,
-    loteNombre: '#002',
-    observaciones: 'Vacunación del rodeo',
-  },
-  {
-    idCostoDirecto: '3',
-    fechaCreacion: '2026-08-03',
-    tipoCosto: 'MANO_OBRA' as TipoCosto,
-    monto: 210000,
-    loteNombre: '#001',
-    observaciones: 'Pago quincenal personal de ordeñe',
-  },
-  {
-    idCostoDirecto: '4',
-    fechaCreacion: '2026-08-03',
-    tipoCosto: 'ENERGIA' as TipoCosto,
-    monto: 67500,
-    loteNombre: '#003',
-    observaciones: 'Consumo eléctrico tambo',
-  },
-  {
-    idCostoDirecto: '5',
-    fechaCreacion: '2026-08-04',
-    tipoCosto: 'MANTENIMIENTO' as TipoCosto,
-    monto: 39000,
-    loteNombre: '#002',
-    observaciones: 'Reparación ordeñadora',
-  },
-  {
-    idCostoDirecto: '6',
-    fechaCreacion: '2026-08-04',
-    tipoCosto: 'LOGISTICA' as TipoCosto,
-    monto: 58000,
-    loteNombre: '#003',
-    observaciones: 'Flete distribución',
-  },
-]
+interface CostosGeneralesProps {
+  gastos: GastoGeneral[]
+  gastoAlimentacion: number
+  porcentajeAlimentacionMesAnterior: string
+  otrosCostosFijos: number
+  porcentajeFijos: number
+  porcentajeVar: number
+  costoProrrateo: number
+  isLoading?: boolean
+  onNuevoGastoClick?: () => void
+  onPaginaAnterior?: () => void
+  onPaginaSiguiente?: () => void
+}
 
-const CostosGenerales: React.FC = () => {
-  const [busqueda, setBusqueda] = useState('')
-  const [orden, setOrden] = useState<'asc' | 'desc'>('desc')
-
-  const totalCostos = mockCostos.reduce((acc, c) => acc + c.monto, 0)
-
-  const totalPorTipo = (tipo: TipoCosto) =>
-    mockCostos
-      .filter((c) => c.tipoCosto === tipo)
-      .reduce((acc, c) => acc + c.monto, 0)
-
-  const costosFiltrados = mockCostos
-    .filter(
-      (c) =>
-        c.loteNombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-        (c.observaciones ?? '')
-          .toLowerCase()
-          .includes(busqueda.toLowerCase()) ||
-        TIPO_COSTO_LABELS[c.tipoCosto]
-          ?.toLowerCase()
-          .includes(busqueda.toLowerCase())
-    )
-    .sort((a, b) =>
-      orden === 'asc'
-        ? a.fechaCreacion.localeCompare(b.fechaCreacion)
-        : b.fechaCreacion.localeCompare(a.fechaCreacion)
-    )
-
+const CostosGenerales: React.FC<CostosGeneralesProps> = ({
+  gastos,
+  gastoAlimentacion,
+  porcentajeAlimentacionMesAnterior,
+  otrosCostosFijos,
+  porcentajeFijos,
+  porcentajeVar,
+  costoProrrateo,
+  isLoading = false,
+  onNuevoGastoClick,
+  onPaginaAnterior,
+  onPaginaSiguiente,
+}) => {
   return (
-    <div className="flex flex-col w-full gap-8 animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Costos Generales
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Resumen de costos de todos los lotes del establecimiento
-          </p>
+    <div className="flex flex-col w-full gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-8 rounded-2xl">
+      {/* TÍTULO PRINCIPAL */}
+      <div className="flex flex-col gap-1">
+        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
+          Costos Generales
+        </h1>
+      </div>
+
+      {/* TARJETAS SUPERIORES DINÁMICAS */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Tarjeta 1: Gasto Alimentación */}
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between relative">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2.5 bg-gray-50 rounded-xl text-gray-700">
+              <Utensils className="w-5 h-5" />
+            </div>
+            <TrendingUp className="w-4 h-4 text-gray-400" />
+          </div>
+          <div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Gasto Alimentación
+            </span>
+            <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
+              $ {gastoAlimentacion?.toLocaleString('es-AR') ?? '0'}
+            </h2>
+          </div>
+          <div className="mt-4">
+            <span className="inline-block bg-[#1B4D3E] text-white text-[11px] font-bold px-3 py-1 rounded-full">
+              {porcentajeAlimentacionMesAnterior || '0%'}
+            </span>
+          </div>
+        </div>
+
+        {/* Tarjeta 2: Otros costos */}
+        <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2.5 bg-gray-50 rounded-xl text-gray-700">
+              <FileText className="w-5 h-5" />
+            </div>
+          </div>
+          <div>
+            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+              Otros costos (fijos/var)
+            </span>
+            <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
+              $ {otrosCostosFijos?.toLocaleString('es-AR') ?? '0'}
+            </h2>
+          </div>
+          <div className="mt-4 flex flex-col gap-2">
+            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden flex">
+              <div
+                className="bg-gray-400 h-full"
+                style={{ width: `${porcentajeFijos ?? 0}%` }}
+              ></div>
+              <div
+                className="bg-gray-200 h-full"
+                style={{ width: `${porcentajeVar ?? 0}%` }}
+              ></div>
+            </div>
+            <div className="flex justify-between text-[11px] font-semibold text-gray-400">
+              <span>Fijos {porcentajeFijos ?? 0}%</span>
+              <span>Var {porcentajeVar ?? 0}%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Tarjeta 3: Costo Prorrateo (Verde) */}
+        <div className="bg-[#1B4D3E] border border-[#1B4D3E] rounded-2xl p-6 shadow-sm flex flex-col justify-between text-white relative overflow-hidden">
+          <div className="flex items-center justify-between mb-4">
+            <div className="p-2.5 bg-white/10 rounded-xl text-white">
+              <TrendingUp className="w-5 h-5" />
+            </div>
+            <span className="bg-[#84CC16] text-gray-900 text-[11px] font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+              Cálculo en vivo
+            </span>
+          </div>
+          <div>
+            <span className="text-xs font-bold text-emerald-200 uppercase tracking-wider">
+              Costo Prorrateo/Lote
+            </span>
+            <h2 className="text-2xl font-extrabold text-white mt-1">
+              $ {costoProrrateo?.toFixed(2) ?? '0.00'} / Lt
+            </h2>
+          </div>
+          <div className="absolute right-4 bottom-4 flex items-end gap-1 opacity-20 pointer-events-none">
+            <div className="w-2.5 h-6 bg-white rounded-t"></div>
+            <div className="w-2.5 h-10 bg-white rounded-t"></div>
+            <div className="w-2.5 h-14 bg-white rounded-t"></div>
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-4">
-        <StatCard
-          title="Costos totales"
-          value={totalCostos}
-          unit="$ "
-          description="Mock — pendiente endpoint backend"
-          isPending={false}
-        />
-        <StatCard
-          title="Alimentación"
-          value={totalPorTipo('ALIMENTACION' as TipoCosto)}
-          unit="$ "
-          isPending={false}
-        />
-        <StatCard
-          title="Mano de Obra"
-          value={totalPorTipo('MANO_OBRA' as TipoCosto)}
-          unit="$ "
-          isPending={false}
-        />
-        <StatCard
-          title="Sanidad"
-          value={totalPorTipo('SANIDAD' as TipoCosto)}
-          unit="$ "
-          isPending={false}
-        />
-      </div>
-
+      {/* SECCIÓN HISTORIAL DE GASTOS Y TABLA */}
       <Card className="border-gray-200 shadow-sm overflow-hidden rounded-2xl bg-white gap-0 py-0">
         <CardHeader className="border-b border-gray-100 bg-white p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-col gap-3">
-              <CardTitle className="text-lg font-bold">
-                Detalle de costos
-              </CardTitle>
-              <CardDescription>
-                {new Date().toLocaleDateString('es-ES', {
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </CardDescription>
-            </div>
+            <CardTitle className="text-lg font-bold text-gray-900">
+              Historial de Gastos
+            </CardTitle>
 
-            <div className="flex items-center gap-3">
-              <div className="relative group">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-black transition-colors" />
-                <Input
-                  className="pl-10 w-full md:w-60 bg-gray-50 border-gray-200 rounded-lg"
-                  placeholder="Buscar costo..."
-                  value={busqueda}
-                  onChange={(e) => setBusqueda(e.target.value)}
-                />
-                {busqueda && (
-                  <button
-                    className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400"
-                    onClick={() => setBusqueda('')}
-                  >
-                    <X className="size-4" />
-                  </button>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="icon"
-                className="border-gray-200 bg-gray-50 rounded-lg"
-                onClick={() =>
-                  setOrden((prev) => (prev === 'asc' ? 'desc' : 'asc'))
-                }
-              >
-                {orden === 'asc' ? (
-                  <ArrowUp className="w-4 h-4 text-gray-600" />
-                ) : (
-                  <ArrowDown className="w-4 h-4 text-gray-600" />
-                )}
-              </Button>
-            </div>
+            <Button
+              onClick={onNuevoGastoClick}
+              className="bg-[#1B4D3E] hover:bg-[#153c31] text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo Gasto
+            </Button>
           </div>
         </CardHeader>
 
         <CardContent className="p-0">
-          {costosFiltrados.length === 0 ? (
-            <div className="flex flex-col lg:flex-row items-center justify-center py-16 px-6 gap-12 bg-white w-full">
-              <div className="flex flex-col items-center justify-center rounded-3xl p-12 text-center max-w-md w-full">
-                <div className="w-20 h-20 bg-[#F1F5F9] rounded-md flex items-center justify-center mb-6">
-                  <CloudOff className="w-10 h-10 text-[#94A3B8]" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Sin resultados
-                </h3>
-                <p className="text-sm text-[#94A3B8]">
-                  No se encontraron costos con ese criterio de búsqueda.
-                </p>
-              </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-20 bg-white w-full">
+              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+            </div>
+          ) : !gastos || gastos.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 bg-white w-full text-center">
+              <CloudOff className="w-10 h-10 text-gray-300" />
+              <p className="text-sm text-gray-400 font-medium">
+                No hay registros en el historial de gastos.
+              </p>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-tables">
-                <TableRow>
-                  <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                    Fecha
-                  </TableHead>
-                  <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                    Lote
-                  </TableHead>
-                  <TableHead className="w-[15%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                    Tipo
-                  </TableHead>
-                  <TableHead className="w-[15%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                    Monto
-                  </TableHead>
-                  <TableHead className="w-[50%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                    Observación
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {costosFiltrados.map((c) => (
-                  <TableRow key={c.idCostoDirecto}>
-                    <TableCell suppressHydrationWarning>
-                      {c.fechaCreacion.split('-').reverse().join('/')}
-                    </TableCell>
-                    <TableCell>{c.loteNombre}</TableCell>
-                    <TableCell>
-                      {TIPO_COSTO_LABELS[c.tipoCosto] || c.tipoCosto}
-                    </TableCell>
-                    <TableCell>$ {c.monto.toLocaleString('es-AR')}</TableCell>
-                    <TableCell>{c.observaciones || '-'}</TableCell>
+            <div>
+              <Table>
+                <TableHeader className="bg-gray-50/70">
+                  <TableRow>
+                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider py-4 pl-6">
+                      Fecha
+                    </TableHead>
+                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                      Categoría
+                    </TableHead>
+                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                      Descripción
+                    </TableHead>
+                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider pr-6">
+                      Valor
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {gastos.map((g) => (
+                    <TableRow
+                      key={g.idGasto}
+                      className="border-b border-gray-100 hover:bg-gray-50/50"
+                    >
+                      <TableCell className="text-xs font-bold text-gray-800 py-4 pl-6">
+                        {g.fecha}
+                      </TableCell>
+                      <TableCell className="text-xs">
+                        <span className="inline-block bg-[#E2E8F0] text-gray-700 font-semibold px-3 py-1 rounded-full text-[11px]">
+                          {g.categoria}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium text-gray-600">
+                        {g.descripcion}
+                      </TableCell>
+                      <TableCell className="text-xs font-extrabold text-gray-900 pr-6">
+                        $ {g.valor?.toLocaleString('es-AR') ?? 0}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {/* Paginador */}
+              <div className="flex items-center justify-center py-4 border-t border-gray-100 gap-2">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg border-gray-200"
+                  onClick={onPaginaAnterior}
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-600" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg border-gray-200"
+                  onClick={onPaginaSiguiente}
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-600" />
+                </Button>
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>

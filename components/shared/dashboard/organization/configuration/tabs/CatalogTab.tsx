@@ -2,19 +2,24 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import InventarioRodeosTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/InventarioRodeostab'
-import TransferirAnimalesTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/TransferirAnimalestab'
-import HistMovimientoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HistMovimientoTab'
-import ParametrosTamboTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ParametrosTamboTab'
-import ControlLecheroTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ControlLecheroTab'
-import ProductosDestinoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ProductosDestinoTab'
+// Importa tus nuevas vistas aquí (ajusta la ruta según dónde las hayas guardado)
+import HerdInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HerdInventoryPage' // La vista de Rodeo Único / Tarjetas
+import AnimalInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/AnimalInventoryPage' // La vista de Inventario por Animal (Tabla)
+
+// Importaciones comentadas por si tienes más pendientes
+// import HistMovimientoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HistMovimientoTab'
+// import ParametrosTamboTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ParametrosTamboTab'
+// import ControlLecheroTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ControlLecheroTab'
+// import ProductosDestinoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ProductosDestinoTab'
 
 const CATALOG_SUBTABS = [
   { id: 'inventario', label: 'Inventario de Rodeos' },
-  { id: 'transferir', label: 'Transferir Animales' },
-  { id: 'movimientos', label: 'Hist. Movimientos' },
-  { id: 'parametros', label: 'Parámetros de Tambo' },
-  { id: 'control', label: 'Control Lechero Mensual' },
-  { id: 'productos', label: 'Productos Destino' },
+  { id: 'rodeos-cards', label: 'Rodeo Único' },
+  { id: 'animales-tabla', label: 'Inventario por Animal' },
+  // { id: 'movimientos', label: 'Hist. Movimientos' },
+  // { id: 'parametros', label: 'Parámetros de Tambo' },
+  // { id: 'control', label: 'Control Lechero Mensual' },
+  // { id: 'productos', label: 'Productos Destino' },
 ]
 
 export default function CatalogTab() {
@@ -40,14 +45,15 @@ export default function CatalogTab() {
         ))}
       </nav>
 
-      {/* Contenido */}
+      {/* Contenido dinámico según la pestaña activa */}
       <div className="w-full">
         {activeSubTab === 'inventario' && <InventarioRodeosTab />}
-        {activeSubTab === 'transferir' && <TransferirAnimalesTab />}
-        {activeSubTab === 'movimientos' && <HistMovimientoTab />}
-        {activeSubTab === 'parametros' && <ParametrosTamboTab />}
-        {activeSubTab === 'control' && <ControlLecheroTab />}
-        {activeSubTab === 'productos' && <ProductosDestinoTab />}
+        {activeSubTab === 'rodeos-cards' && <HerdInventoryPage />}
+        {activeSubTab === 'animales-tabla' && <AnimalInventoryPage />}
+        {/* {activeSubTab === 'movimientos' && <HistMovimientoTab />} */}
+        {/* {activeSubTab === 'parametros' && <ParametrosTamboTab />} */}
+        {/* {activeSubTab === 'control' && <ControlLecheroTab />} */}
+        {/* {activeSubTab === 'productos' && <ProductosDestinoTab />} */}
       </div>
     </div>
   )

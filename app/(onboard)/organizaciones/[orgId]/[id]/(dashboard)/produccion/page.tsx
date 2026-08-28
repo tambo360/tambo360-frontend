@@ -112,22 +112,7 @@ const Produccion: React.FC = () => {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="secondary"
-            className="flex items-center gap-2 h-12 w-40"
-            disabled={isPending || (data?.data.lotes.length === 0 && !error)}
-            asChild
-          >
-            <Link
-              href="produccion/lote/nuevo"
-              className="flex items-center gap-2"
-            >
-              Descargar Reporte
-            </Link>
-          </Button>
-
-          <Button
-            className="flex items-center gap-2 h-12 w-40"
-            variant="darkGreen"
+            className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
             onClick={() => setIsChangeBatchOpen(true)}
           >
             Registrar lote <Plus className="w-5 h-5" />
@@ -138,11 +123,11 @@ const Produccion: React.FC = () => {
       <Card className="border-gray-200 shadow-sm overflow-hidden rounded-2xl bg-white gap-0 py-0">
         <CardHeader className="border-b border-gray-100 bg-white p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex flex-col gap-3">
-              <CardTitle className="text-lg font-bold">
+            <div className="flex flex-col gap-1">
+              <CardTitle className="text-lg font-bold text-gray-900">
                 Listado de lotes
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="capitalize">
                 {new Date().toLocaleDateString('es-ES', {
                   month: 'long',
                   year: 'numeric',
@@ -171,7 +156,7 @@ const Produccion: React.FC = () => {
               <Button
                 variant="outline"
                 size="icon"
-                className="border-gray-200 bg-gray-50 rounded-lg"
+                className="border-gray-200 bg-gray-50 rounded-lg h-10 w-10"
                 onClick={toggleOrden}
                 title={
                   orden === 'asc' ? 'Orden ascendente' : 'Orden descendente'
@@ -189,44 +174,37 @@ const Produccion: React.FC = () => {
 
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-tables">
+            <TableHeader className="bg-gray-50/60">
               <TableRow>
-                <TableHead className="w-[8%] text-center font-bold text-gray-400 uppercase text-xs tracking-wider">
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider pl-6">
                   Lote
                 </TableHead>
-                <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                   Fecha
                 </TableHead>
-                <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Turno
+                </TableHead>
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                   Producto
                 </TableHead>
-                <TableHead className="w-[13%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Cantidad
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Cantidad (L)
                 </TableHead>
-                <TableHead className="w-[13%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  TemperaturaA(°C)
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Temperatura (°C)
                 </TableHead>
-
-                {/*
-                  TODO (pendiente de backend):
-                  Figma también pide columnas "Turno" y "Tipo de Rodeo".
-                  - "Turno": no existe el campo en el modelo LoteProduccion (prisma/schema.prisma).
-                    Falta que backend lo agregue a la tabla y al endpoint /lote/listar.
-                  - "Tipo de Rodeo" (batch.rodeo.label): el campo idRodeo existe en el modelo,
-                    pero la relación "rodeo" no está incluida en el include de listarLotes()
-                    (src/services/batchService.ts). Falta que backend agregue `rodeo: true`
-                    al include de esa consulta.
-                  No se agregan estas columnas todavía para no mostrar datos undefined.
-                */}
-
-                <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Merma
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Tipo de Rodeo
                 </TableHead>
-                <TableHead className="w-[10%] text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Merma (L)
+                </TableHead>
+                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                   Estado
                 </TableHead>
-                <TableHead className="w-[5%] pr-6 pl-4 text-right font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Acción
+                <TableHead className="pr-6 text-right font-bold text-gray-400 uppercase text-xs tracking-wider">
+                  Acciones
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -235,55 +213,67 @@ const Produccion: React.FC = () => {
                 ? Array.from({ length: 6 }).map((_, i) => (
                     <TableRow key={i} className="animate-pulse">
                       <TableCell>
-                        <div className="h-4 w-10 bg-gray-200 rounded" />
+                        <div className="h-4 w-12 bg-gray-200 rounded" />
                       </TableCell>
-
                       <TableCell>
                         <div className="h-4 w-20 bg-gray-200 rounded" />
                       </TableCell>
-
                       <TableCell>
-                        <div className="h-4 w-32 bg-gray-200 rounded" />
+                        <div className="h-5 w-16 bg-gray-200 rounded-md" />
                       </TableCell>
-
                       <TableCell>
-                        <div className="h-4 w-16 bg-gray-200 rounded" />
+                        <div className="h-4 w-28 bg-gray-200 rounded" />
                       </TableCell>
-
                       <TableCell>
-                        <div className="h-4 w-20 bg-gray-200 rounded" />
+                        <div className="h-4 w-14 bg-gray-200 rounded" />
                       </TableCell>
-
                       <TableCell>
                         <div className="h-4 w-12 bg-gray-200 rounded" />
                       </TableCell>
-
+                      <TableCell>
+                        <div className="h-4 w-20 bg-gray-200 rounded" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="h-4 w-14 bg-gray-200 rounded" />
+                      </TableCell>
                       <TableCell>
                         <div className="h-6 w-20 bg-gray-200 rounded-full" />
                       </TableCell>
-
-                      <TableCell className="text-center">
-                        <div className="h-8 w-8 bg-gray-200 rounded mx-auto" />
+                      <TableCell className="text-right">
+                        <div className="h-8 w-8 bg-gray-200 rounded ml-auto" />
                       </TableCell>
                     </TableRow>
                   ))
                 : data?.data.lotes.length > 0 &&
                   !error &&
                   data?.data?.lotes.map((batch: Lote) => {
-                    const loteDisplay = `#${String(batch.numeroLote).padStart(3, '0')}`
+                    const loteDisplay = `L-${String(batch.numeroLote).padStart(4, '0')}`
                     const closingStatus = getClosingStatus(
                       batch.fechaProduccion
                     )
+
+                    const turnoText = (batch as any).turno || 'Mañana'
+                    const rodeoText =
+                      (batch as any).rodeo?.label ||
+                      batch.idRodeo ||
+                      'Rodeo Alto'
+
                     return (
-                      <TableRow key={batch.idLote}>
-                        <TableCell className="text-center">
+                      <TableRow
+                        key={batch.idLote}
+                        className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
+                      >
+                        <TableCell className="text-left pl-6 font-medium text-gray-900">
                           <HighlightMatch
                             text={loteDisplay}
                             query={highlightQuery}
                           />
                         </TableCell>
 
-                        <TableCell suppressHydrationWarning>
+                        <TableCell
+                          className="text-gray-600 text-sm"
+                          suppressHydrationWarning
+                        >
                           {batch.fechaProduccion
                             ? batch.fechaProduccion
                                 .slice(0, 10)
@@ -294,7 +284,23 @@ const Produccion: React.FC = () => {
                         </TableCell>
 
                         <TableCell>
-                          <Link href={`produccion/lote/${batch.idLote}`}>
+                          <Badge
+                            variant="outline"
+                            className={`border-0 text-white font-medium text-xs px-2.5 py-1 rounded-md ${
+                              turnoText.toLowerCase() === 'noche'
+                                ? 'bg-[#535C68]'
+                                : 'bg-[#6AB04C]'
+                            }`}
+                          >
+                            {turnoText}
+                          </Badge>
+                        </TableCell>
+
+                        <TableCell className="font-medium">
+                          <Link
+                            href={`produccion/lote/${batch.idLote}`}
+                            className="hover:underline text-gray-900"
+                          >
                             <HighlightMatch
                               text={
                                 batch.producto?.nombre || 'Producto desconocido'
@@ -304,18 +310,22 @@ const Produccion: React.FC = () => {
                           </Link>
                         </TableCell>
 
-                        <TableCell className="truncate">
-                          {Number(batch.cantidad).toLocaleString('es-AR')}{' '}
-                          {batch.unidad}
+                        <TableCell className="text-gray-600">
+                          {Number(batch.cantidad).toLocaleString('es-AR')}
                         </TableCell>
 
-                        <TableCell className="truncate">
+                        <TableCell className="text-gray-600">
                           {batch.tempTanque ?? 'N/A'}
                         </TableCell>
 
-                        <TableCell className="truncate">
+                        <TableCell className="text-gray-600 font-medium">
+                          {rodeoText}
+                        </TableCell>
+
+                        <TableCell className="text-gray-600">
                           <Link
                             href={`produccion/lote/${batch.idLote}/#mermas`}
+                            className="hover:underline"
                           >
                             {batch.mermas
                               ?.reduce((total, m) => {
@@ -325,47 +335,36 @@ const Produccion: React.FC = () => {
                                     : (m.cantidad ?? 0)
                                 return total + qty
                               }, 0)
-                              .toLocaleString('es-AR') +
-                              ' ' +
-                              batch.unidad}
+                              .toLocaleString('es-AR') ?? '0'}
                           </Link>
                         </TableCell>
-
-                        {/*
-                          TODO: columna "Costo" oculta para calzar con el Figma
-                          (que no la muestra en el listado). El dato sigue disponible
-                          en batch.costosDirectos por si se necesita reactivar,
-                          y también se puede ver en el detalle del lote (#costos).
-                        */}
 
                         <TableCell>
                           <Tooltip open={batch.estado ? false : undefined}>
                             <TooltipTrigger asChild>
                               <Button
                                 variant="ghost"
-                                className={`${batch.estado ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                className="p-0 h-auto hover:bg-transparent"
                                 onClick={() => {
                                   if (batch.estado) return
                                   setSelectedBatch(batch)
                                   setIsCompleteBatchOpen(true)
                                 }}
-                                size="xs"
                                 disabled={batch.estado}
                                 asChild
                               >
-                                <Badge
-                                  variant={
-                                    batch.estado ? 'success' : 'destructive'
-                                  }
-                                  className={`flex items-center gap-1 text-black font-bold ${batch.estado ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                >
-                                  {!batch.estado && (
-                                    <span
-                                      className={`size-2 rounded-full ${closingStatus.color}`}
-                                    />
-                                  )}
-                                  {batch.estado ? 'Completo' : 'Incompleto'}
-                                </Badge>
+                                <div className="inline-flex items-center gap-1.5 cursor-pointer">
+                                  <span
+                                    className={`size-2.5 rounded-full ${
+                                      batch.estado
+                                        ? 'bg-emerald-500'
+                                        : 'bg-rose-500'
+                                    }`}
+                                  />
+                                  <span className="text-xs font-semibold text-gray-700">
+                                    {batch.estado ? 'Completado' : 'Incompleto'}
+                                  </span>
+                                </div>
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -374,21 +373,25 @@ const Produccion: React.FC = () => {
                           </Tooltip>
                         </TableCell>
 
-                        <TableCell className="text-center mr-2">
+                        <TableCell className="text-right pr-6">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm">
-                                <Ellipsis />
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                              >
+                                <Ellipsis className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent>
+                            <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuGroup>
-                                <DropdownMenuItem>
+                                <DropdownMenuItem asChild>
                                   <Link
                                     href={`produccion/lote/${batch.idLote}`}
-                                    className="flex items-center gap-2"
+                                    className="flex items-center gap-2 cursor-pointer w-full"
                                   >
-                                    <Eye /> Ver Detalles
+                                    <Eye className="w-4 h-4" /> Ver Detalles
                                   </Link>
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
@@ -400,8 +403,10 @@ const Produccion: React.FC = () => {
                                     setIsCompleteBatchOpen(true)
                                   }}
                                   disabled={batch.estado}
+                                  className="cursor-pointer"
                                 >
-                                  <PackageCheck /> Completar
+                                  <PackageCheck className="w-4 h-4 mr-2" />{' '}
+                                  Completar
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -409,8 +414,9 @@ const Produccion: React.FC = () => {
                                     setIsChangeBatchOpen(true)
                                   }}
                                   disabled={batch.estado}
+                                  className="cursor-pointer"
                                 >
-                                  <Pencil /> Editar
+                                  <Pencil className="w-4 h-4 mr-2" /> Editar
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -418,8 +424,10 @@ const Produccion: React.FC = () => {
                                     setIsChangeDecreaseOpen(true)
                                   }}
                                   disabled={batch.estado}
+                                  className="cursor-pointer"
                                 >
-                                  <DropletOff /> Registrar merma
+                                  <DropletOff className="w-4 h-4 mr-2" />{' '}
+                                  Registrar merma
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   onClick={() => {
@@ -427,13 +435,13 @@ const Produccion: React.FC = () => {
                                     setIsChangeCostOpen(true)
                                   }}
                                   disabled={batch.estado}
+                                  className="cursor-pointer"
                                 >
-                                  <BanknoteArrowUp /> Registrar costo
+                                  <BanknoteArrowUp className="w-4 h-4 mr-2" />{' '}
+                                  Registrar costo
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
-
                               <DropdownMenuSeparator />
-
                               <DropdownMenuGroup>
                                 <DeleteBatch batch={batch} />
                               </DropdownMenuGroup>
@@ -447,42 +455,38 @@ const Produccion: React.FC = () => {
           </Table>
 
           {data?.data.lotes.length === 0 && (
-            <div className="flex flex-col lg:flex-row items-center justify-center py-16 px-6 gap-12 bg-white w-full">
-              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-3xl p-12 text-center max-w-md w-full">
-                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                  <Milk className="w-10 h-10 text-gray-300" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  Tu listado de producción está vacío
-                </h3>
-                <p className="text-sm text-gray-500 leading-relaxed">
-                  Comienza registrando tu primer lote para ver aquí el detalle
-                  de tu producción láctea.
-                </p>
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-6 bg-white w-full">
+              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center">
+                <Milk className="w-10 h-10 text-gray-300" />
               </div>
+              <h3 className="text-lg font-bold text-gray-900">
+                Tu listado de producción está vacío
+              </h3>
+              <p className="text-sm text-gray-500 text-center max-w-sm">
+                Comienza registrando tu primer lote para ver aquí el detalle de
+                tu producción láctea.
+              </p>
             </div>
           )}
 
           {error && (
-            <div className="flex flex-col lg:flex-row items-center justify-center py-16 px-6 gap-12 bg-white w-full">
-              <div className="flex flex-col items-center justify-center rounded-3xl p-12 text-center max-w-md w-full">
-                <div className="w-20 h-20 bg-[#F1F5F9] rounded-md flex items-center justify-center mb-6">
-                  <CloudOff className="w-10 h-10 text-[#94A3B8]" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">
-                  No pudimos cargar los lotes
-                </h3>
-                <p className="text-sm text-[#94A3B8] leading-relaxed">
-                  Hubo un problema al conectar el <br /> servidor. Por favor,
-                  revisa tu conexión a <br /> internet e intenta nuevamente
-                </p>
+            <div className="flex flex-col items-center justify-center py-16 px-6 gap-6 bg-white w-full">
+              <div className="w-20 h-20 bg-slate-100 rounded-md flex items-center justify-center">
+                <CloudOff className="w-10 h-10 text-slate-400" />
               </div>
+              <h3 className="text-lg font-bold text-gray-900">
+                No pudimos cargar los lotes
+              </h3>
+              <p className="text-sm text-slate-400 text-center">
+                Hubo un problema al conectar el servidor. Por favor, revisa tu
+                conexión e intenta nuevamente.
+              </p>
             </div>
           )}
 
-          {!isPending && data?.data.lotes.length > 0 && (
+          {!isPending && (data?.data?.lotes?.length ?? 0) > 0 && (
             <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-500">
                 Página {pagina} de {totalPaginas} · {data?.data.totalLotes ?? 0}{' '}
                 lotes
               </span>

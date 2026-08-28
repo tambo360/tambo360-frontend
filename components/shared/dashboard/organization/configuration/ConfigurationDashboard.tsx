@@ -3,12 +3,14 @@ import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import GeneralTab from '@/components/shared/dashboard/organization/configuration/tabs/GeneralTab'
 import CatalogTab from '@/components/shared/dashboard/organization/configuration/tabs/CatalogTab'
-import TeamTab from '@/components/shared/dashboard/organization/configuration/tabs/TeamTab'
+// TODO: reactivar cuando "Equipo" entre en este lanzamiento
+// import TeamTab from '@/components/shared/dashboard/organization/configuration/tabs/TeamTab'
 
 const TABS = [
   { id: 'general', label: 'General' },
   { id: 'catalogo', label: 'Catálogo' },
-  { id: 'equipo', label: 'Equipo' },
+  // TODO: reactivar cuando "Equipo" entre en este lanzamiento
+  // { id: 'equipo', label: 'Equipo' },
 ]
 
 export default function ConfigurationDashboard() {
@@ -36,7 +38,8 @@ export default function ConfigurationDashboard() {
       <div className="w-full">
         {activeTab === 'general' && <GeneralTab />}
         {activeTab === 'catalogo' && <CatalogTab />}
-        {activeTab === 'equipo' && <TeamTab />}
+        {/* TODO: reactivar cuando "Equipo" entre en este lanzamiento */}
+        {/* {activeTab === 'equipo' && <TeamTab />} */}
       </div>
     </div>
   )

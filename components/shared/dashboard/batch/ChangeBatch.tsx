@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle, ArrowRight, Grid } from 'lucide-react'
+import { AlertCircle, ArrowRight, Check, LayoutDashboard } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -43,6 +43,7 @@ interface ChangeBatchProps {
   batch?: Lote
   cantAnimales?: number
 }
+
 const ChangeBatch = ({
   open,
   onClose,
@@ -130,7 +131,7 @@ const ChangeBatch = ({
         destino: undefined,
       })
     }
-  }, [batch, reset, setValue])
+  }, [batch, reset, setValue, cantAnimales])
 
   const onSubmit = handleSubmit(
     handleSubmitWithConnectionCheck(async (data) => {
@@ -142,7 +143,7 @@ const ChangeBatch = ({
           date.getUTCFullYear(),
         ].join('/')
         const idLote = crypto.randomUUID()
-        const batch = {
+        const newBatch = {
           idProducto: data.idProducto,
           cantidad: data.cantidad,
           unidad: data.unidad,
@@ -154,7 +155,7 @@ const ChangeBatch = ({
           destino: data.destino,
         }
 
-        await mutateAsync(batch)
+        await mutateAsync(newBatch)
         setId(idLote)
         setFinished(true)
       } else {
@@ -190,53 +191,51 @@ const ChangeBatch = ({
       }}
     >
       {finished ? (
-        <DialogContent className="space-y-6">
-          <DialogHeader>
-            <DialogTitle className="text-[32px] font-bold text-black flex justify-center">
-              <img
-                src="/successIcon.svg"
-                alt="success"
-                className="w-36 aspect-square"
-              />
-            </DialogTitle>
+        <DialogContent className="space-y-6 bg-[#E8F5E9] rounded-3xl p-8 shadow-2xl border border-green-100 max-w-md mx-auto text-center">
+          <DialogHeader className="space-y-4">
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="absolute -inset-1 bg-green-200 rounded-full blur-sm opacity-70"></div>
+                <div className="relative w-20 h-20 bg-[#2E7D53] rounded-full flex items-center justify-center shadow-md">
+                  <Check className="w-10 h-10 text-white stroke-[3]" />
+                </div>
+              </div>
+            </div>
 
-            <DialogTitle className="text-[32px] font-bold text-black flex justify-center text-center">
+            <DialogTitle className="text-2xl font-bold tracking-tight text-gray-900">
               {batch
                 ? 'Lote actualizado correctamente'
                 : 'Lote creado correctamente'}
             </DialogTitle>
 
-            {batch ? (
-              <DialogDescription className="text-center text-[16px]">
-                El lote ha sido actualizado exitosamente en <br />
-                el sistema. Ahora puedes gestionar su <br />
-                seguimiento y produccion.
-              </DialogDescription>
-            ) : (
-              <DialogDescription className="text-center text-[16px]">
-                El nuevo lote ha sido registrado exitosamente en <br />
-                el sistema. Ahora puedes gestionar su <br />
-                seguimiento y produccion.
-              </DialogDescription>
-            )}
+            <DialogDescription className="text-sm text-gray-600 leading-relaxed px-2">
+              {batch
+                ? 'El lote ha sido actualizado exitosamente en el sistema. Ahora puedes gestionar su seguimiento y producción.'
+                : 'El nuevo lote ha sido registrado exitosamente en el sistema. Ahora puedes gestionar su seguimiento y producción.'}
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="p-4 space-y-2">
+          <div className="space-y-3 pt-2">
             <Button
               variant="default"
-              className="flex items-center justify-center w-full h-14 text-xl font-bold"
+              className="flex items-center justify-center w-full h-12 text-base font-bold bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl shadow-md transition-all"
               asChild
             >
-              <Link href={pathname + '/lote/' + id} className="block">
+              {/* Conectado con la ruta de detalle utilizando el id generado o del batch */}
+              <Link
+                href={`${pathname.includes('/lote') ? pathname.split('/lote')[0] : pathname}/lote/${id}`}
+                className="flex items-center justify-center gap-2"
+                onClick={onClose}
+              >
                 Ir al detalle del lote
-                <ArrowRight className="ml-2 size-6" />
+                <ArrowRight className="w-5 h-5" />
               </Link>
             </Button>
 
             {!batch && (
               <Button
-                variant="secondary"
-                className="flex items-center justify-center w-full h-14 text-xl font-bold"
+                variant="outline"
+                className="flex items-center justify-center w-full h-12 text-base font-bold bg-white border-gray-300 text-gray-800 hover:bg-gray-50 rounded-xl shadow-sm transition-all"
                 onClick={() => {
                   setFinished(false)
                   reset()
@@ -247,66 +246,59 @@ const ChangeBatch = ({
             )}
           </div>
 
-          <DialogFooter className="flex flex-row justify-center sm:justify-center items-center text-center">
-            <Button variant="ghost" onClick={() => onClose()}>
-              <Grid className="size-5" />
-              <span className="underline">Volver al dashboard</span>
-            </Button>
+          <DialogFooter className="flex justify-center items-center pt-2">
+            <button
+              onClick={() => onClose()}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors underline underline-offset-4"
+            >
+              <LayoutDashboard className="w-4 h-4" />
+              Volver al Dashboard
+            </button>
           </DialogFooter>
         </DialogContent>
       ) : (
-        <DialogContent>
-          <DialogHeader className="border-b p-2">
-            <DialogTitle className="text-[32px] font-bold text-black">
+        <DialogContent className="max-w-lg bg-white rounded-3xl p-6 shadow-xl">
+          <DialogHeader className="border-b pb-4">
+            <DialogTitle className="text-2xl font-bold text-gray-900">
               {batch ? 'Editar lote' : 'Crear nuevo lote'}
             </DialogTitle>
-
-            <DialogDescription>
+            <DialogDescription className="text-xs text-gray-500">
               {batch
                 ? 'Ingresa los nuevos datos para actualizar el lote.'
                 : 'Ingresa los datos para iniciar el seguimiento de producción.'}
             </DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-2" onSubmit={onSubmit}>
+          <form className="space-y-4 pt-2" onSubmit={onSubmit}>
             <div className="flex items-center justify-between gap-2 w-full">
-              {/* Fecha */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Fecha de producción *</Label>
+                <Label className="font-bold text-xs">
+                  Fecha de producción *
+                </Label>
                 <Input
                   type="date"
                   placeholder="dd/mm/aaaa"
+                  className="rounded-xl border-gray-200 bg-gray-50/50"
                   {...register('fechaProduccion')}
                 />
-
                 {errors.fechaProduccion && (
                   <span className="text-xs text-red-600">
                     {errors.fechaProduccion.message}
                   </span>
                 )}
               </div>
-
-              {/*
-                TODO (pendiente de backend): el Figma pide un campo "Hora"
-                junto a la fecha. No existe en BatchSchema (types/batch.ts)
-                ni en el modelo LoteProduccion del backend (prisma/schema.prisma).
-                Falta que backend agregue el campo antes de poder mostrarlo aquí.
-              */}
             </div>
 
-            {/* Rodeo Origen y Volumen Total Bruto */}
             <div className="flex items-center justify-between gap-2 w-full">
-              {/* razas */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Rodeo Origen *</Label>
+                <Label className="font-bold text-xs">Rodeo Origen *</Label>
                 <Select
-                  defaultValue={batch ? batch.rodeo.idRodeo : ''}
+                  defaultValue={batch ? batch.rodeo?.idRodeo : ''}
                   onValueChange={(e) => setValue('idRodeo', e)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
                     <SelectValue placeholder="Selecciona rodeo..." />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectGroup>
                       {herds?.data.data.map((rodeo: Rodeo) => (
@@ -317,7 +309,6 @@ const ChangeBatch = ({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-
                 {errors.idRodeo && (
                   <span className="text-xs text-red-600">
                     {errors.idRodeo.message}
@@ -325,18 +316,17 @@ const ChangeBatch = ({
                 )}
               </div>
 
-              {/* Cantidad producida (Volumen Total Bruto) */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">
+                <Label className="font-bold text-xs">
                   Volumen Total Bruto (Litros) *
                 </Label>
                 <Input
                   type="text"
                   inputMode="decimal"
                   placeholder="0.00"
+                  className="rounded-xl border-gray-200 bg-gray-50/50"
                   {...register('cantidad')}
                 />
-
                 {errors.cantidad && (
                   <span className="text-xs text-red-600">
                     {errors.cantidad.message}
@@ -345,19 +335,16 @@ const ChangeBatch = ({
               </div>
             </div>
 
-            {/* Destino y Temperatura del tanque */}
             <div className="flex items-center justify-between gap-2 w-full">
-              {/* Destino */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Destino *</Label>
+                <Label className="font-bold text-xs">Destino *</Label>
                 <Select
                   value={watch('destino')}
                   onValueChange={(e) => setValue('destino', e as TipoDestino)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
                     <SelectValue placeholder="Selecciona destino..." />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectGroup>
                       {Object.values(TipoDestino).map((destino) => (
@@ -371,7 +358,6 @@ const ChangeBatch = ({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-
                 {errors.destino && (
                   <span className="text-xs text-red-600">
                     {errors.destino.message}
@@ -379,18 +365,17 @@ const ChangeBatch = ({
                 )}
               </div>
 
-              {/* Temperatura del tanque */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">
+                <Label className="font-bold text-xs">
                   Temperatura del tanque (°C) *
                 </Label>
                 <Input
                   type="text"
                   inputMode="decimal"
                   placeholder="4.2"
+                  className="rounded-xl border-gray-200 bg-gray-50/50"
                   {...register('tempTanque')}
                 />
-
                 {errors.tempTanque && (
                   <span className="text-xs text-red-600">
                     {errors.tempTanque.message}
@@ -399,24 +384,16 @@ const ChangeBatch = ({
               </div>
             </div>
 
-            {/*
-              Campos requeridos por BatchSchema que NO aparecen en el Figma.
-              Se dejan agrupados aquí abajo: quitarlos rompería la validación
-              (el formulario nunca podría enviarse). Si el diseño definitivo
-              no los contempla, hay que confirmar con quien diseñó el Figma
-              antes de eliminarlos.
-            */}
             <div className="flex items-center justify-between gap-2 w-full pt-2 border-t">
-              {/* cantidad rodeo */}
               <div className="space-y-2 w-full h-full">
-                <Label className="font-bold">Cantidad de vacas *</Label>
+                <Label className="font-bold text-xs">Cantidad de vacas *</Label>
                 <Input
                   type="text"
                   inputMode="numeric"
                   placeholder="0.00"
+                  className="rounded-xl border-gray-200 bg-gray-50/50"
                   {...register('cantRaza')}
                 />
-
                 {errors.cantRaza && (
                   <span className="text-xs text-red-600">
                     {errors.cantRaza.message}
@@ -425,11 +402,11 @@ const ChangeBatch = ({
               </div>
             </div>
 
-            {/* producto y unidad */}
             <div className="flex items-center justify-between gap-2 w-full">
-              {/* Productos */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Tipo de producción *</Label>
+                <Label className="font-bold text-xs">
+                  Tipo de producción *
+                </Label>
                 <Select
                   value={watch('idProducto')}
                   onValueChange={(e) => {
@@ -445,10 +422,9 @@ const ChangeBatch = ({
                     }
                   }}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
                     <SelectValue placeholder="Selecciona producto..." />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectGroup>
                       {data?.data.map((product: Product) => (
@@ -462,7 +438,6 @@ const ChangeBatch = ({
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-
                 {errors.idProducto && (
                   <span className="text-xs text-red-600">
                     {errors.idProducto.message}
@@ -470,28 +445,24 @@ const ChangeBatch = ({
                 )}
               </div>
 
-              {/* Unidad */}
               <div className="space-y-2 w-full">
-                <Label className="font-bold">Unidad *</Label>
+                <Label className="font-bold text-xs">Unidad *</Label>
                 <Select
                   value={watch('unidad')}
                   onValueChange={(e) => setValue('unidad', e as Unidad)}
                 >
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
                     <SelectValue placeholder="Selecciona unidad..." />
                   </SelectTrigger>
-
                   <SelectContent>
                     <SelectGroup>
                       <SelectItem value={Unidad.KG}>{Unidad.KG}</SelectItem>
-
                       <SelectItem value={Unidad.LITROS}>
                         {Unidad.LITROS}
                       </SelectItem>
                     </SelectGroup>
                   </SelectContent>
                 </Select>
-
                 {errors.unidad && (
                   <span className="text-xs text-red-600">
                     {errors.unidad.message}
@@ -500,15 +471,15 @@ const ChangeBatch = ({
               </div>
             </div>
 
-            <span className="flex items-center gap-2 text-xs">
-              <AlertCircle className="size-5" /> Verifica que los datos sean
-              correctos antes de crear el lote.
+            <span className="flex items-center gap-2 text-xs text-gray-500 pt-1">
+              <AlertCircle className="size-4 text-gray-400 shrink-0" /> Verifica
+              que los datos sean correctos antes de crear el lote.
             </span>
-            <DialogFooter className="flex flex-row gap-2 w-full">
+            <DialogFooter className="flex flex-row gap-3 w-full pt-2">
               <Button
                 type="button"
                 variant="outline"
-                className="flex items-center justify-center w-full h-16 text-xl font-bold"
+                className="flex items-center justify-center w-full h-12 text-base font-bold rounded-xl border-gray-200 text-gray-600"
                 onClick={() => onClose()}
               >
                 Cancelar
@@ -516,11 +487,11 @@ const ChangeBatch = ({
 
               <Button
                 variant="default"
-                className="flex items-center justify-center w-full h-16 text-xl font-bold"
+                className="flex items-center justify-center w-full h-12 text-base font-bold rounded-xl bg-[#1B4D3E] hover:bg-[#153c31] text-white"
                 type="submit"
               >
                 {batch ? 'Actualizar lote' : 'Crear lote'}
-                <ArrowRight className="size-6" />
+                <ArrowRight className="ml-2 size-5" />
               </Button>
             </DialogFooter>
           </form>
