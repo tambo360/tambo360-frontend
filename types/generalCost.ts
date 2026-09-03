@@ -1,7 +1,7 @@
 import z from 'zod'
-import { TipoCostoGeneral } from '@/types/enums'
+import { GeneralCostType } from '@/types/enums'
 
-export const TIPO_COSTO_GENERAL_LABELS: Record<TipoCostoGeneral, string> = {
+export const GENERAL_COST_TYPE_LABELS: Record<GeneralCostType, string> = {
   PERSONAL: 'Personal',
   SERVICIOS: 'Servicios',
   LOGISTICA: 'Logística',
@@ -11,8 +11,8 @@ export const TIPO_COSTO_GENERAL_LABELS: Record<TipoCostoGeneral, string> = {
   OTRO: 'Otro',
 }
 
-export const newGastoSchema = z.object({
-  tipoCosto: z.enum(TipoCostoGeneral, {
+export const newGeneralCostSchema = z.object({
+  tipoCosto: z.enum(GeneralCostType, {
     message: 'Tipo de costo requerido',
   }),
   descripcion: z
@@ -38,9 +38,9 @@ export const newGastoSchema = z.object({
     .refine((v) => !isNaN(Date.parse(v)), 'Fecha no válida'),
 })
 
-export type reqNewGasto = z.infer<typeof newGastoSchema>
+export type CreateNewCostRequest = z.infer<typeof newGeneralCostSchema>
 
-export interface CostoGeneral {
+export interface GeneralCost {
   idCostoGeneral: string
   tipoCosto: string
   descripcion?: string
@@ -50,7 +50,21 @@ export interface CostoGeneral {
   soloLectura?: boolean
 }
 
-export interface PeriodoCostosGenerales {
+export interface GeneralCostPeriod {
   fechaDesde: string
   fechaHasta: string
+}
+
+export const DEFAULT_GENERAL_COST_PERIOD: GeneralCostPeriod = {
+  fechaDesde: '2026-09-01T00:00:00.000Z',
+  fechaHasta: '2026-09-30T00:00:00.000Z',
+}
+
+export interface EconomicSummary {
+  periodo: GeneralCostPeriod
+  gastoAlimentacion: number
+  gastoCostosGenerales: number
+  gastoTotal: number
+  lotesCompletos: number
+  prorrateoPromedio: number
 }

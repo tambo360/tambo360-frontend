@@ -51,8 +51,10 @@ export const costKeys = {
 export const generalCostKeys = {
   all: baseKeys.generalCost,
   lists: () => [...baseKeys.generalCost, 'list'] as const,
-  period: (fechaDesde: string, fechaHasta: string) =>
-    [...baseKeys.generalCost, 'period', fechaDesde, fechaHasta] as const,
+  period: (fromDate: string, toDate: string) =>
+    [...baseKeys.generalCost, 'period', fromDate, toDate] as const,
+  summary: (fromDate: string, toDate: string) =>
+    [...baseKeys.generalCost, 'summary', fromDate, toDate] as const,
   detail: (id: string) => [...baseKeys.generalCost, id] as const,
 }
 

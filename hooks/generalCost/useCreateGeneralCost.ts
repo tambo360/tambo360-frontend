@@ -1,5 +1,5 @@
-import { reqNewGasto } from '@/types/generalCost'
-import { createNewGasto } from '@/utils/api/generalCost.api'
+import { CreateNewCostRequest } from '@/types/generalCost'
+import { createGeneralCost } from '@/utils/api/generalCost.api'
 import { queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
@@ -9,11 +9,10 @@ export function useCreateGeneralCost() {
   return useMutation<
     AxiosResponse,
     AxiosError<{ message: string }>,
-    { values: reqNewGasto }
+    { values: CreateNewCostRequest }
   >({
-    mutationFn: async ({ values }: { values: reqNewGasto }) => {
-      const { data } = await createNewGasto(values)
-      console.log('New general cost created:', data)
+    mutationFn: async ({ values }: { values: CreateNewCostRequest }) => {
+      const { data } = await createGeneralCost(values)
       return data
     },
 

@@ -23,21 +23,21 @@ import { useConnectionError } from '@/hooks/connection/useConnectionError'
 import { useCreateGeneralCost } from '@/hooks/generalCost/useCreateGeneralCost'
 import { useErrorMessage } from '@/hooks/useErrorMessage'
 import {
-  newGastoSchema,
-  reqNewGasto,
-  TIPO_COSTO_GENERAL_LABELS,
+  GENERAL_COST_TYPE_LABELS,
+  newGeneralCostSchema,
+  CreateNewCostRequest,
 } from '@/types/generalCost'
-import { TipoCostoGeneral } from '@/types/enums'
+import { GeneralCostType } from '@/types/enums'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 
-interface RegisterNewGastoProps {
+interface RegisterNewCostProps {
   open: boolean
   onClose: () => void
   onOpen?: () => void
 }
 
-const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
+const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
   const { mutateAsync, isPending } = useCreateGeneralCost()
   const { showErrorMessage } = useErrorMessage()
   const {
@@ -57,7 +57,7 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
     reset,
     formState: { errors, isSubmitting },
   } = useForm({
-    resolver: zodResolver(newGastoSchema),
+    resolver: zodResolver(newGeneralCostSchema),
     defaultValues: {
       tipoCosto: undefined,
       descripcion: '',
@@ -77,7 +77,7 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
 
   const onFormSubmit = handleSubmit(
     handleSubmitWithConnectionCheck(async (data) => {
-      const payload: reqNewGasto = {
+      const payload: CreateNewCostRequest = {
         tipoCosto: data.tipoCosto,
         descripcion: data.descripcion?.trim() || undefined,
         monto: data.monto,
@@ -92,14 +92,17 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
     <>
       <Dialog open={open} onOpenChange={closeDialog}>
         <DialogContent className="w-full max-w-162 bg-white rounded-lg p-0 overflow-hidden gap-0 border-gray-200">
-          <DialogHeader className="px-8 pt-7 pb-2 text-center">
+          <DialogHeader className="px-4 sm:px-8 pt-7 pb-2 text-center">
             <DialogTitle className="text-xl font-extrabold tracking-tight text-gray-900 text-center">
               NUEVO GASTO
             </DialogTitle>
           </DialogHeader>
 
-          <form onSubmit={onFormSubmit} className="px-8 pb-8 pt-4 space-y-5">
-            <div className="grid grid-cols-[1fr_142px] gap-4">
+          <form
+            onSubmit={onFormSubmit}
+            className="px-4 sm:px-8 pb-6 sm:pb-8 pt-4 space-y-5"
+          >
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_142px] gap-4">
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-gray-900">
                   Tipo de gasto
@@ -118,9 +121,9 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          {Object.values(TipoCostoGeneral).map((tipo) => (
-                            <SelectItem key={tipo} value={tipo}>
-                              {TIPO_COSTO_GENERAL_LABELS[tipo]}
+                          {Object.values(GeneralCostType).map((costType) => (
+                            <SelectItem key={costType} value={costType}>
+                              {GENERAL_COST_TYPE_LABELS[costType]}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -240,4 +243,4 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
   )
 }
 
-export default RegisterNewGasto
+export default RegisterNewCost

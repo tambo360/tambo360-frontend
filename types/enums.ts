@@ -70,7 +70,7 @@ export enum TipoCosto {
   OTRO = 'OTRO',
 }
 
-export enum TipoCostoGeneral {
+export enum GeneralCostType {
   LOGISTICA = TipoCosto.LOGISTICA,
   MANTENIMIENTO = TipoCosto.MANTENIMIENTO,
   OTRO = TipoCosto.OTRO,

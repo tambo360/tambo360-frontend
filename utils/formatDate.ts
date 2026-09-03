@@ -19,7 +19,7 @@ const MESES_ES = [
  * no se desplace al día anterior en zonas horarias negativas (ej. UTC-3).
  * Si el valor no es una fecha válida, devuelve el string original.
  */
-export const formatFechaCorta = (iso: string): string => {
+export const formatShortDate = (iso: string): string => {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
   const dia = String(d.getUTCDate()).padStart(2, '0')
