@@ -69,6 +69,16 @@ export enum TipoCosto {
   LOGISTICA = 'LOGISTICA',
   OTRO = 'OTRO',
 }
+
+export enum TipoCostoGeneral {
+  LOGISTICA = TipoCosto.LOGISTICA,
+  MANTENIMIENTO = TipoCosto.MANTENIMIENTO,
+  OTRO = TipoCosto.OTRO,
+  PERSONAL = 'PERSONAL',
+  SERVICIOS = 'SERVICIOS',
+  VETERINARIO = 'VETERINARIO',
+  INMUEBLE = 'INMUEBLE',
+}
 export type RolOrganizacion = 'ORG_OWNER' | 'ORG_ADMIN' | 'MEMBER'
 
 export type RolEstablecimiento = 'OWNER' | 'ADMIN' | 'EMPLOYEE'

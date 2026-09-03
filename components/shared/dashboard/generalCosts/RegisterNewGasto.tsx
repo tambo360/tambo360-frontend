@@ -22,7 +22,12 @@ import { ConnectionErrorModal } from '@/components/ConnectionErrorModal'
 import { useConnectionError } from '@/hooks/connection/useConnectionError'
 import { useCreateGeneralCost } from '@/hooks/generalCost/useCreateGeneralCost'
 import { useErrorMessage } from '@/hooks/useErrorMessage'
-import { newGastoSchema, reqNewGasto } from '@/types/generalCost'
+import {
+  newGastoSchema,
+  reqNewGasto,
+  TIPO_COSTO_GENERAL_LABELS,
+} from '@/types/generalCost'
+import { TipoCostoGeneral } from '@/types/enums'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 
@@ -113,17 +118,11 @@ const RegisterNewGasto = ({ open, onClose, onOpen }: RegisterNewGastoProps) => {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectGroup>
-                          <SelectItem value="PERSONAL">Personal</SelectItem>
-                          <SelectItem value="SERVICIOS">Servicios</SelectItem>
-                          <SelectItem value="LOGISTICA">Logística</SelectItem>
-                          <SelectItem value="MANTENIMIENTO">
-                            Mantenimiento
-                          </SelectItem>
-                          <SelectItem value="VETERINARIO">
-                            Veterinario
-                          </SelectItem>
-                          <SelectItem value="INMUEBLE">Inmueble</SelectItem>
-                          <SelectItem value="OTRO">Otro</SelectItem>
+                          {Object.values(TipoCostoGeneral).map((tipo) => (
+                            <SelectItem key={tipo} value={tipo}>
+                              {TIPO_COSTO_GENERAL_LABELS[tipo]}
+                            </SelectItem>
+                          ))}
                         </SelectGroup>
                       </SelectContent>
                     </Select>

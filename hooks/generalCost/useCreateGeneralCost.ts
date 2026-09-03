@@ -19,7 +19,7 @@ export function useCreateGeneralCost() {
 
     onMutate: async () => {
       await queryClient.cancelQueries({
-        queryKey: queryKeys.generalCost.lists(),
+        queryKey: queryKeys.generalCost.all,
       })
       const previous = queryClient.getQueryData(queryKeys.generalCost.lists())
       return { previous }
@@ -27,7 +27,7 @@ export function useCreateGeneralCost() {
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.generalCost.lists(),
+        queryKey: queryKeys.generalCost.all,
       })
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.current(),

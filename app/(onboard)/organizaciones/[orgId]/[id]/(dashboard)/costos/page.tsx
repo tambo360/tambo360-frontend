@@ -22,17 +22,25 @@ import {
   TableCell,
 } from '@/components/ui/table'
 import RegisterNewGasto from '@/components/shared/dashboard/generalCosts/RegisterNewGasto'
+import { useCostosGenerales } from '@/hooks/generalCost/useCostosGenerales'
+import { CostoGeneral } from '@/types/generalCost'
+import { formatFechaCorta } from '@/utils/formatDate'
+
+const capitalizar = (texto: string): string => {
+  if (!texto) return texto
+  const lower = texto.toLowerCase()
+  return lower.charAt(0).toUpperCase() + lower.slice(1)
+}
 
 export interface GastoGeneral {
   idGasto: string
   fecha: string
-  categoria: string
+  tipoCosto: string
   descripcion: string
   valor: number
 }
 
 interface CostosGeneralesProps {
-  gastos: GastoGeneral[]
   gastoAlimentacion: number
   porcentajeAlimentacionMesAnterior: string
   otrosCostosFijos: number
@@ -45,7 +53,6 @@ interface CostosGeneralesProps {
 }
 
 const CostosGenerales = ({
-  gastos = [],
   gastoAlimentacion = 0,
   porcentajeAlimentacionMesAnterior = '0%',
   otrosCostosFijos = 0,
@@ -57,10 +64,25 @@ const CostosGenerales = ({
   onPaginaSiguiente,
 }: CostosGeneralesProps) => {
   const [openRegister, setOpenRegister] = useState(false)
+  const { data: costosData, isPending: isPendingCostos } = useCostosGenerales()
 
   const onNuevoGastoClick = () => {
     setOpenRegister(true)
   }
+
+  const rawCostos: CostoGeneral[] = Array.isArray(costosData)
+    ? costosData
+    : (costosData?.data ?? [])
+
+  const gastosRows: GastoGeneral[] = rawCostos.map((c) => ({
+    idGasto: c.idCostoGeneral,
+    fecha: formatFechaCorta(c.fecha),
+    tipoCosto: c.tipoCosto,
+    descripcion: c.descripcion ?? '-',
+    valor: c.monto,
+  }))
+  const rows = gastosRows.length > 0 ? gastosRows : []
+  const loading = isLoading || isPendingCostos
 
   return (
     <div className="flex flex-col w-full gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-8 rounded-2xl">
@@ -174,11 +196,11 @@ const CostosGenerales = ({
         </CardHeader>
 
         <CardContent className="p-0">
-          {isLoading ? (
+          {loading ? (
             <div className="flex items-center justify-center py-20 bg-white w-full">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          ) : !gastos || gastos.length === 0 ? (
+          ) : !rows || rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 bg-white w-full text-center">
               <CloudOff className="w-10 h-10 text-gray-300" />
               <p className="text-sm text-gray-400 font-medium">
@@ -194,7 +216,7 @@ const CostosGenerales = ({
                       Fecha
                     </TableHead>
                     <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                      Categoría
+                      Tipo de Gasto
                     </TableHead>
                     <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
                       Descripción
@@ -205,7 +227,7 @@ const CostosGenerales = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {gastos.map((g) => (
+                  {rows.map((g) => (
                     <TableRow
                       key={g.idGasto}
                       className="border-b border-gray-100 hover:bg-gray-50/50"
@@ -214,8 +236,8 @@ const CostosGenerales = ({
                         {g.fecha}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <span className="inline-block bg-[#E2E8F0] text-gray-700 font-semibold px-3 py-1 rounded-full text-[11px]">
-                          {g.categoria}
+                        <span className="inline-block bg-[#29845A80] text-blac font-semibold px-3 py-1 rounded-full text-[11px]">
+                          {capitalizar(g.tipoCosto)}
                         </span>
                       </TableCell>
                       <TableCell className="text-xs font-medium text-gray-600">

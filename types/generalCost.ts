@@ -1,17 +1,20 @@
 import z from 'zod'
+import { TipoCostoGeneral } from '@/types/enums'
 
-export const TIPOS_COSTO = [
-  'PERSONAL',
-  'SERVICIOS',
-  'LOGISTICA',
-  'MANTENIMIENTO',
-  'VETERINARIO',
-  'INMUEBLE',
-  'OTRO',
-]
+export const TIPO_COSTO_GENERAL_LABELS: Record<TipoCostoGeneral, string> = {
+  PERSONAL: 'Personal',
+  SERVICIOS: 'Servicios',
+  LOGISTICA: 'Logística',
+  MANTENIMIENTO: 'Mantenimiento',
+  VETERINARIO: 'Veterinario',
+  INMUEBLE: 'Inmueble',
+  OTRO: 'Otro',
+}
 
 export const newGastoSchema = z.object({
-  tipoCosto: z.enum(TIPOS_COSTO, { message: 'Tipo de costo requerido' }),
+  tipoCosto: z.enum(TipoCostoGeneral, {
+    message: 'Tipo de costo requerido',
+  }),
   descripcion: z
     .string()
     .max(500, 'Máximo 500 caracteres')
@@ -36,3 +39,18 @@ export const newGastoSchema = z.object({
 })
 
 export type reqNewGasto = z.infer<typeof newGastoSchema>
+
+export interface CostoGeneral {
+  idCostoGeneral: string
+  tipoCosto: string
+  descripcion?: string
+  monto: number
+  fecha: string
+  automatico?: boolean
+  soloLectura?: boolean
+}
+
+export interface PeriodoCostosGenerales {
+  fechaDesde: string
+  fechaHasta: string
+}
