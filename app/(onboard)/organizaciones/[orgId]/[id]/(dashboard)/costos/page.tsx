@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   Plus,
   ChevronLeft,
@@ -21,6 +21,7 @@ import {
   TableRow,
   TableCell,
 } from '@/components/ui/table'
+import RegisterNewGasto from '@/components/shared/dashboard/generalCosts/RegisterNewGasto'
 
 export interface GastoGeneral {
   idGasto: string
@@ -39,24 +40,28 @@ interface CostosGeneralesProps {
   porcentajeVar: number
   costoProrrateo: number
   isLoading?: boolean
-  onNuevoGastoClick?: () => void
   onPaginaAnterior?: () => void
   onPaginaSiguiente?: () => void
 }
 
-const CostosGenerales: React.FC<CostosGeneralesProps> = ({
-  gastos,
-  gastoAlimentacion,
-  porcentajeAlimentacionMesAnterior,
-  otrosCostosFijos,
-  porcentajeFijos,
-  porcentajeVar,
-  costoProrrateo,
+const CostosGenerales = ({
+  gastos = [],
+  gastoAlimentacion = 0,
+  porcentajeAlimentacionMesAnterior = '0%',
+  otrosCostosFijos = 0,
+  porcentajeFijos = 0,
+  porcentajeVar = 0,
+  costoProrrateo = 0,
   isLoading = false,
-  onNuevoGastoClick,
   onPaginaAnterior,
   onPaginaSiguiente,
-}) => {
+}: CostosGeneralesProps) => {
+  const [openRegister, setOpenRegister] = useState(false)
+
+  const onNuevoGastoClick = () => {
+    setOpenRegister(true)
+  }
+
   return (
     <div className="flex flex-col w-full gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-8 rounded-2xl">
       {/* TÍTULO PRINCIPAL */}
@@ -247,6 +252,11 @@ const CostosGenerales: React.FC<CostosGeneralesProps> = ({
           )}
         </CardContent>
       </Card>
+
+      <RegisterNewGasto
+        open={openRegister}
+        onClose={() => setOpenRegister(false)}
+      />
     </div>
   )
 }
