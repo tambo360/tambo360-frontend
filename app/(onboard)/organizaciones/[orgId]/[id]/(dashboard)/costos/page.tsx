@@ -51,9 +51,9 @@ interface GeneralCostsProps {
 }
 
 const GeneralCosts = ({
-  previousMonthFoodPct = '0%',
-  fixedPct = 0,
-  variablePct = 0,
+  // previousMonthFoodPct = '0%',
+  // fixedPct = 0,
+  // variablePct = 0,
   isLoading = false,
   onPrevPage,
   onNextPage,
@@ -110,11 +110,11 @@ const GeneralCosts = ({
               $ {foodCostValue?.toLocaleString('es-AR') ?? '0'}
             </h2>
           </div>
-          <div className="mt-4">
+          {/* <div className="mt-4">
             <span className="inline-block bg-[#1B4D3E] text-white text-[11px] font-bold px-3 py-1 rounded-full">
               {previousMonthFoodPct || '0%'}
             </span>
-          </div>
+          </div> */}
         </div>
 
         {/* Tarjeta 2: Otros costos */}
@@ -132,7 +132,7 @@ const GeneralCosts = ({
               $ {generalCostsValue?.toLocaleString('es-AR') ?? '0'}
             </h2>
           </div>
-          <div className="mt-4 flex flex-col gap-2">
+          {/* <div className="mt-4 flex flex-col gap-2">
             <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden flex">
               <div
                 className="bg-gray-400 h-full"
@@ -143,11 +143,11 @@ const GeneralCosts = ({
                 style={{ width: `${variablePct ?? 0}%` }}
               ></div>
             </div>
-            <div className="flex justify-between text-[11px] font-semibold text-gray-400">
+             <div className="flex justify-between text-[11px] font-semibold text-gray-400">
               <span>Fijos {fixedPct ?? 0}%</span>
               <span>Var {variablePct ?? 0}%</span>
             </div>
-          </div>
+          </div> */}
         </div>
 
         {/* Tarjeta 3: Costo Prorrateo (Verde) */}
@@ -164,11 +164,11 @@ const GeneralCosts = ({
               ${prorrateoValue?.toFixed(2) ?? '0.00'}/ Lt
             </h2>
           </div>
-          <div className="absolute right-5 bottom-8 flex items-end gap-1 opacity-20 pointer-events-none">
-            <div className="w-5 h-16 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-12 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-24 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-24 bg-white rounded-t rounded-b"></div>
+          <div className="absolute right-5 bottom-4 flex items-end gap-1 opacity-20 pointer-events-none">
+            <div className="w-5 h-14 bg-white rounded-t rounded-b"></div>
+            <div className="w-5 h-10 bg-white rounded-t rounded-b"></div>
+            <div className="w-5 h-22 bg-white rounded-t rounded-b"></div>
+            <div className="w-5 h-22 bg-white rounded-t rounded-b"></div>
           </div>
         </div>
       </div>
