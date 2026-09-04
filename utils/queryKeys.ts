@@ -6,6 +6,7 @@ export const baseKeys = {
   batch: ['batch'] as const,
   product: ['product'] as const,
   cost: ['cost'] as const,
+  generalCost: ['generalCost'] as const,
   province: ['province'] as const,
   locality: ['locality'] as const,
   decrease: ['decrease'] as const,
@@ -45,6 +46,16 @@ export const costKeys = {
   all: baseKeys.cost,
   lists: () => [...baseKeys.cost, 'list'] as const,
   detail: (id: string) => [...baseKeys.cost, id] as const,
+}
+
+export const generalCostKeys = {
+  all: baseKeys.generalCost,
+  lists: () => [...baseKeys.generalCost, 'list'] as const,
+  period: (fromDate: string, toDate: string) =>
+    [...baseKeys.generalCost, 'period', fromDate, toDate] as const,
+  summary: (fromDate: string, toDate: string) =>
+    [...baseKeys.generalCost, 'summary', fromDate, toDate] as const,
+  detail: (id: string) => [...baseKeys.generalCost, id] as const,
 }
 
 export const provinceKeys = {
@@ -118,6 +129,7 @@ export const queryKeys = {
   batch: batchKeys,
   product: productKeys,
   cost: costKeys,
+  generalCost: generalCostKeys,
   province: provinceKeys,
   locality: localityKeys,
   decrease: decreaseKeys,
