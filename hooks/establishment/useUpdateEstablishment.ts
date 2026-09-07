@@ -1,13 +1,18 @@
-import { updateEstablishmentName } from '@/utils/api/establishment.api'
+import { updateEstablishment } from '@/utils/api/establishment.api'
+import { UpdateEstablishmentPayload } from '@/types/establishment'
 import { queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 
-export function useUpdateEstablishmentName() {
+export function useUpdateEstablishment() {
   const queryClient = useQueryClient()
-  return useMutation<AxiosResponse, AxiosError<{ message: string }>, string>({
-    mutationFn: async (name: string) => {
-      const { data } = await updateEstablishmentName({ nombre: name })
+  return useMutation<
+    AxiosResponse,
+    AxiosError<{ message: string }>,
+    UpdateEstablishmentPayload
+  >({
+    mutationFn: async (payload: UpdateEstablishmentPayload) => {
+      const { data } = await updateEstablishment(payload)
       return data
     },
 
