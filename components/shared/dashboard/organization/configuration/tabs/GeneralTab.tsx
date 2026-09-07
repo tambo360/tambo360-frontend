@@ -1,8 +1,12 @@
 'use client'
-import { Info, AlertTriangle, Crosshair } from 'lucide-react'
+import { useMemo } from 'react'
+import { Info } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useEstablishmentForm } from '@/hooks/establishment/useEstablishmentForm'
+import { useProvince } from '@/hooks/ubication/useProvince'
+import { useLocality } from '@/hooks/ubication/useLocality'
 import { Label } from '@/components/ui/label'
+import { TipoOrdenie } from '@/types/enums'
 import {
   Select,
   SelectContent,
@@ -11,19 +15,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const CUENCA_LECHERA_OPTIONS = [
-  'Cuenca Oeste',
-  'Cuenca Abasto',
-  'Cuenca Mar y Sierras',
-  'Cuenca Norte',
-]
+// const CUENCA_LECHERA_OPTIONS = [
+//   'Cuenca Oeste',
+//   'Cuenca Abasto',
+//   'Cuenca Mar y Sierras',
+//   'Cuenca Norte',
+// ]
 
-const TIPO_ORDENE_OPTIONS = [
-  'Espina de Pescado',
-  'Rotativo',
-  'En Tándem',
-  'Brete Individual',
-]
+const formatTipoOrdenieLabel = (value: string) =>
+  value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 
 export default function GeneralTab() {
   const {
@@ -34,14 +34,20 @@ export default function GeneralTab() {
     errors,
     isPending,
     isLoading,
-    geoError,
-    isGettingLocation,
-    handleGetLocation,
     onSubmit,
   } = useEstablishmentForm()
 
-  const cuencaLechera = watch('cuencaLechera')
+  // const cuencaLechera = watch('cuencaLechera')
   const tipoOrdene = watch('tipoOrdenie')
+  const provincia = watch('provincia')
+  const localidad = watch('localidad')
+
+  const { data: province } = useProvince({ name: '' })
+  const idProvince = useMemo(
+    () => province?.provincias.find((p) => p.nombre === provincia)?.id,
+    [provincia, province]
+  )
+  const { data: locality } = useLocality({ id: idProvince, search: '' })
 
   if (isLoading) {
     return (
@@ -52,7 +58,7 @@ export default function GeneralTab() {
   }
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto p-4 bg-[#F8FAFC]">
+    <div className="w-full max-w-250 mx-auto p-4 bg-[#F8FAFC]">
       {/* Encabezado Principal */}
       <div className="mb-8">
         <h1 className="text-[28px] font-bold text-black tracking-tight">
@@ -100,7 +106,7 @@ export default function GeneralTab() {
             </div>
 
             {/* Campo: Cuenca Lechera */}
-            <div className="flex flex-col gap-1.5">
+            {/* <div className="flex flex-col gap-1.5">
               <Label className="text-xs font-medium text-gray-700">
                 Cuenca Lechera
               </Label>
@@ -121,7 +127,7 @@ export default function GeneralTab() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             {/* Campo: Tipo de Ordeñe */}
             <div className="flex flex-col gap-1.5">
@@ -135,65 +141,132 @@ export default function GeneralTab() {
                 }
               >
                 <SelectTrigger className="h-10 w-full bg-[#F1F3F5] text-sm text-black border-gray-200/80 shadow-none">
-                  <SelectValue placeholder="Espina de Pescado" />
+                  <SelectValue placeholder="Seleccione una" />
                 </SelectTrigger>
                 <SelectContent>
-                  {TIPO_ORDENE_OPTIONS.map((t) => (
+                  {Object.values(TipoOrdenie).map((t) => (
                     <SelectItem key={t} value={t}>
-                      {t}
+                      {formatTipoOrdenieLabel(t)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Campo: Geolocalización con botón arriba */}
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
+            {/* Campos: Ordeñes por día y Promedio de litros */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
                 <Label className="text-xs font-medium text-gray-700">
-                  Geolocalización
+                  Ordeñes por día
                 </Label>
-                <button
-                  type="button"
-                  onClick={handleGetLocation}
-                  disabled={isGettingLocation}
-                  className="flex items-center gap-2 text-sm font-medium text-white bg-[#6A9412] hover:bg-[#587B0E] px-4 py-2 rounded-xl transition-colors shrink-0 font-sans shadow-none"
-                >
-                  <Crosshair
-                    className={cn(
-                      'w-4 h-4 text-white',
-                      isGettingLocation && 'animate-spin'
-                    )}
-                  />
-                  <span className="tracking-wide text-[14px]">
-                    {isGettingLocation ? 'Obteniendo...' : 'Usar mi ubicación'}
-                  </span>
-                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={3}
+                  {...register('ordenie_dia', { valueAsNumber: true })}
+                  placeholder="2"
+                  className={cn(
+                    'h-10 w-full px-3 rounded-lg border text-sm outline-none bg-[#F1F3F5] text-black transition-colors',
+                    errors.ordenie_dia
+                      ? 'border-red-500'
+                      : 'border-gray-200/80 focus:border-lime-600'
+                  )}
+                />
+                {errors.ordenie_dia && (
+                  <p className="text-xs font-medium text-[#E11D48]">
+                    {errors.ordenie_dia.message}
+                  </p>
+                )}
               </div>
 
-              <input
-                {...register('geolocalizacion')}
-                placeholder="-34.6037, -58.3816"
-                className={cn(
-                  'h-10 w-full px-3 rounded-lg border text-sm outline-none bg-[#F1F3F5] text-gray-700',
-                  geoError ? 'border-red-300' : 'border-gray-200/80'
-                )}
-              />
-
-              {/* Banner de error de Geolocalización (image_36b9ff.png) */}
-              {geoError && (
-                <div className="flex items-start gap-2 bg-[#FCE8E6] border border-[#F8D7DA] rounded-lg p-3 mt-1">
-                  <AlertTriangle
-                    size={16}
-                    className="text-[#DF2121] shrink-0 mt-0.5"
-                  />
-                  <p className="text-[11px] font-bold text-[#DF2121] leading-normal">
-                    No se pudo obtener la ubicación automáticamente. Por favor
-                    ingrese las coordenadas manualmente para asegurar la
-                    precisión del mapa
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-xs font-medium text-gray-700">
+                  Promedio de litros
+                </Label>
+                <input
+                  type="number"
+                  min={0}
+                  step={0.1}
+                  {...register('promLitros', { valueAsNumber: true })}
+                  placeholder="24.5"
+                  className={cn(
+                    'h-10 w-full px-3 rounded-lg border text-sm outline-none bg-[#F1F3F5] text-black transition-colors',
+                    errors.promLitros
+                      ? 'border-red-500'
+                      : 'border-gray-200/80 focus:border-lime-600'
+                  )}
+                />
+                {errors.promLitros && (
+                  <p className="text-xs font-medium text-[#E11D48]">
+                    {errors.promLitros.message}
                   </p>
-                </div>
-              )}
+                )}
+              </div>
+            </div>
+
+            {/* Campos: Provincia y Localidad */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm font-medium text-black text-center">
+                  Provincia
+                </Label>
+                <Select
+                  value={provincia}
+                  onValueChange={(val) => {
+                    setValue('provincia', val)
+                    setValue('localidad', '')
+                  }}
+                >
+                  <SelectTrigger className="h-10 w-full bg-white rounded-full border-slate-300 text-sm text-gray-500 shadow-none">
+                    <SelectValue placeholder="Seleccione una" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {province?.provincias.map((p) => (
+                      <SelectItem key={p.id} value={p.nombre}>
+                        {p.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.provincia && (
+                  <p className="text-xs font-medium text-[#E11D48]">
+                    {errors.provincia.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <Label className="text-sm font-medium text-black text-center">
+                  Localidad
+                </Label>
+                <Select
+                  value={localidad}
+                  disabled={!provincia}
+                  onValueChange={(val) => setValue('localidad', val)}
+                >
+                  <SelectTrigger className="h-10 w-full bg-white rounded-full border-slate-300 text-sm text-gray-500 shadow-none">
+                    <SelectValue
+                      placeholder={
+                        provincia
+                          ? 'Seleccione una'
+                          : 'Primero seleccione una provincia'
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {locality?.municipios.map((l) => (
+                      <SelectItem key={l.id} value={l.nombre}>
+                        {l.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {errors.localidad && (
+                  <p className="text-xs font-medium text-[#E11D48]">
+                    {errors.localidad.message}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
@@ -220,7 +293,7 @@ export default function GeneralTab() {
         <div className="flex items-center justify-center gap-4 mt-12 pt-4">
           <button
             type="button"
-            className="w-[160px] h-10 text-xs font-bold text-white bg-[#94A3B8] rounded-md hover:bg-[#64748B] tracking-wider transition-colors shadow-sm"
+            className="w-40 h-10 text-xs font-bold text-white bg-[#94A3B8] rounded-md hover:bg-[#64748B] tracking-wider transition-colors shadow-sm"
           >
             CANCELAR
           </button>
@@ -228,7 +301,7 @@ export default function GeneralTab() {
           <button
             type="submit"
             disabled={isPending}
-            className="w-[180px] h-10 text-xs font-bold text-white bg-[#65A30D] rounded-md hover:bg-[#4D7C0F] tracking-wider transition-colors shadow-sm"
+            className="w-40 h-10 text-xs font-bold text-white bg-[#65A30D] rounded-md hover:bg-[#4D7C0F] tracking-wider transition-colors shadow-sm"
           >
             {isPending ? 'GUARDANDO...' : 'GUARDAR CAMBIOS'}
           </button>
