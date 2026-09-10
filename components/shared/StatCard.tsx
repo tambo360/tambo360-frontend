@@ -4,7 +4,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 interface StatCardProps {
   title: string
-  value: string
+  value: string | number
   trend?: { value: number; isPositive: boolean } | null
   description?: string
   icon?: React.ReactNode

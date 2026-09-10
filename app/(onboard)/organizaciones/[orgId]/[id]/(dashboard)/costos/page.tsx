@@ -41,23 +41,7 @@ export interface GeneralCostRow {
   amount: number
 }
 
-interface GeneralCostsProps {
-  previousMonthFoodPct: string
-  fixedPct: number
-  variablePct: number
-  isLoading?: boolean
-  onPrevPage?: () => void
-  onNextPage?: () => void
-}
-
-const GeneralCosts = ({
-  // previousMonthFoodPct = '0%',
-  // fixedPct = 0,
-  // variablePct = 0,
-  isLoading = false,
-  onPrevPage,
-  onNextPage,
-}: GeneralCostsProps) => {
+const GeneralCosts = () => {
   const [openRegister, setOpenRegister] = useState(false)
   const { data: costsData, isPending: isCostsPending } = useGeneralCosts()
   const { data: summary } = useGeneralCostsSummary()
@@ -78,7 +62,7 @@ const GeneralCosts = ({
     amount: c.monto,
   }))
   const rows = expenseRows.length > 0 ? expenseRows : []
-  const loading = isLoading || isCostsPending
+  const loading = isCostsPending
   const foodCostValue = summary?.gastoAlimentacion ?? 0
   const prorrateoValue = summary?.prorrateoPromedio ?? 0
   const generalCostsValue = summary?.gastoCostosGenerales ?? 0
@@ -256,7 +240,6 @@ const GeneralCosts = ({
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 rounded-lg border-gray-200"
-                  onClick={onPrevPage}
                 >
                   <ChevronLeft className="w-4 h-4 text-gray-600" />
                 </Button>
@@ -264,7 +247,6 @@ const GeneralCosts = ({
                   variant="outline"
                   size="icon"
                   className="h-8 w-8 rounded-lg border-gray-200"
-                  onClick={onNextPage}
                 >
                   <ChevronRight className="w-4 h-4 text-gray-600" />
                 </Button>

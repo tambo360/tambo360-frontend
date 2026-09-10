@@ -253,10 +253,7 @@ const Produccion: React.FC = () => {
                     )
 
                     const turnoText = (batch as any).turno || 'Mañana'
-                    const rodeoText =
-                      (batch as any).rodeo?.label ||
-                      batch.idRodeo ||
-                      'Rodeo Alto'
+                    const rodeoText = batch.rodeo?.label ?? 'Rodeo Alto'
 
                     return (
                       <TableRow
