@@ -9,9 +9,9 @@ import { PWAInstallToast } from '@/components/shared/PWAInstallToast'
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
 export const metadata: Metadata = {
-  title: 'Tambo360 | Software de Gestión Agropecuaria con IA en Argentina',
+  title: 'Tambo360 QA | Software de Gestión Agropecuaria con IA en Argentina',
   description:
-    'Optimizá la rentabilidad de tu establecimiento con Tambo360. El SaaS de gestión operativa y producción lechera con alertas de IA y modo offline en el lote.',
+    'Optimizá la rentabilidad de tu establecimiento con Tambo360 QA. El SaaS de gestión operativa y producción lechera con alertas de IA y modo offline en el lote.',
   keywords: [
     'software de gestión agropecuaria',
     'gestión de tambos',
