@@ -38,19 +38,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const isAuthenticated = !!user
 
+  const LANDING_PATHS = [
+    '/',
+    '/contacto',
+    '/precios',
+    '/producto',
+    '/nosotros',
+    '/equipo',
+    '/testimonios',
+  ]
+
   const fetchSession = async () => {
-    if (
-      pathname === '/' ||
-      pathname === '' ||
-      pathname === '/contacto' ||
-      pathname === '/precios' ||
-      pathname === '/producto' ||
-      pathname === '/nosotros' ||
-      pathname === '/equipo' ||
-      pathname === '/testimonios'
-    )
+    if (LANDING_PATHS.includes(pathname)) {
+      setUser(null)
       setLoading(false)
-    else setLoading(true)
+      return
+    }
+    setLoading(true)
     try {
       const res = await api.get('/auth/me')
       if (res?.data.data) {
