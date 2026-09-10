@@ -1,6 +1,6 @@
-// apps/frontend/src/hooks/auth/useForgotPassword.ts
 import { useMutation } from '@tanstack/react-query'
-import { forgotPassword } from '../../utils/api/auth.api'
+import { forgotPassword } from '@/utils/api/auth.api'
+import { AxiosError } from 'axios'
 import { toast } from 'sonner'
 
 export const useForgotPassword = () => {
@@ -11,7 +11,7 @@ export const useForgotPassword = () => {
         'Si el correo está registrado, recibirás un enlace de recuperación pronto.'
       )
     },
-    onError: (error: any) => {
+    onError: (error: AxiosError<{ message?: string }>) => {
       const message =
         error.response?.data?.message ||
         'Error al solicitar el restablecimiento'
