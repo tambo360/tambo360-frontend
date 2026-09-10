@@ -33,7 +33,8 @@ const Navbar = () => {
             alt="Logo"
             className="size-12"
           />
-          Tambo<span className="text-[#669213]">360</span> QA
+          Tambo<span className="text-[#669213]">360</span>
+          <span className="ml-2">QA</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-4">
@@ -95,6 +96,7 @@ const Navbar = () => {
                 />
                 <span>
                   Tambo<span className="text-[#669213]">360</span>
+                  <span className="ml-2">QA</span>
                 </span>
               </Link>
 

@@ -88,6 +88,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
                 alt="Tambo360"
                 className="h-6 w-auto"
               />
+              <span className="ml-2 text-sm font-bold tracking-tight">QA</span>
             </div>
           )}
         </div>

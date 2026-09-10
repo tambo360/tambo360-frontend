@@ -98,6 +98,7 @@ const RegisterForm = () => {
         <div className="w-auto flex items-start gap-2">
           <img src="/logos/isotipo_tambo 1.png" alt="logo" className="h-12" />
           <img src="/logotipo 1.png" alt="tambo" className="h-6" />
+          <span className="ml-2 text-xl font-bold tracking-tight">QA</span>
         </div>
         {step === 1 && (
           <div className="space-y-2">
