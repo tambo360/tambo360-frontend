@@ -52,6 +52,7 @@ export enum TipoRodeo {
   ALTA_PRODUCCION = 'ALTA_PRODUCCION',
   BAJA_PRODUCCION = 'BAJA_PRODUCCION',
   VACAS_SECAS = 'VACAS_SECAS',
+  UNICO_ORDENIE = 'UNICO_ORDENIE',
 }
 
 export type ConceptoCosto =

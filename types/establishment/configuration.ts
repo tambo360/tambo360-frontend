@@ -1,9 +1,4 @@
-import {
-  TipoOrdenie,
-  TipoRodeo,
-  TipoSeguimiento,
-  VentaLeche,
-} from '@/types/enums'
+import { TipoOrdenie, TipoRodeo, VentaLeche } from '@/types/enums'
 import z from 'zod'
 
 const rodeoSchema = z.object({
@@ -17,39 +12,21 @@ const rodeoSchema = z.object({
     .positive('El costo de la ración debe ser un número positivo'),
 })
 
-// Construimos un esquema discriminado por `TipoSeguimiento` para validar cada caso
 const baseSchema = z.object({
-  cantVacas: z
-    .number('La cantidad de vacas debe ser un número')
-    .int('La cantidad de vacas debe ser un número entero')
-    .positive('La cantidad de vacas debe ser un número entero positivo'),
-  cantOrdenie: z
+  cantOrdenie: z.coerce
     .number()
-    .int('La cantidad de ordeñes debe ser un número entero')
-    .positive(
-      'La cantidad de ordeñes por día debe ser un número entero positivo'
-    ),
+    .positive('La cantidad de ordeñes por día debe ser un número'),
   tipoOrdenie: z.nativeEnum(TipoOrdenie),
-  promLitros: z
-    .number('El promedio de litros debe ser un número')
-    .positive('El promedio de litros debe ser un número positivo'),
+  promDEL: z.number('El promedio de DEL debe ser un número').positive(),
   ventaLeche: z.nativeEnum(VentaLeche),
-  empleados: z.boolean('El campo de empleados debe ser un booleano'),
-  cantEmpleados: z
+  precioLitro: z.number('El precio por litro debe ser un número').positive(),
+  promLitros: z
     .number()
-    .int('La cantidad de empleados debe ser un número entero')
-    .positive('La cantidad de empleados debe ser un número entero positivo')
-    .optional(),
+    .positive('El promedio de litros debe ser un número positivo'),
   ubicacion: z.object({
     provincia: z.string('La provincia es requerida'),
     localidad: z.string('La localidad es requerida'),
   }),
-})
-
-const rodeoUnicoSchema = z.object({
-  tipoRodeo: z.literal('UNICO'),
-  cantVacas: z.number().int().positive(),
-  costoRacion: z.number().positive(),
 })
 
 const animalSchema = z.object({
@@ -60,45 +37,29 @@ const animalSchema = z.object({
   fechaNacimiento: z.string().optional(),
 })
 
-const schemaRodeo = baseSchema.extend({
-  TipoSeguimiento: z.literal(TipoSeguimiento.RODEO),
-  rodeos: z.array(rodeoSchema).min(1),
-})
+// Tipos que viajan en el seguimiento RODEO. UNICO_ORDENIE pertenece solo
+// al modo INDIVIDUAL (bloque "Rodeo único") y no debe enviarse en RODEO.
+export const TIPOS_SEGUIMIENTO_RODEO = Object.values(TipoRodeo).filter(
+  (tipo) => tipo !== TipoRodeo.UNICO_ORDENIE
+)
 
-const schemaRodeoUnico = baseSchema.extend({
-  TipoSeguimiento: z.literal(TipoSeguimiento.RODEO_UNICO),
-  // Permitimos un único rodeo cuyo tipo no forma parte del enum original
-  rodeos: z.array(rodeoUnicoSchema).length(1),
-})
-
-const schemaIndividual = baseSchema.extend({
-  TipoSeguimiento: z.literal(TipoSeguimiento.INDIVIDUAL),
-  rodeos: z.undefined().optional(),
-  animales: z.array(animalSchema).min(1),
-})
-
-export const configurationSchema = z
-  .discriminatedUnion('TipoSeguimiento', [
-    schemaRodeo,
-    schemaRodeoUnico,
-    schemaIndividual,
-  ])
+export const configurationSchema = baseSchema
+  .extend({
+    rodeos: z.array(rodeoSchema).optional(),
+    animales: z.array(animalSchema).optional(),
+  })
   .superRefine((data, ctx) => {
-    // Validación: si empleados === true, cantEmpleados es obligatorio
-    if (
-      data.empleados &&
-      (data.cantEmpleados === undefined || data.cantEmpleados === null)
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'La cantidad de empleados es requerida si el establecimiento tiene empleados',
-      })
+    // Sin litros válidos no se puede derivar el modo: el error base ya alcanza
+    if (typeof data.promLitros !== 'number' || Number.isNaN(data.promLitros)) {
+      return
     }
+    // Espeja `esRodeoUnico` del formulario: < 2000 → INDIVIDUAL, si no → RODEO
+    const esIndividual = data.promLitros < 2000
 
-    // Validación específica para RODEO: debe existir al menos un rodeo de cada tipo definido en el enum
-    if (data.TipoSeguimiento === TipoSeguimiento.RODEO) {
-      const rodeos = (data as any).rodeos
+    if (!esIndividual) {
+      // RODEO: debe existir al menos un rodeo de cada tipo de seguimiento
+      // RODEO. UNICO_ORDENIE no viaja en este modo.
+      const rodeos = data.rodeos
       if (!rodeos || rodeos.length === 0) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -107,9 +68,8 @@ export const configurationSchema = z
         })
         return
       }
-      const tiposPresentes = new Set(rodeos.map((r: any) => r.tipoRodeo))
-      const todosLosTipos = Object.values(TipoRodeo)
-      for (const tipo of todosLosTipos) {
+      const tiposPresentes = new Set(rodeos.map((r) => r.tipoRodeo))
+      for (const tipo of TIPOS_SEGUIMIENTO_RODEO) {
         if (!tiposPresentes.has(tipo)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
@@ -119,17 +79,41 @@ export const configurationSchema = z
           break
         }
       }
-    }
-
-    // RODEO_UNICO ya validado por length(1) y literal 'UNICO'
-    // INDIVIDUAL no debe tener rodeos
-    if (data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
-      const rodeos = (data as any).rodeos
-      if (rodeos && rodeos.length > 0) {
+      if (tiposPresentes.has(TipoRodeo.UNICO_ORDENIE)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message:
-            'No se deben registrar rodeos cuando el seguimiento es INDIVIDUAL',
+            'El rodeo único no se debe enviar cuando el seguimiento es RODEO',
+        })
+      }
+      // Higiene del payload: en modo RODEO no viajan animales
+      if (data.animales && data.animales.length > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'No se deben registrar animales cuando el seguimiento es RODEO',
+        })
+      }
+    } else {
+      // INDIVIDUAL: se exige exactamente el rodeo único, que el usuario
+      // completa en el bloque "Rodeo único" (tipo fijo UNICO_ORDENIE).
+      // Los animales son obligatorios solo en el camino Aceptar (tabla
+      // del paso 2); con Cancelar no se envían (ausentes) y eso es válido.
+      const rodeos = data.rodeos
+      if (
+        !rodeos ||
+        rodeos.length !== 1 ||
+        rodeos[0]?.tipoRodeo !== TipoRodeo.UNICO_ORDENIE
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Debés completar los datos del rodeo único',
+        })
+      }
+      if (data.animales !== undefined && data.animales.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'La lista de animales no puede estar vacía',
         })
       }
     }
@@ -137,12 +121,16 @@ export const configurationSchema = z
 
 export type ConfigurationData = z.infer<typeof configurationSchema>
 
+// Input del formulario (pre-coerción): `cantOrdenie` llega como string
+// desde los radios. Se usa como primer genérico del `useForm`.
+export type ConfigurationFormInput = z.input<typeof configurationSchema>
+
 export type ConfigurationRequest = Omit<
   ConfigurationData,
   'registrarRodeo' | 'costoRacion'
 > & {
-  TipoSeguimiento: 'RODEO'
-  tipoSeguimiento?: 'RODEO'
+  TipoSeguimiento: 'RODEO' | 'INDIVIDUAL'
+  tipoSeguimiento?: 'RODEO' | 'INDIVIDUAL'
   idEstablecimiento: string
   rodeos: Array<{
     tipoRodeo: string
