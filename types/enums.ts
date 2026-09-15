@@ -17,14 +17,13 @@ export enum TipoSeguimiento {
 enum CategoriaAnimal {
   ORDENE = 'ORDENE',
   SECAS = 'SECAS',
-  PREPARTO = 'PREPARTO',
 }
 
 enum EstadoAnimal {
   MATITIS = 'MASTITIS',
   TRATAMIENTO = 'TRATAMIENTO',
   PREPARTO = 'PREPARTO',
-  DESCARTE = 'DESCARTE',
+  SANO = 'SANO',
 }
 
 export enum TipoMerma {
@@ -53,6 +52,7 @@ export enum TipoRodeo {
   BAJA_PRODUCCION = 'BAJA_PRODUCCION',
   VACAS_SECAS = 'VACAS_SECAS',
   UNICO_ORDENIE = 'UNICO_ORDENIE',
+  UNICO_SECA = 'UNICO_SECA',
 }
 
 export type ConceptoCosto =
@@ -105,6 +105,21 @@ export enum VentaLeche {
   FABRICA_PROPIA = 'fabrica_propia',
   COOPERATIVA = 'cooperativa',
   VARIOS = 'varios',
+  MERCADO_LOCAL = 'mercado_local',
+}
+
+export enum RazasVacas {
+  HOLANDO_ARGENTINO = 'HOLANDO_ARGENTINO',
+  JERSEY = 'JERSEY',
+  PARDO_SUIZO = 'PARDO_SUIZO',
+  GIR_LECHERO = 'GIR_LECHERO',
+  HOLANDO_JERSEY_CRUZA = 'HOLANDO_JERSEY_CRUZA',
+  AYRSHIRE = 'AYRSHIRE',
+  NORMANDO = 'NORMANDO',
+  BROWN_SWISS = 'BROWN_SWISS',
+  MONTBELIARDE = 'MONTBELIARDE',
+  SIMMENTAL_LECHERO = 'SIMMENTAL_LECHERO',
+  OTRAS = 'OTRAS',
 }
 
 export type NivelAlerta = 'bajo' | 'medio' | 'alto'

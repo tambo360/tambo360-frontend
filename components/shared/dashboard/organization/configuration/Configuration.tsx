@@ -3,18 +3,16 @@ import {
   configurationSchema,
   ConfigurationData,
   ConfigurationFormInput,
-  TIPOS_SEGUIMIENTO_RODEO,
 } from '@/types/establishment/configuration'
 import {
   TipoOrdenie,
+  TipoRodeo,
   TipoSeguimiento,
   VentaLeche,
-  TipoRodeo,
 } from '@/types/enums'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { X } from 'lucide-react'
-import { useForm, type UseFormRegister } from 'react-hook-form'
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { FieldErrors, useForm } from 'react-hook-form'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useProvince } from '@/hooks/ubication/useProvince'
 import { useLocality } from '@/hooks/ubication/useLocality'
@@ -29,9 +27,11 @@ import {
 import { Label } from '@/components/ui/label'
 import { useDebounce } from 'use-debounce'
 import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfiguration'
-import { useParams, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
+import RodeoCategoriaCard from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
+import { toast } from 'sonner'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.BALDE, Label: 'Balde' },
@@ -43,13 +43,12 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 ]
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
-  { value: VentaLeche.USINA, label: 'Industria Grande' },
-  { value: VentaLeche.COOPERATIVA, label: 'Cooperativa Lechera' },
-  { value: VentaLeche.FABRICA_PROPIA, label: 'Quesería/ Elaboración propia' },
-  { value: VentaLeche.VARIOS, label: 'Venta directa/Mercado Local' },
+  { value: VentaLeche.USINA, label: 'Usinia' },
+  { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
+  { value: VentaLeche.FABRICA_PROPIA, label: 'Elaboración propia' },
+  { value: VentaLeche.MERCADO_LOCAL, label: 'Mercado Local' },
 ]
 
-// Clase reutilizable para el look "puntico" del radio (aro + relleno al seleccionar)
 const RADIO_DOT_CLASS =
   'appearance-none w-5 h-5 shrink-0 rounded-full border-2 border-slate-300 bg-white ' +
   'checked:border-[#29845A] checked:bg-[#29845A] ' +
@@ -58,219 +57,48 @@ const RADIO_DOT_CLASS =
   'transition-all duration-150 cursor-pointer ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#29845A]'
 
-// Clamp "al tipear": corrige a 0 ni bien el valor baja de 0 y reenvía el
-// evento al onChange de RHF para que el form quede sincronizado.
-// `min={0}` solo frena las flechitas del spinner, no el tipeo manual;
-// el "-" intermedio (NaN) se deja pasar para no pelear el tipeo.
-function clampNegativeToZero(
-  e: ChangeEvent<HTMLInputElement>,
-  rhfOnChange: (e: ChangeEvent<HTMLInputElement>) => void
-) {
-  const n = e.target.valueAsNumber
-  if (e.target.value !== '' && !Number.isNaN(n) && n < 0) {
-    e.target.value = '0'
+// Detecta submits bloqueados por validación (errores "silenciosos"): deja el
+// detalle en consola y muestra un toast con el primer error + conteo.
+// Aplana el árbol de errores de RHF a una lista de mensajes legibles.
+const collectErrorMessages = (
+  errs: FieldErrors<ConfigurationFormInput>
+): string[] => {
+  const messages: string[] = []
+  const walk = (node: unknown) => {
+    if (!node || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      node.forEach(walk)
+      return
+    }
+    const record = node as Record<string, unknown>
+    if (typeof record.message === 'string' && record.message) {
+      messages.push(record.message)
+    }
+    Object.keys(record).forEach((key) => {
+      if (key !== 'message' && key !== 'ref' && key !== 'type') {
+        walk(record[key])
+      }
+    })
   }
-  rhfOnChange(e)
+  walk(errs)
+  return messages
 }
 
-const RAZAS_OPTIONS = [
-  'Holando Argentino',
-  'Jersey',
-  'Pardo Suizo',
-  'Gir Lechero',
-  'Cruzas',
-]
-
-function RodeoCategoriaCard({
-  titulo,
-  register,
-  cantVacasError,
-  costoRacionError,
-}: {
-  titulo: string
-  register?: UseFormRegister<ConfigurationFormInput>
-  cantVacasError?: string
-  costoRacionError?: string
-}) {
-  const [raza, setRaza] = useState('')
-  const [searchRaza, setSearchRaza] = useState('')
-  const [cantidad, setCantidad] = useState('')
-  const [razas, setRazas] = useState<{ raza: string; cantidad: string }[]>([])
-
-  const filteredRazas = useMemo(
-    () =>
-      RAZAS_OPTIONS.filter((r) =>
-        r.toLowerCase().includes(searchRaza.trim().toLowerCase())
-      ),
-    [searchRaza]
-  )
-
-  const handleAgregar = () => {
-    if (!raza || !cantidad) return
-    setRazas((prev) => [...prev, { raza, cantidad }])
-    setRaza('')
-    setSearchRaza('')
-    setCantidad('')
+// Validador de errores silenciosos
+const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
+  const messages = collectErrorMessages(errs)
+  console.warn('[Configuration] submit bloqueado por validación:', errs)
+  if (messages.length === 0) {
+    toast.error('Revisá el formulario: hay campos pendientes', {
+      position: 'top-center',
+    })
+    return
   }
-
-  const handleQuitar = (index: number) => {
-    setRazas((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  // Solo modo único (register definido): separamos el onChange de RHF
-  // para envolverlo con el clamp a 0 sin perder el registro del campo.
-  const cantVacasReg = register?.('rodeos.0.cantVacas', {
-    valueAsNumber: true,
+  const [first, ...rest] = messages
+  toast.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first, {
+    position: 'top-center',
+    duration: 5000,
   })
-  const { onChange: onCantVacasChange, ...cantVacasRest } = cantVacasReg ?? {}
-  const costoRacionReg = register?.('rodeos.0.costoRacion', {
-    valueAsNumber: true,
-  })
-  const { onChange: onCostoRacionChange, ...costoRacionRest } =
-    costoRacionReg ?? {}
-
-  return (
-    <div className="flex flex-col gap-4 w-full lg:w-fit">
-      <h3 className="text-[15px] font-semibold text-slate-900">{titulo}</h3>
-
-      <div className="grid grid-cols-2 items-start gap-3">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label className="flex min-h-8 items-end text-xs leading-tight font-normal wrap-break-words text-slate-900">
-            Cantidad de animales
-          </Label>
-          <Input
-            type="number"
-            min={0}
-            placeholder="000"
-            {...(register && onCantVacasChange
-              ? {
-                  ...cantVacasRest,
-                  onChange: (e: ChangeEvent<HTMLInputElement>) =>
-                    clampNegativeToZero(e, onCantVacasChange),
-                }
-              : {})}
-            className="h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0"
-          />
-          {cantVacasError && (
-            <p className="max-w-40 text-xs wrap-break-words text-red-500">
-              {cantVacasError}
-            </p>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label className="flex min-h-8 items-end text-xs leading-tight font-normal wrap-break-words text-slate-900">
-            Costo de Ración ($/cab/día)
-          </Label>
-          <Input
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="000"
-            {...(register && onCostoRacionChange
-              ? {
-                  ...costoRacionRest,
-                  onChange: (e: ChangeEvent<HTMLInputElement>) =>
-                    clampNegativeToZero(e, onCostoRacionChange),
-                }
-              : {})}
-            className="h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-normal shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0"
-          />
-          {costoRacionError && (
-            <p className="max-w-40 text-xs wrap-break-words text-red-500">
-              {costoRacionError}
-            </p>
-          )}
-        </div>
-      </div>
-
-      <p className="text-[13px] font-normal italic text-slate-400">
-        ¿Qué razas hay en este rodeo?
-      </p>
-
-      <div className="grid grid-cols-[minmax(0,1fr)_64px_auto] items-end gap-2">
-        <div className="flex min-w-0 flex-col gap-1.5">
-          <Label className="text-[13px] font-semibold text-slate-900">
-            Raza
-          </Label>
-          <Combobox
-            onValueChange={(value: string | null) => {
-              const selected = value ?? ''
-              setRaza(selected)
-              setSearchRaza(selected)
-            }}
-          >
-            <ComboboxInput
-              placeholder="Seleccioná una raza"
-              value={searchRaza}
-              onChange={(e) => {
-                const val = e.target.value
-                setSearchRaza(val)
-                if (val === '' || val !== raza) setRaza('')
-              }}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white text-[13px] shadow-none focus-within:border-[#29845A] focus-within:ring-0 [&_input]:bg-transparent [&_input]:text-[13px] [&_input]:text-slate-900 [&_input]:placeholder:text-slate-400"
-            />
-            <ComboboxContent className="border-slate-200 bg-white">
-              {filteredRazas.length === 0 && (
-                <ComboboxEmpty>No se encontraron razas</ComboboxEmpty>
-              )}
-              <ComboboxList>
-                {filteredRazas.map((r) => (
-                  <ComboboxItem
-                    key={r}
-                    value={r}
-                    className="text-[13px] text-slate-900 hover:bg-slate-50"
-                  >
-                    {r}
-                  </ComboboxItem>
-                ))}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <Label className="text-[13px] font-semibold text-slate-900">
-            Cantidad
-          </Label>
-          <Input
-            type="number"
-            min={0}
-            placeholder="000"
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={handleAgregar}
-          className="h-10 shrink-0 cursor-pointer rounded-lg bg-[#218A5B] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a6f49]"
-        >
-          Agregar
-        </button>
-      </div>
-
-      {razas.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {razas.map((item, i) => (
-            <span
-              key={`${item.raza}-${i}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#29845A]/20 bg-white py-1 pr-1.5 pl-3 text-xs font-medium text-slate-700"
-            >
-              {item.raza} · {item.cantidad}
-              <button
-                type="button"
-                onClick={() => handleQuitar(i)}
-                className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                aria-label={`Quitar ${item.raza}`}
-              >
-                <X size={12} />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  )
 }
 
 const Configuration = () => {
@@ -286,12 +114,6 @@ const Configuration = () => {
   const [step, setStep] = useState(1)
   const pathname = usePathname()
   const router = useRouter()
-  const params = useParams()
-
-  const idParam = params?.id
-  const idEstablecimiento = Array.isArray(idParam)
-    ? (idParam[0] ?? '')
-    : (idParam ?? '')
 
   const { data: province } = useProvince({ name: searchP })
   const { data: locality } = useLocality({ id: idProvince, search: searchL })
@@ -307,10 +129,13 @@ const Configuration = () => {
     handleSubmit,
     setValue,
     watch,
-    getValues,
+    clearErrors,
     formState: { errors },
   } = useForm<ConfigurationFormInput, any, ConfigurationData>({
     resolver: zodResolver(configurationSchema),
+    defaultValues: {
+      ubicacion: { provincia: '', localidad: '' },
+    },
   })
 
   const animales = watch('animales')
@@ -320,77 +145,54 @@ const Configuration = () => {
   const lastStep = esRodeoUnico && registrarRodeo ? 2 : 1
 
   useEffect(() => {
-    if (!esRodeoUnico) {
-      // Normalizar: exactamente un rodeo por cada tipo de seguimiento
-      // RODEO (sin UNICO_ORDENIE: no viaja en este modo), preservando
-      // los valores ya presentes. Sin esto el superRefine RODEO
-      // ("uno de cada tipo") bloquea el submit con rodeos heredados
-      // del otro modo.
-      const current = getValues('rodeos') ?? []
-      const byTipo = new Map(current.map((r) => [r.tipoRodeo, r]))
-      const normalized = TIPOS_SEGUIMIENTO_RODEO.map((tipo) => ({
-        tipoRodeo: tipo,
-        cantVacas: byTipo.get(tipo)?.cantVacas ?? 1,
-        costoRacion: byTipo.get(tipo)?.costoRacion ?? 1,
-      }))
-      const same =
-        current.length === normalized.length &&
-        normalized.every(
-          (n, i) =>
-            current[i]?.tipoRodeo === n.tipoRodeo &&
-            current[i]?.cantVacas === n.cantVacas &&
-            current[i]?.costoRacion === n.costoRacion
-        )
-      if (!same) {
-        setValue('rodeos', normalized, { shouldValidate: true })
-      }
-
-      if (getValues('animales') !== undefined) {
-        setValue('animales', undefined)
-      }
-    }
-
-    if (esRodeoUnico) {
-      const current = getValues('rodeos')
-      if (
-        !current ||
-        current.length !== 1 ||
-        current[0]?.tipoRodeo !== TipoRodeo.UNICO_ORDENIE
-      ) {
-        setValue('rodeos', [{ tipoRodeo: TipoRodeo.UNICO_ORDENIE }] as any)
-      }
-
-      if (registrarRodeo === true) {
-        const currentAnimales = getValues('animales')
-        if (!currentAnimales || currentAnimales.length === 0) {
-          setValue('animales', [
-            { codigo: '', nombre: '', categoria: 'ORDENE', estado: 'SANA' },
-          ])
-        }
-      } else {
-        if (getValues('animales') !== undefined) {
-          setValue('animales', undefined)
-        }
-      }
-    }
-  }, [esRodeoUnico, registrarRodeo, setValue, getValues])
-
-  useEffect(() => {
     if (!esRodeoUnico) setRegistrarRodeo(undefined)
 
     if (step > lastStep) setStep(lastStep)
   }, [esRodeoUnico, step, lastStep])
 
+  useEffect(() => {
+    const tipos = esRodeoUnico
+      ? [TipoRodeo.UNICO_ORDENIE, TipoRodeo.UNICO_SECA]
+      : [
+          TipoRodeo.ALTA_PRODUCCION,
+          TipoRodeo.BAJA_PRODUCCION,
+          TipoRodeo.VACAS_SECAS,
+        ]
+    setValue('rodeos', tipos.map((tipoRodeo) => ({ tipoRodeo })) as any)
+    for (let i = 0; i < tipos.length; i++) {
+      setValue(`rodeos.${i}.costoRacion` as const, undefined as any, {
+        shouldDirty: true,
+      })
+      setValue(`rodeos.${i}.razas` as const, undefined as any, {
+        shouldDirty: true,
+      })
+    }
+    tipos.forEach((tipoRodeo, i) => {
+      setValue(`rodeos.${i}.tipoRodeo` as const, tipoRodeo)
+    })
+    clearErrors('rodeos')
+  }, [esRodeoUnico, setValue, clearErrors])
+
   const onSubmit = (data: ConfigurationData) => {
-    const inner = (data as any).data ?? data
     const selectedTipo = esRodeoUnico
       ? TipoSeguimiento.INDIVIDUAL
       : TipoSeguimiento.RODEO
 
+    const rodeosCompletos = (data.rodeos ?? [])
+      .filter((r) => Number.isFinite(r.costoRacion))
+      .map((r) => ({
+        tipoRodeo: r.tipoRodeo,
+        costoRacion: r.costoRacion as number,
+        razas: (r.razas ?? []).map((item) => ({
+          raza: item.raza,
+          cantVacas: item.cantRazaVacas as number,
+        })),
+      }))
+
     const payload = {
       TipoSeguimiento: selectedTipo,
-      idEstablecimiento,
-      ...inner,
+      ...data,
+      rodeos: rodeosCompletos,
     }
 
     console.log('PAYLOAD >>>', payload)
@@ -432,7 +234,10 @@ const Configuration = () => {
         </p>
       </header>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-12">
+      <form
+        onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}
+        className="flex flex-col gap-12"
+      >
         {step == 1 ? (
           <>
             <section className="flex flex-col gap-4 w-fit">
@@ -441,11 +246,9 @@ const Configuration = () => {
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label
-                    className={`font-bold ${errors.ubicacion?.provincia ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
-                  >
+                  <p className="text-[15px] leading-6 text-slate-900">
                     Provincia*
-                  </Label>
+                  </p>
                   <Combobox
                     onValueChange={(id: any) => {
                       const selectedProv = province?.provincias.find(
@@ -458,15 +261,16 @@ const Configuration = () => {
 
                       setSearchProvince(selectedProv.nombre)
 
-                      setValue('ubicacion.provincia', selectedProv.nombre)
+                      setValue('ubicacion.provincia', selectedProv.nombre, {
+                        shouldValidate: true,
+                      })
 
                       setSelectedLocalityName('')
                       setSearchLocality('')
-                      setValue('ubicacion.localidad', '')
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.provincia ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'bg-[#F9F9F7] border-[#D1CFCA]'}`}
+                      className={`h-14 w-full ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder="Seleccione una provincia"
                       value={searchProvince}
                       onChange={(e) => {
@@ -475,7 +279,9 @@ const Configuration = () => {
 
                         if (val === '') {
                           setIdProvince('')
-                          setValue('ubicacion.provincia', '')
+                          setValue('ubicacion.provincia', '', {
+                            shouldValidate: true,
+                          })
                         }
                       }}
                       data-testid="province-combobox-input"
@@ -504,18 +310,16 @@ const Configuration = () => {
                     </ComboboxContent>
                   </Combobox>
                   {errors.ubicacion?.provincia && (
-                    <p className="text-xs font-medium text-[#B91C1C]">
+                    <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.provincia.message}
                     </p>
                   )}
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    className={`font-bold ${errors.ubicacion?.localidad ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
-                  >
+                  <p className="text-[15px] leading-6 text-slate-900">
                     Localidad*
-                  </Label>
+                  </p>
                   <Combobox
                     disabled={!idProvince}
                     onValueChange={(id: any) => {
@@ -528,11 +332,13 @@ const Configuration = () => {
                       setSelectedLocalityName(selectedLoc.nombre)
                       setSearchLocality(selectedLoc.nombre)
 
-                      setValue('ubicacion.localidad', selectedLoc.nombre)
+                      setValue('ubicacion.localidad', selectedLoc.nombre, {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.localidad ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'bg-[#F9F9F7] border-[#D1CFCA]'}`}
+                      className={`h-14 w-full ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder={
                         idProvince
                           ? 'Seleccione una localidad'
@@ -544,7 +350,9 @@ const Configuration = () => {
                         setSearchLocality(val)
                         if (val !== selectedLocalityName) {
                           setSelectedLocalityName('')
-                          setValue('ubicacion.localidad', '')
+                          setValue('ubicacion.localidad', '', {
+                            shouldValidate: true,
+                          })
                         }
                       }}
                       disabled={!idProvince}
@@ -574,12 +382,17 @@ const Configuration = () => {
                     </ComboboxContent>
                   </Combobox>
                   {errors.ubicacion?.localidad && (
-                    <p className="text-xs font-medium text-[#B91C1C]">
+                    <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.localidad.message}
                     </p>
                   )}
                 </div>
               </div>
+              {typeof (errors.ubicacion as any)?.message === 'string' && (
+                <p className="text-xs font-medium text-500">
+                  {(errors.ubicacion as any).message}
+                </p>
+              )}
             </section>
 
             <section className="flex flex-col gap-7">
@@ -622,7 +435,7 @@ const Configuration = () => {
                     <input
                       type="radio"
                       value={value}
-                      {...register('tipoOrdenie', { valueAsNumber: true })}
+                      {...register('tipoOrdenie')}
                       className={RADIO_DOT_CLASS}
                     />
                     {label}
@@ -789,26 +602,50 @@ const Configuration = () => {
               </p>
               <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
                 {(esRodeoUnico
-                  ? ['Rodeo único']
-                  : ['Rodeo Alto', 'Rodeo Bajo', 'Rodeo en seca']
-                ).map((categoria) => (
+                  ? [
+                      {
+                        titulo: 'Rodeo único',
+                        tipo: TipoRodeo.UNICO_ORDENIE,
+                      },
+                      {
+                        titulo: 'Rodeo en seca',
+                        tipo: TipoRodeo.UNICO_SECA,
+                      },
+                    ]
+                  : [
+                      {
+                        titulo: 'Rodeo Alto',
+                        tipo: TipoRodeo.ALTA_PRODUCCION,
+                      },
+                      {
+                        titulo: 'Rodeo Bajo',
+                        tipo: TipoRodeo.BAJA_PRODUCCION,
+                      },
+                      {
+                        titulo: 'Rodeo en seca',
+                        tipo: TipoRodeo.VACAS_SECAS,
+                      },
+                    ]
+                ).map(({ titulo, tipo }, idx) => (
                   <RodeoCategoriaCard
-                    key={categoria}
-                    titulo={categoria}
-                    register={esRodeoUnico ? register : undefined}
-                    cantVacasError={
-                      esRodeoUnico
-                        ? (errors.rodeos as any)?.[0]?.cantVacas?.message
-                        : undefined
-                    }
+                    key={`${titulo}-${tipo}`}
+                    titulo={titulo}
+                    index={idx}
+                    tipoRodeo={tipo}
+                    register={register}
+                    setValue={setValue}
                     costoRacionError={
-                      esRodeoUnico
-                        ? (errors.rodeos as any)?.[0]?.costoRacion?.message
-                        : undefined
+                      (errors.rodeos as any)?.[idx]?.costoRacion?.message
                     }
+                    razasError={(errors.rodeos as any)?.[idx]?.razas?.message}
                   />
                 ))}
               </div>
+              {typeof (errors.rodeos as any)?.message === 'string' && (
+                <p className="text-xs text-red-500">
+                  {(errors.rodeos as any).message}
+                </p>
+              )}
             </section>
           </>
         ) : (
@@ -952,7 +789,7 @@ const Configuration = () => {
                 if (step !== lastStep) {
                   setStep(step + 1)
                 } else {
-                  handleSubmit(onSubmit)()
+                  handleSubmit(onSubmit, handleInvalidSubmit)()
                 }
               }}
             >
