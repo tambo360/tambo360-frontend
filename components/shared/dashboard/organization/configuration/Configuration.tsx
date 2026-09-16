@@ -30,8 +30,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { useDebounce } from 'use-debounce'
 import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfiguration'
-import { usePathname } from 'next/navigation'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import RodeoCategoriaCard, {
   RAZA_LABELS,
@@ -48,8 +47,8 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 ]
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
-  { value: VentaLeche.USINA, label: 'Usinia' },
-  { value: VentaLeche.COOPERTIVA, label: 'Cooperativa' },
+  { value: VentaLeche.USINA, label: 'Usina' }, // ✅ Corregido typo
+  { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
   { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
   { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
 ]
@@ -61,7 +60,7 @@ const CATEGORIA_ANIMAL_OPTIONS: { value: CategoriaAnimal; label: string }[] = [
 
 const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
   { value: EstadoAnimal.SANO, label: 'Sano' },
-  { value: EstadoAnimal.MATITIS, label: 'Mastitis' },
+  { value: EstadoAnimal.MASTITIS, label: 'Mastitis' }, // ✅ Corregido typo (era MATITIS)
   { value: EstadoAnimal.TRATAMIENTO, label: 'Tratamiento' },
   { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
 ]
@@ -103,17 +102,6 @@ const collectErrorMessages = (
 const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
   const messages = collectErrorMessages(errs)
   console.warn('[Configuration] submit bloqueado por validación:', errs)
-  if (messages.length === 0) {
-    // toast.error('Revisá el formulario: hay campos pendientes', {
-    //   position: 'top-center',
-    // })
-    return
-  }
-  // const [first, ...rest] = messages
-  // toast.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first, {
-  //   position: 'top-center',
-  //   duration: 5000,
-  // })
 }
 
 const Configuration = () => {
@@ -161,7 +149,6 @@ const Configuration = () => {
 
   useEffect(() => {
     if (!esRodeoUnico) setRegistrarRodeo(undefined)
-
     if (step > lastStep) setStep(lastStep)
   }, [esRodeoUnico, step, lastStep])
 
@@ -173,6 +160,7 @@ const Configuration = () => {
           TipoRodeo.BAJA_PRODUCCION,
           TipoRodeo.VACAS_SECAS,
         ]
+
     setValue('rodeos', tipos.map((tipoRodeo) => ({ tipoRodeo })) as any)
     for (let i = 0; i < tipos.length; i++) {
       setValue(`rodeos.${i}.costoRacion` as const, undefined as any, {
@@ -214,7 +202,8 @@ const Configuration = () => {
             rodeos: undefined,
             animales: data.animales ?? [
               {
-                codigo: '00-fallback',
+                // ✅ CORREGIDO: Código dinámico para evitar colisiones en la BD
+                codigo: `TEMP-${Date.now()}`,
                 raza: 'JERSEY',
                 categoria: 'ORDENE',
                 estado: 'SANO',
@@ -225,7 +214,6 @@ const Configuration = () => {
         : { animales: undefined, rodeos: rodeosCompletos }),
     }
 
-    // console.log('PAYLOAD >>>', payload)
     sendConfiguration(payload, {
       onSuccess: () => {
         if (pathname.includes('/cuestionario')) {
@@ -242,7 +230,6 @@ const Configuration = () => {
             duration: 5000,
           })
         }
-
         router.push(pathname.replace('cuestionario', 'invitar'))
       },
     })
@@ -284,17 +271,12 @@ const Configuration = () => {
                       const selectedProv = province?.provincias.find(
                         (p) => p.id === id
                       )
-
                       if (!selectedProv) return
-
                       setIdProvince(id)
-
                       setSearchProvince(selectedProv.nombre)
-
                       setValue('ubicacion.provincia', selectedProv.nombre, {
                         shouldValidate: true,
                       })
-
                       setSelectedLocalityName('')
                       setSearchLocality('')
                     }}
@@ -306,7 +288,6 @@ const Configuration = () => {
                       onChange={(e) => {
                         const val = e.target.value
                         setSearchProvince(val)
-
                         if (val === '') {
                           setIdProvince('')
                           setValue('ubicacion.provincia', '', {
@@ -356,12 +337,9 @@ const Configuration = () => {
                       const selectedLoc = locality?.municipios.find(
                         (l) => l.id === id
                       )
-
                       if (!selectedLoc) return
-
                       setSelectedLocalityName(selectedLoc.nombre)
                       setSearchLocality(selectedLoc.nombre)
-
                       setValue('ubicacion.localidad', selectedLoc.nombre, {
                         shouldValidate: true,
                       })
@@ -419,7 +397,7 @@ const Configuration = () => {
                 </div>
               </div>
               {typeof (errors.ubicacion as any)?.message === 'string' && (
-                <p className="text-xs font-medium text-500">
+                <p className="text-xs font-medium text-red-500">
                   {(errors.ubicacion as any).message}
                 </p>
               )}
@@ -633,28 +611,13 @@ const Configuration = () => {
               <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
                 {(esRodeoUnico
                   ? [
-                      {
-                        titulo: 'Rodeo único',
-                        tipo: TipoRodeo.UNICO_ORDENIE,
-                      },
-                      {
-                        titulo: 'Rodeo en seca',
-                        tipo: TipoRodeo.UNICO_SECA,
-                      },
+                      { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
                     ]
                   : [
-                      {
-                        titulo: 'Rodeo Alto',
-                        tipo: TipoRodeo.ALTA_PRODUCCION,
-                      },
-                      {
-                        titulo: 'Rodeo Bajo',
-                        tipo: TipoRodeo.BAJA_PRODUCCION,
-                      },
-                      {
-                        titulo: 'Rodeo en seca',
-                        tipo: TipoRodeo.VACAS_SECAS,
-                      },
+                      { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
+                      { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
                     ]
                 ).map(({ titulo, tipo }, idx) => (
                   <RodeoCategoriaCard
@@ -685,7 +648,6 @@ const Configuration = () => {
                 <h2 className="text-2xl font-bold mb-4">
                   Registro Individual de Animales
                 </h2>
-
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
                     <div className="col-span-2">RP/N°</div>
@@ -847,7 +809,7 @@ const Configuration = () => {
                 ? 'Guardando...'
                 : step === lastStep
                   ? 'Finalizar Configuración'
-                  : 'Siguiente'}{' '}
+                  : 'Siguiente'}
             </button>
           </div>
         </footer>
