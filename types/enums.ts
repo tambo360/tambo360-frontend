@@ -14,17 +14,16 @@ export enum TipoSeguimiento {
   RODEO_UNICO = 'RODEO_UNICO',
 }
 
-enum CategoriaAnimal {
+export enum CategoriaAnimal {
   ORDENE = 'ORDENE',
   SECAS = 'SECAS',
-  PREPARTO = 'PREPARTO',
 }
 
-enum EstadoAnimal {
+export enum EstadoAnimal {
   MATITIS = 'MASTITIS',
   TRATAMIENTO = 'TRATAMIENTO',
   PREPARTO = 'PREPARTO',
-  DESCARTE = 'DESCARTE',
+  SANO = 'SANO',
 }
 
 export enum TipoMerma {
@@ -52,6 +51,8 @@ export enum TipoRodeo {
   ALTA_PRODUCCION = 'ALTA_PRODUCCION',
   BAJA_PRODUCCION = 'BAJA_PRODUCCION',
   VACAS_SECAS = 'VACAS_SECAS',
+  UNICO_ORDENIE = 'UNICO_ORDENIE',
+  UNICO_SECA = 'UNICO_SECA',
 }
 
 export type ConceptoCosto =
@@ -100,10 +101,24 @@ export enum TipoOrdenie {
 }
 
 export enum VentaLeche {
-  USINA = 'usina',
-  FABRICA_PROPIA = 'fabrica_propia',
-  COOPERATIVA = 'cooperativa',
-  VARIOS = 'varios',
+  USINA = 'USINA',
+  COOPERTIVA = 'COOPERTIVA',
+  ELABORACION_PROPIA = 'ELABORACION_PROPIA',
+  VENTA_DIRECTA_MERCADO_LOCAL = 'VENTA_DIRECTA_MERCADO_LOCAL',
+}
+
+export enum RazasVacas {
+  HOLANDO_ARGENTINO = 'HOLANDO_ARGENTINO',
+  JERSEY = 'JERSEY',
+  PARDO_SUIZO = 'PARDO_SUIZO',
+  GIR_LECHERO = 'GIR_LECHERO',
+  HOLANDO_JERSEY_CRUZA = 'HOLANDO_JERSEY_CRUZA',
+  AYRSHIRE = 'AYRSHIRE',
+  NORMANDO = 'NORMANDO',
+  BROWN_SWISS = 'BROWN_SWISS',
+  MONTBELIARDE = 'MONTBELIARDE',
+  SIMMENTAL_LECHERO = 'SIMMENTAL_LECHERO',
+  OTRAS = 'OTRAS',
 }
 
 export type NivelAlerta = 'bajo' | 'medio' | 'alto'
