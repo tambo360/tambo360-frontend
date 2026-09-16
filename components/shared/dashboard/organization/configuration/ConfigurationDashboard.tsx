@@ -18,16 +18,16 @@ export default function ConfigurationDashboard() {
 
   return (
     <div className="flex flex-col gap-6 w-full">
-      <nav className="flex gap-1 border-b border-[#E5E7EB]">
+      <nav className="flex gap-8 border-[#E5E7EB]">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              'px-4 py-2 text-sm font-medium transition-colors rounded-t-md border',
+              'transition-colors -mb-px border-b-2 cursor-pointer',
               activeTab === tab.id
-                ? 'border-[#29845A] text-[#29845A] bg-white -mb-px border-b-white'
-                : 'border-transparent text-[#6B7280] hover:text-[#374151]'
+                ? 'font-bold text-[#29845A] border-[#29845A]'
+                : 'font-normal text-[#6B7280] border-transparent hover:text-[#374151]'
             )}
           >
             {tab.label}

@@ -3,11 +3,9 @@ import {
   NavigationMenu,
   NavigationMenuItem,
   NavigationMenuList,
-  navigationMenuTriggerStyle,
 } from '@/components/ui/navigation-menu'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Separator } from '@/components/ui/separator'
 import { Menu } from 'lucide-react'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
@@ -36,6 +34,7 @@ const Navbar = () => {
             className="size-12"
           />
           Tambo<span className="text-[#669213]">360</span>
+          <span className="ml-2">QA</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-4">
@@ -97,6 +96,7 @@ const Navbar = () => {
                 />
                 <span>
                   Tambo<span className="text-[#669213]">360</span>
+                  <span className="ml-2">QA</span>
                 </span>
               </Link>
 

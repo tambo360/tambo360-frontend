@@ -14,15 +14,8 @@ import { useForgotPassword } from '@/hooks/auth/useForgotPassword'
 import { useResetPassword } from '@/hooks/auth/useResetPassword'
 import { useErrorMessage } from '@/hooks/useErrorMessage'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { AxiosError } from 'axios'
 import Link from 'next/link'
-
-interface ApiError {
-  response?: {
-    data?: {
-      message?: string
-    }
-  }
-}
 
 const EmailSchema = z.object({
   email: z.string().email('Ingresa un correo electrónico válido'),
@@ -94,7 +87,7 @@ const ResetPassword: React.FC = () => {
       setStep(2)
       toast.success('Correo enviado con éxito')
     } catch (err) {
-      const error = err as ApiError
+      const error = err as AxiosError<{ message?: string }>
       showErrorMessage(
         error.response?.data?.message || 'Error al enviar el correo'
       )
@@ -107,7 +100,7 @@ const ResetPassword: React.FC = () => {
       await resetPass({ token, password: data.contraseña })
       setStep(4)
     } catch (err) {
-      const error = err as ApiError
+      const error = err as AxiosError<{ message?: string }>
       showErrorMessage(
         error.response?.data?.message || 'Error al restablecer la contraseña'
       )
@@ -278,6 +271,16 @@ const ResetPassword: React.FC = () => {
                   {isResetting ? 'Guardando...' : 'Restablecer contraseña'}{' '}
                   <ArrowRight className="w-5 h-5" />
                 </Button>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setStep(1)}
+                    className="text-sm font-bold text-[#0B1001] hover:underline"
+                    data-testid="request-new-link-button"
+                  >
+                    ¿El enlace venció? Solicita uno nuevo
+                  </button>
+                </div>
               </form>
             )}
 

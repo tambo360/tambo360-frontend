@@ -31,10 +31,31 @@ export const establishmentFormSchema = z.object({
       100,
       'El nombre del establecimiento no puede tener más de 100 caracteres'
     ),
-  cuencaLechera: z.string().min(1, 'La cuenca lechera es requerida'),
+  // cuencaLechera: z.string().min(1, 'La cuenca lechera es requerida'),
   tipoOrdenie: z.string().min(1, 'El tipo de ordeñe es requerido'),
-  geolocalizacion: z.string().optional(),
+  ordenie_dia: z
+    .number('Los ordeñes por día deben ser un número')
+    .int('Debe ser un número entero')
+    .min(1, 'Mínimo 1 ordeñe por día')
+    .max(3, 'Máximo 3 ordeñes por día'),
+  promLitros: z
+    .number('El promedio de litros debe ser un número')
+    .positive('El promedio de litros debe ser mayor que 0'),
+  provincia: z.string().min(1, 'La provincia es requerida'),
+  localidad: z.string().min(1, 'La localidad es requerida'),
 })
+
+export interface UpdateEstablishmentPayload {
+  idEst: string
+  nombre: string
+  tipo_ordenie: string
+  ordenie_dia: number
+  promLitros: number
+  ubicacion: {
+    provincia: string
+    localidad: string
+  }
+}
 
 export type EstablishmentName = z.infer<typeof UpdateEstablishmentSchema>
 export type EstablishmentData = z.infer<typeof EstablishmentSchema> & {

@@ -1,5 +1,8 @@
 import { api } from '@/services/api'
-import { EstablishmentData, EstablishmentName } from '@/types/establishment'
+import {
+  EstablishmentData,
+  UpdateEstablishmentPayload,
+} from '@/types/establishment'
 
 export const createEstablishment = (dto: EstablishmentData) =>
   api.post('/establecimiento', dto, {
@@ -8,8 +11,8 @@ export const createEstablishment = (dto: EstablishmentData) =>
     },
   })
 
-export const updateEstablishmentName = (dto: EstablishmentName) =>
-  api.patch(`/establecimiento`, dto)
+export const updateEstablishment = (dto: UpdateEstablishmentPayload) =>
+  api.patch(`/conf/establecimiento`, dto)
 
 export const getEstablishment = (id: string) =>
   api.get(`/establecimiento/${id}`)

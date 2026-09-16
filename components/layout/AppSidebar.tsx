@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Milk,
   Cpu,
-  User,
+  Settings,
   ArrowLeft,
   Wallet,
 } from 'lucide-react'
@@ -55,6 +55,12 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
       data: "data-test-id='costos-generales'",
     },
     {
+      title: 'Configuración',
+      icon: Settings,
+      url: baseUrl + '/configuracion',
+      data: "data-test-id='perfil'",
+    },
+    {
       title: 'TamboEngine',
       icon: Cpu,
       url: baseUrl + '/alertas',
@@ -82,6 +88,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
                 alt="Tambo360"
                 className="h-6 w-auto"
               />
+              <span className="ml-2 text-sm font-bold tracking-tight">QA</span>
             </div>
           )}
         </div>
@@ -129,32 +136,6 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
         </SidebarMenu>
 
         <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              className={`py-4 transition-all duration-200 rounded-lg shadow-none! flex items-center ${
-                isCollapsed ? 'justify-center' : 'justify-start'
-              } ${pathname.includes('/configuracion') ? 'bg-[#D7ECAF] hover:bg-[#D7ECAF]/60 hover:text-[#669213]/60 border-l-6 border-l-black' : 'bg-transparent text-gray-400 hover:bg-gray-100'}`}
-            >
-              <Link
-                href={baseUrl + '/configuracion'}
-                className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
-                data-test-id="data-test-id='perfil'"
-              >
-                <User
-                  className={`h-5 w-5 shrink-0 ${pathname === '/configuracion' ? 'text-[#669213]' : 'text-gray-400'}`}
-                />
-                {!isCollapsed && (
-                  <span
-                    className={`font-semibold ${pathname === '/configuracion' ? 'text-[#669213]' : 'text-gray-400'}`}
-                  >
-                    Configuración
-                  </span>
-                )}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-
           <Button
             variant="ghost"
             className={`w-full ${isCollapsed ? 'justify-center' : ''}`}

@@ -1,13 +1,13 @@
 'use client'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
-import { useUpdateEstablishmentName } from '@/hooks/establishment/useUpdateEstablishmentName'
+import { useUpdateEstablishment } from '@/hooks/establishment/useUpdateEstablishment'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import {
   establishmentFormSchema,
   EstablishmentFormData,
 } from '@/types/establishment'
 import { useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
@@ -19,10 +19,8 @@ export function useEstablishmentForm() {
   const { data: establishmentData, isLoading: isLoadingEstablishment } =
     useEstablishment({ id })
   const { data: config, isLoading: isLoadingConfig } = useConfiguration()
-  const { mutateAsync: updateName, isPending } = useUpdateEstablishmentName()
-
-  const [geoError, setGeoError] = useState<string | null>(null)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
+  const { mutateAsync: updateEstablishment, isPending } =
+    useUpdateEstablishment()
 
   const {
     register,
@@ -35,9 +33,12 @@ export function useEstablishmentForm() {
     resolver: zodResolver(establishmentFormSchema),
     defaultValues: {
       nombre: '',
-      cuencaLechera: '',
+      // cuencaLechera: '',
       tipoOrdenie: '',
-      geolocalizacion: '',
+      ordenie_dia: 2,
+      promLitros: 0,
+      provincia: '',
+      localidad: '',
     },
   })
 
@@ -46,41 +47,30 @@ export function useEstablishmentForm() {
     const est = establishmentData.data?.establecimiento
     reset({
       nombre: est?.nombre ?? '',
-      cuencaLechera: est?.provincia ?? '',
-      tipoOrdenie: config?.data?.data?.tipo_ordeñe ?? '',
-      geolocalizacion: '',
+      // cuencaLechera: est?.provincia ?? '',
+      tipoOrdenie: config?.data?.tipo_ordeñe ?? '',
+      ordenie_dia: config?.data?.ordeñe_por_dia ?? 1,
+      promLitros: config?.data?.litros_por_dia ?? 1,
+      provincia: est?.provincia ?? '',
+      localidad: est?.localidad ?? '',
     })
   }, [establishmentData, config, reset])
 
-  const handleGetLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoError('Tu navegador no soporta geolocalización')
-      return
-    }
-    setIsGettingLocation(true)
-    setGeoError(null)
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords
-        setValue(
-          'geolocalizacion',
-          `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`
-        )
-        setIsGettingLocation(false)
-      },
-      () => {
-        setGeoError(
-          'No se pudo obtener la ubicación automáticamente. Por favor ingrese las coordenadas manualmente para asegurar la precisión del mapa.'
-        )
-        setIsGettingLocation(false)
-      }
-    )
-  }
-
   const onSubmit = async (data: EstablishmentFormData) => {
     try {
-      await updateName(data.nombre)
+      await updateEstablishment({
+        idEst:
+          establishmentData?.data?.establecimiento?.idEstablecimiento ?? id,
+        nombre: data.nombre,
+        //cuenca_lechera: data.cuencaLechera,
+        tipo_ordenie: data.tipoOrdenie,
+        ordenie_dia: data.ordenie_dia,
+        promLitros: data.promLitros,
+        ubicacion: {
+          provincia: data.provincia,
+          localidad: data.localidad,
+        },
+      })
       toast.success('Cambios guardados correctamente', {
         position: 'top-center',
         duration: 4000,
@@ -94,7 +84,6 @@ export function useEstablishmentForm() {
 
   const onCancel = () => {
     reset()
-    setGeoError(null)
   }
 
   return {
@@ -106,9 +95,6 @@ export function useEstablishmentForm() {
     isDirty,
     isPending,
     isLoading: isLoadingEstablishment || isLoadingConfig,
-    geoError,
-    isGettingLocation,
-    handleGetLocation,
     onSubmit,
     onCancel,
   }

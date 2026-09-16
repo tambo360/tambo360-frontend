@@ -4,7 +4,7 @@ import { api } from '@/services/api'
 
 export const logOut = () => api.post('/auth/logout')
 
-export const getCurrentUser = () => api.get('/auth/me') //esto fue nuevo que lo agregue
+export const getCurrentUser = () => api.get('/auth/me')
 
 export const registerUser = (dto: RegisterData) =>
   api.post('/auth/crear-cuenta', dto)

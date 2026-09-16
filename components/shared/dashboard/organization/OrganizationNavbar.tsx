@@ -13,6 +13,7 @@ export const OrganizationNavbar = () => {
       <div className="w-auto flex items-center justify-start gap-2">
         <img src="/logos/isotipo_tambo 1.png" alt="logo" className="h-12" />
         <img src="/logotipo 1.png" alt="tambo" className="h-6" />
+        <span className="ml-2 text-xl font-bold tracking-tight">QA</span>
       </div>
 
       <div className="flex items-center justify-end gap-2 sm:gap-4">
