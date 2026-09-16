@@ -42,15 +42,6 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.OTRO, Label: 'Otro' },
 ]
 
-// Clase reutilizable para el look "puntico" del radio (aro + relleno al seleccionar)
-const RADIO_DOT_CLASS =
-  'appearance-none w-5 h-5 shrink-0 rounded-full border-2 border-slate-300 bg-white ' +
-  'checked:border-[#29845A] checked:bg-[#29845A] ' +
-  'checked:shadow-[inset_0_0_0_3px_white] ' +
-  'ring-0 checked:ring-4 checked:ring-[#29845A]/15 ' +
-  'transition-all duration-150 cursor-pointer ' +
-  'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#29845A]'
-
 const Configuration = () => {
   const [searchProvince, setSearchProvince] = useState('')
   const [idProvince, setIdProvince] = useState<string | undefined>('')
@@ -282,7 +273,7 @@ const Configuration = () => {
                 7. ¿Dónde está tu tambo?
               </Label>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label
                     className={`font-bold ${errors.ubicacion?.provincia ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
@@ -455,11 +446,11 @@ const Configuration = () => {
               <Label className="text-sm font-medium text-slate-700">
                 2. ¿Cuántas veces al día ordeñás?
               </Label>
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div className="flex gap-8">
                 {[1, 2, 3].map((n) => (
                   <Label
                     key={n}
-                    className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700"
+                    className="flex items-center gap-2 cursor-pointer text-sm"
                   >
                     <Input
                       type="radio"
@@ -468,7 +459,7 @@ const Configuration = () => {
                       onChange={() =>
                         setValue('cantOrdenie', n, { shouldValidate: true })
                       }
-                      className={RADIO_DOT_CLASS}
+                      className="w-4 h-4 accent-[#29845A]"
                     />
                     {n === 1 ? '1 vez' : `${n} veces`}
                   </Label>
@@ -486,23 +477,23 @@ const Configuration = () => {
               <Label className="text-sm font-medium text-slate-700">
                 3. ¿Qué tipo de ordeñe usás?
               </Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {TIPO_ORDENIE_OPTIONS.map(({ value, Label }) => (
-                  <button
+              <div className="flex flex-wrap gap-x-8 gap-y-3">
+                {TIPO_ORDENIE_OPTIONS.map(({ value, Label: optionLabel }) => (
+                  <Label
                     key={value}
-                    type="button"
-                    onClick={() =>
-                      setValue('tipoOrdenie', value, { shouldValidate: true })
-                    }
-                    className={cn(
-                      'p-4 rounded-xl border font-medium transition-all',
-                      tipoOrdenie === value
-                        ? 'bg-emerald-200 border-emerald-300 text-[#29845A]'
-                        : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-                    )}
+                    className="flex items-center gap-2 cursor-pointer text-sm"
                   >
-                    {Label}
-                  </button>
+                    <Input
+                      type="radio"
+                      value={value}
+                      checked={tipoOrdenie === value}
+                      onChange={() =>
+                        setValue('tipoOrdenie', value, { shouldValidate: true })
+                      }
+                      className="w-4 h-4 accent-[#29845A]"
+                    />
+                    {optionLabel}
+                  </Label>
                 ))}
               </div>
               {errors.tipoOrdenie && (
@@ -524,7 +515,8 @@ const Configuration = () => {
                   placeholder="000"
                   {...register('promLitros', { valueAsNumber: true })}
                   className={cn(
-                    'w-full p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    'w-full p-4 pr-14 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    '[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none',
                     errors.promLitros
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-slate-200 focus:border-[#29845A]'
@@ -546,7 +538,7 @@ const Configuration = () => {
               <Label className="text-sm font-medium text-slate-700">
                 5. ¿A quién le vendes la leche?
               </Label>
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
+              <div className="flex gap-8">
                 {[
                   VentaLeche.USINA,
                   VentaLeche.FABRICA_PROPIA,
@@ -555,7 +547,7 @@ const Configuration = () => {
                 ].map((n) => (
                   <Label
                     key={n}
-                    className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700 capitalize"
+                    className="flex items-center gap-2 cursor-pointer text-sm"
                   >
                     <Input
                       type="radio"
@@ -564,7 +556,7 @@ const Configuration = () => {
                       onChange={() =>
                         setValue('ventaLeche', n, { shouldValidate: true })
                       }
-                      className={RADIO_DOT_CLASS}
+                      className="w-4 h-4 accent-[#29845A] capitalize"
                     />
                     {n == 'fabrica_propia' ? 'Fábrica propia' : n}
                   </Label>
@@ -691,7 +683,7 @@ const Configuration = () => {
                   </Label>
 
                   {/* Unico */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-3 gap-3">
                     <button
                       type="button"
                       onClick={() =>
@@ -1039,12 +1031,12 @@ const Configuration = () => {
         )}
 
         {/* Footer de Navegación */}
-        <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-8 border-t border-slate-100">
+        <footer className="flex items-center justify-between gap-4 pt-8 border-t border-slate-100">
           {pathname.includes('cuestionario') && (
-            <div className="flex gap-4 w-full sm:w-auto">
+            <div className="flex gap-4 w-full">
               <button
                 type="button"
-                className="px-12 py-4 bg-emerald-200 text-emerald-800 font-bold rounded-xl hover:bg-emerald-300 transition-all cursor-pointer w-full sm:w-auto"
+                className="px-12 py-4 bg-emerald-200 text-emerald-800 font-bold rounded-xl hover:bg-emerald-300 transition-all cursor-pointer"
                 onClick={() =>
                   step != 1 ? setStep(step - 1) : router.push('/organizaciones')
                 }
@@ -1063,7 +1055,7 @@ const Configuration = () => {
                 (tipoSeguimiento === TipoSeguimiento.INDIVIDUAL &&
                   (animales ?? []).length === 0)
               }
-              className="px-12 py-4 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+              className="px-12 py-4 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 flex items-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
               onClick={() => {
                 if (step !== lastStep) {
                   setStep(step + 1)

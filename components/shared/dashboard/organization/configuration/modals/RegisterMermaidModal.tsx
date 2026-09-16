@@ -19,50 +19,73 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { AlertCircle } from 'lucide-react'
-import { useState } from 'react'
+import { AlertCircle, Loader2 } from 'lucide-react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
-interface RegisterMermaidModalProps {
+// Schema de validación
+const MermaSchema = z.object({
+  motivo: z.string().min(1, 'Debe seleccionar un motivo'),
+  cantidad: z.coerce.number().positive('La cantidad debe ser mayor a 0'),
+})
+
+type MermaFormData = z.infer<typeof MermaSchema>
+
+interface RegisterMermaModalProps {
   open: boolean
   onClose: () => void
-  onSave?: (data: any) => void
+  onSave?: (data: MermaFormData) => void
+  isLoading?: boolean
 }
 
-export const RegisterMermaidModal = ({
+export const RegisterMermaModal = ({
   open,
   onClose,
   onSave,
-}: RegisterMermaidModalProps) => {
-  const [motivo, setMotivo] = useState('')
-  const [cantidad, setCantidad] = useState('')
+  isLoading = false,
+}: RegisterMermaModalProps) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    watch,
+    reset,
+  } = useForm<MermaFormData>({
+    resolver: zodResolver(MermaSchema),
+  })
 
-  const handleSave = () => {
+  const onSubmit = (data: MermaFormData) => {
     if (onSave) {
-      onSave({ motivo, cantidad })
+      onSave(data)
     }
+    reset()
     onClose()
   }
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-lg bg-white rounded-3xl p-6 shadow-xl">
-        <DialogHeader className="space-y-1.5 pb-3 border-b border-blue-400">
+        <DialogHeader className="space-y-1.5 pb-3 border-b border-gray-200">
           <DialogTitle className="text-2xl font-bold text-gray-900">
             Registrar merma
           </DialogTitle>
           <DialogDescription className="text-xs text-gray-500">
-            Ingresa los datos para asociar la merma a un lote de produccion
+            Ingresa los datos para asociar la merma a un lote de producción
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 pt-2">
-          {/* Motivo de merma */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label className="font-bold text-xs text-gray-700">
               Motivo de merma *
             </Label>
-            <Select value={motivo} onValueChange={setMotivo}>
-              <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50 text-gray-500">
+            <Select
+              value={watch('motivo')}
+              onValueChange={(e) => setValue('motivo', e)}
+            >
+              <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
                 <SelectValue placeholder="Seleccionar tipo de merma" />
               </SelectTrigger>
               <SelectContent>
@@ -79,28 +102,36 @@ export const RegisterMermaidModal = ({
                 </SelectGroup>
               </SelectContent>
             </Select>
+            {errors.motivo && (
+              <span className="text-xs text-red-600">
+                {errors.motivo.message}
+              </span>
+            )}
           </div>
 
-          {/* Merma (Kg/L) */}
           <div className="space-y-2">
             <Label className="font-bold text-xs text-gray-700">
               Merma (Kg/L) *
             </Label>
             <Input
-              type="text"
+              type="number"
               inputMode="decimal"
+              step="0.01"
               placeholder="0.00"
               className="rounded-xl border-gray-200 bg-gray-50/50"
-              value={cantidad}
-              onChange={(e) => setCantidad(e.target.value)}
+              {...register('cantidad')}
             />
+            {errors.cantidad && (
+              <span className="text-xs text-red-600">
+                {errors.cantidad.message}
+              </span>
+            )}
             <p className="text-[11px] text-gray-400 pt-0.5">
               Este valor se restará del stock disponible sin modificar la
               producción original
             </p>
           </div>
 
-          {/* Advertencia informativa */}
           <div className="flex items-center gap-2 text-xs text-gray-600 pt-1">
             <AlertCircle className="size-4 text-gray-500 shrink-0" />
             <span>
@@ -108,28 +139,35 @@ export const RegisterMermaidModal = ({
             </span>
           </div>
 
-          {/* Botones de acción */}
           <DialogFooter className="flex flex-row gap-3 w-full pt-4">
             <Button
               type="button"
               variant="outline"
-              className="flex items-center justify-center w-full h-12 text-base font-bold rounded-2xl border-gray-200 text-gray-700 hover:bg-gray-50"
-              onClick={onClose}
+              className="flex-1 h-12 text-base font-bold rounded-2xl border-gray-200 text-gray-700 hover:bg-gray-50"
+              onClick={() => {
+                reset()
+                onClose()
+              }}
+              disabled={isLoading}
             >
               Cancelar
             </Button>
             <Button
-              type="button"
-              className="flex items-center justify-center w-full h-12 text-base font-bold rounded-2xl bg-[#a3e635] hover:bg-[#84cc16] text-gray-900 shadow-sm"
-              onClick={handleSave}
+              type="submit"
+              className="flex-1 h-12 text-base font-bold rounded-2xl bg-[#2E7D53] hover:bg-[#236342] text-white shadow-sm disabled:opacity-50"
+              disabled={isLoading}
             >
-              Guardar
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                'Guardar'
+              )}
             </Button>
           </DialogFooter>
-        </div>
+        </form>
       </DialogContent>
     </Dialog>
   )
 }
 
-export default RegisterMermaidModal
+export default RegisterMermaModal

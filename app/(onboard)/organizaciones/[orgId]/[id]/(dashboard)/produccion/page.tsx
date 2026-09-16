@@ -59,6 +59,7 @@ import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMat
 import CompleteBatch from '@/components/shared/dashboard/batch/CompleteBatch'
 import Link from 'next/link'
 import { getClosingStatus } from '@/utils/getClosingStatus'
+import { WeatherIndicator } from '@/components/weather/WeatherIndicator' // ✅ Import del clima
 
 const Produccion: React.FC = () => {
   const [isChangeDecreaseOpen, setIsChangeDecreaseOpen] = useState(false)
@@ -80,7 +81,7 @@ const Produccion: React.FC = () => {
     filters: {
       nombre: searchFilter || undefined,
       orden,
-      pagina: String(pagina),
+      page: String(pagina),
     },
   })
 
@@ -103,6 +104,7 @@ const Produccion: React.FC = () => {
       className="flex flex-col w-full gap-8 animate-in fade-in duration-500"
       id="top"
     >
+      {/* ✅ Header: Título a la izquierda | Ubicación + Clima a la derecha */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -110,14 +112,24 @@ const Produccion: React.FC = () => {
           </h1>
         </div>
 
+        {/* ✅ Fila superior: Ubicación (ya tiene lógica) + Clima */}
         <div className="flex items-center gap-2">
-          <Button
-            className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
-            onClick={() => setIsChangeBatchOpen(true)}
-          >
-            Registrar lote <Plus className="w-5 h-5" />
-          </Button>
+          {/* Aquí va tu componente de ubicación existente */}
+          {/* <LocationBadge /> */}
+
+          {/* ✅ Clima al lado de la ubicación */}
+          <WeatherIndicator />
         </div>
+      </div>
+
+      {/* ✅ Botón "Registrar lote" alineado a la derecha, debajo */}
+      <div className="flex justify-end">
+        <Button
+          className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
+          onClick={() => setIsChangeBatchOpen(true)}
+        >
+          Registrar lote <Plus className="w-5 h-5" />
+        </Button>
       </div>
 
       <Card className="border-gray-200 shadow-sm overflow-hidden rounded-2xl bg-white gap-0 py-0">
