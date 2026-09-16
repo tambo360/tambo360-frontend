@@ -1,4 +1,10 @@
-import { RazasVacas, TipoOrdenie, TipoRodeo, VentaLeche } from '@/types/enums'
+import {
+  RazasVacas,
+  TipoOrdenie,
+  TipoRodeo,
+  TipoSeguimiento,
+  VentaLeche,
+} from '@/types/enums'
 import z from 'zod'
 
 const rodeoSchema = z.object({
@@ -10,7 +16,7 @@ const rodeoSchema = z.object({
     .array(
       z.object({
         raza: z.nativeEnum(RazasVacas, { error: 'Seleccioná una raza válida' }),
-        cantRazaVacas: z
+        cantVacas: z
           .number('La cantidad debe ser un número')
           .int('La cantidad debe ser un número entero')
           .positive('La cantidad debe ser mayor que 0'),
@@ -54,6 +60,7 @@ const baseSchema = z.object({
 const animalSchema = z.object({
   codigo: z.string().nonempty('El código es requerido'),
   nombre: z.string().optional(),
+  raza: z.string().nonempty('La raza es requerida'),
   categoria: z.string().nonempty('La categoría es requerida'),
   estado: z.string().nonempty('El estado es requerido'),
   fechaNacimiento: z.string().optional(),
@@ -80,10 +87,8 @@ export type ConfigurationRequest = Omit<
   ConfigurationData,
   'registrarRodeo' | 'costoRacion'
 > & {
-  TipoSeguimiento: 'RODEO' | 'INDIVIDUAL'
-  tipoSeguimiento?: 'RODEO' | 'INDIVIDUAL'
-  idEstablecimiento: string
-  rodeos: Array<{
+  TipoSeguimiento: TipoSeguimiento
+  rodeos?: Array<{
     tipoRodeo: string
     costoRacion: number
     razas: Array<{

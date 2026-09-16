@@ -5,6 +5,9 @@ import {
   ConfigurationFormInput,
 } from '@/types/establishment/configuration'
 import {
+  CategoriaAnimal,
+  EstadoAnimal,
+  RazasVacas,
   TipoOrdenie,
   TipoRodeo,
   TipoSeguimiento,
@@ -30,7 +33,9 @@ import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfigura
 import { usePathname } from 'next/navigation'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import RodeoCategoriaCard from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
+import RodeoCategoriaCard, {
+  RAZA_LABELS,
+} from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
 import { toast } from 'sonner'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
@@ -44,9 +49,21 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
   { value: VentaLeche.USINA, label: 'Usinia' },
-  { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
-  { value: VentaLeche.FABRICA_PROPIA, label: 'Elaboración propia' },
-  { value: VentaLeche.MERCADO_LOCAL, label: 'Mercado Local' },
+  { value: VentaLeche.COOPERTIVA, label: 'Cooperativa' },
+  { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
+  { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
+]
+
+const CATEGORIA_ANIMAL_OPTIONS: { value: CategoriaAnimal; label: string }[] = [
+  { value: CategoriaAnimal.ORDENE, label: 'Ordeñe' },
+  { value: CategoriaAnimal.SECAS, label: 'Secas' },
+]
+
+const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
+  { value: EstadoAnimal.SANO, label: 'Sano' },
+  { value: EstadoAnimal.MATITIS, label: 'Mastitis' },
+  { value: EstadoAnimal.TRATAMIENTO, label: 'Tratamiento' },
+  { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
 ]
 
 const RADIO_DOT_CLASS =
@@ -57,9 +74,7 @@ const RADIO_DOT_CLASS =
   'transition-all duration-150 cursor-pointer ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#29845A]'
 
-// Detecta submits bloqueados por validación (errores "silenciosos"): deja el
-// detalle en consola y muestra un toast con el primer error + conteo.
-// Aplana el árbol de errores de RHF a una lista de mensajes legibles.
+// Detecta submits bloqueados por validación (errores "silenciosos")
 const collectErrorMessages = (
   errs: FieldErrors<ConfigurationFormInput>
 ): string[] => {
@@ -89,16 +104,16 @@ const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
   const messages = collectErrorMessages(errs)
   console.warn('[Configuration] submit bloqueado por validación:', errs)
   if (messages.length === 0) {
-    toast.error('Revisá el formulario: hay campos pendientes', {
-      position: 'top-center',
-    })
+    // toast.error('Revisá el formulario: hay campos pendientes', {
+    //   position: 'top-center',
+    // })
     return
   }
-  const [first, ...rest] = messages
-  toast.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first, {
-    position: 'top-center',
-    duration: 5000,
-  })
+  // const [first, ...rest] = messages
+  // toast.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first, {
+  //   position: 'top-center',
+  //   duration: 5000,
+  // })
 }
 
 const Configuration = () => {
@@ -185,37 +200,52 @@ const Configuration = () => {
         costoRacion: r.costoRacion as number,
         razas: (r.razas ?? []).map((item) => ({
           raza: item.raza,
-          cantVacas: item.cantRazaVacas as number,
+          cantVacas: item.cantVacas as number,
         })),
       }))
+
+    const isIndividual = selectedTipo === TipoSeguimiento.INDIVIDUAL
 
     const payload = {
       TipoSeguimiento: selectedTipo,
       ...data,
-      rodeos: rodeosCompletos,
+      ...(isIndividual
+        ? {
+            rodeos: undefined,
+            animales: data.animales ?? [
+              {
+                codigo: '00-fallback',
+                raza: 'JERSEY',
+                categoria: 'ORDENE',
+                estado: 'SANO',
+                nombre: 'vaca-fallback',
+              },
+            ],
+          }
+        : { animales: undefined, rodeos: rodeosCompletos }),
     }
 
-    console.log('PAYLOAD >>>', payload)
-    // sendConfiguration(payload, {
-    //   onSuccess: () => {
-    //     if (pathname.includes('/cuestionario')) {
-    //       toast.success('Configuración guardada correctamente', {
-    //         description:
-    //           'Ya podés invitar a tu equipo o empezar a usar tu establecimiento',
-    //         position: 'top-center',
-    //         duration: 5000,
-    //       })
-    //       router.replace(pathname.replace('cuestionario', 'invitar'))
-    //     } else {
-    //       toast.success('Configuración guardada correctamente', {
-    //         position: 'top-center',
-    //         duration: 5000,
-    //       })
-    //     }
+    // console.log('PAYLOAD >>>', payload)
+    sendConfiguration(payload, {
+      onSuccess: () => {
+        if (pathname.includes('/cuestionario')) {
+          toast.success('Configuración guardada correctamente', {
+            description:
+              'Ya podés invitar a tu equipo o empezar a usar tu establecimiento',
+            position: 'top-center',
+            duration: 5000,
+          })
+          router.replace(pathname.replace('cuestionario', 'invitar'))
+        } else {
+          toast.success('Configuración guardada correctamente', {
+            position: 'top-center',
+            duration: 5000,
+          })
+        }
 
-    //     router.push(pathname.replace('cuestionario', 'invitar'))
-    //   },
-    // })
+        router.push(pathname.replace('cuestionario', 'invitar'))
+      },
+    })
   }
 
   return (
@@ -236,11 +266,11 @@ const Configuration = () => {
 
       <form
         onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}
-        className="flex flex-col gap-12"
+        className="flex flex-col gap-8"
       >
         {step == 1 ? (
           <>
-            <section className="flex flex-col gap-4 w-fit">
+            <section className="flex flex-col gap-4 w-full">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Dónde está tu tambo?
               </p>
@@ -270,7 +300,7 @@ const Configuration = () => {
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
+                      className={`h-14 w-full max-w-110 ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder="Seleccione una provincia"
                       value={searchProvince}
                       onChange={(e) => {
@@ -338,7 +368,7 @@ const Configuration = () => {
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
+                      className={`h-14 w-full max-w-110 ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder={
                         idProvince
                           ? 'Seleccione una localidad'
@@ -395,7 +425,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7">
+            <section className="flex flex-col gap-3">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuántas veces al día ordeñás?
               </p>
@@ -422,7 +452,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7">
+            <section className="flex flex-col gap-3">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Que tipo de ordeñe usas?
               </p>
@@ -449,7 +479,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7 w-fit">
+            <section className="flex flex-col gap-3 w-full">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuántos litros producís en promedio por día?
               </p>
@@ -478,7 +508,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7">
+            <section className="flex flex-col gap-3">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuál es el destino del producto?
               </p>
@@ -505,7 +535,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7 w-fit">
+            <section className="flex flex-col gap-3 w-full">
               <div className="flex flex-col gap-1">
                 <p className="text-[15px] leading-6 text-slate-900">
                   ¿Cuál es el DEL promedio de tu rodeo lechero hoy?
@@ -539,7 +569,7 @@ const Configuration = () => {
               )}
             </section>
 
-            <section className="flex flex-col gap-7 w-fit">
+            <section className="flex flex-col gap-3 w-full">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuál es tu precio de venta actual por litro ($/Lts)?
               </p>
@@ -569,7 +599,7 @@ const Configuration = () => {
             </section>
 
             {esRodeoUnico && (
-              <section className="flex flex-col gap-7">
+              <section className="flex flex-col gap-3">
                 <p className="text-[15px] leading-6 text-slate-900">
                   ¿Querés registrar tu rodeo?
                 </p>
@@ -659,8 +689,9 @@ const Configuration = () => {
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
                     <div className="col-span-2">RP/N°</div>
-                    <div className="col-span-3">Nombre</div>
-                    <div className="col-span-3">Categoría</div>
+                    <div className="col-span-2">Nombre</div>
+                    <div className="col-span-2">Raza</div>
+                    <div className="col-span-2">Categoría</div>
                     <div className="col-span-3">Estado</div>
                     <div className="col-span-1" />
                   </div>
@@ -677,21 +708,38 @@ const Configuration = () => {
                           defaultValue={a.codigo}
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-2">
                         <Input
                           className="w-full border rounded px-2 h-9"
                           {...register(`animales.${idx}.nombre` as const)}
                           defaultValue={a.nombre}
                         />
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-2">
+                        <select
+                          className="w-full border rounded px-2 h-9"
+                          {...register(`animales.${idx}.raza` as const)}
+                        >
+                          <option value="" disabled>
+                            Seleccioná
+                          </option>
+                          {Object.values(RazasVacas).map((v) => (
+                            <option key={v} value={v}>
+                              {RAZA_LABELS[v]}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-2">
                         <select
                           className="w-full border rounded px-2 h-9"
                           {...register(`animales.${idx}.categoria` as const)}
                         >
-                          <option value="ORDENE">Ordeñe</option>
-                          <option value="SECAS">Secas</option>
-                          <option value="PREPARTO">Preparto</option>
+                          {CATEGORIA_ANIMAL_OPTIONS.map(({ value, label }) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="col-span-3">
@@ -699,10 +747,11 @@ const Configuration = () => {
                           className="w-full border rounded px-2 h-9"
                           {...register(`animales.${idx}.estado` as const)}
                         >
-                          <option value="MATITIS">Mastitis</option>
-                          <option value="PREPARTO">Preparto</option>
-                          <option value="TRATAMIENTO">Tratamiento</option>
-                          <option value="DESCARTE">Descarte</option>
+                          {ESTADO_ANIMAL_OPTIONS.map(({ value, label }) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
                         </select>
                       </div>
                       <div className="col-span-1 flex justify-center">
@@ -736,8 +785,9 @@ const Configuration = () => {
                             {
                               codigo: '',
                               nombre: '',
-                              categoria: 'ORDENE',
-                              estado: 'SANA',
+                              raza: '',
+                              categoria: CategoriaAnimal.ORDENE,
+                              estado: EstadoAnimal.SANO,
                             },
                           ])
                         }}
@@ -767,13 +817,13 @@ const Configuration = () => {
             <div className="flex gap-4 w-full sm:w-auto">
               <button
                 type="button"
-                className="px-12 py-4 bg-emerald-200 text-emerald-800 font-bold rounded-xl hover:bg-emerald-300 transition-all cursor-pointer w-full sm:w-auto"
+                className="px-8 py-3.5 border border-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-all cursor-pointer w-full sm:w-auto"
                 onClick={() =>
                   step != 1 ? setStep(step - 1) : router.push('/organizaciones')
                 }
                 disabled={isPending}
               >
-                Atrás
+                {step != 1 ? 'Atras' : 'Cancelar'}
               </button>
             </div>
           )}
@@ -784,7 +834,7 @@ const Configuration = () => {
               disabled={
                 isPending || (step === 2 && (animales ?? []).length === 0)
               }
-              className="px-12 py-4 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+              className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
               onClick={() => {
                 if (step !== lastStep) {
                   setStep(step + 1)

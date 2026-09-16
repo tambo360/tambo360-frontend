@@ -14,12 +14,12 @@ export enum TipoSeguimiento {
   RODEO_UNICO = 'RODEO_UNICO',
 }
 
-enum CategoriaAnimal {
+export enum CategoriaAnimal {
   ORDENE = 'ORDENE',
   SECAS = 'SECAS',
 }
 
-enum EstadoAnimal {
+export enum EstadoAnimal {
   MATITIS = 'MASTITIS',
   TRATAMIENTO = 'TRATAMIENTO',
   PREPARTO = 'PREPARTO',
@@ -101,11 +101,10 @@ export enum TipoOrdenie {
 }
 
 export enum VentaLeche {
-  USINA = 'usina',
-  FABRICA_PROPIA = 'fabrica_propia',
-  COOPERATIVA = 'cooperativa',
-  VARIOS = 'varios',
-  MERCADO_LOCAL = 'mercado_local',
+  USINA = 'USINA',
+  COOPERTIVA = 'COOPERTIVA',
+  ELABORACION_PROPIA = 'ELABORACION_PROPIA',
+  VENTA_DIRECTA_MERCADO_LOCAL = 'VENTA_DIRECTA_MERCADO_LOCAL',
 }
 
 export enum RazasVacas {

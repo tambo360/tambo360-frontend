@@ -15,7 +15,7 @@ import {
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 
-const RAZA_LABELS: Record<RazasVacas, string> = {
+export const RAZA_LABELS: Record<RazasVacas, string> = {
   [RazasVacas.HOLANDO_ARGENTINO]: 'Raza Holando Argentino.',
   [RazasVacas.JERSEY]: 'Raza Jersey.',
   [RazasVacas.PARDO_SUIZO]: 'Raza Pardo Suizo.',
@@ -84,7 +84,7 @@ export default function RodeoCategoriaCard({
       `rodeos.${index}.razas` as const,
       items.map((item) => ({
         raza: item.raza as RazasVacas,
-        cantRazaVacas: Number(item.cantidad),
+        cantVacas: Number(item.cantidad),
       })),
       { shouldValidate: true, shouldDirty: true }
     )
