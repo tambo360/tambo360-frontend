@@ -35,10 +35,11 @@ import { useBatch } from '@/hooks/batch/useBatch'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { Lote } from '@/types/batch'
 
-// ✅ Import del modal de merma
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 
 interface MermaFormData {
+  fecha: string
+  hora: string
   motivo: string
   cantidad: number
 }
@@ -128,7 +129,6 @@ const BatchDetailModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        {/* Ancho optimizado para desktop con lg:max-w-6xl y [&>button]:hidden para ocultar la X por defecto de Shadcn */}
         <DialogContent className="w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
           <DialogTitle className="sr-only">
             Detalle del Lote {String(loteIdentificador)}
@@ -139,7 +139,7 @@ const BatchDetailModal = ({
           </DialogDescription>
 
           <div className="flex flex-col w-full gap-6">
-            {/* Barra superior de navegación / Volver y X limpia y proporcionada */}
+            {/* Barra superior de navegación */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <button
                 onClick={onClose}
@@ -201,7 +201,7 @@ const BatchDetailModal = ({
               </div>
             </div>
 
-            {/* Metadatos secundarios (Turno, Temperatura, Tipo de Rodeo) */}
+            {/* Metadatos secundarios */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50/70 p-3.5 rounded-2xl border border-gray-100">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 bg-white rounded-xl shadow-xs text-gray-500">
@@ -397,7 +397,10 @@ const BatchDetailModal = ({
                           className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
                         >
                           <TableCell className="text-xs text-gray-600 font-medium pl-6 py-4">
-                            {new Date(merma.fecha).toLocaleDateString('es-AR')}
+                            {/* ✅ FIX: fechaCreacion en lugar de fecha */}
+                            {new Date(merma.fechaCreacion).toLocaleDateString(
+                              'es-AR'
+                            )}
                           </TableCell>
                           <TableCell className="text-xs text-gray-600 font-medium">
                             {merma.tipo || '—'}

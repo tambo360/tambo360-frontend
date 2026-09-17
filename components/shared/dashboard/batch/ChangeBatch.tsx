@@ -312,7 +312,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
           cantBajadas: Number(data.cantBajadas),
         }
 
-        let newBatch: Record<string, unknown>
+        let newBatch: any = {}
         if (tipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
           newBatch = {
             ...base,

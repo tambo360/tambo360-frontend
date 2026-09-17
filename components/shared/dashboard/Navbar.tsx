@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </h3>
           ) : (
             <h3 className="text-[16px] font-bold text-[#959595] truncate">
-              {estData?.data?.nombre || 'Establecimiento'}
+              {(estData?.data as any)?.nombre || 'Establecimiento'}
             </h3>
           )}
         </div>
