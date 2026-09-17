@@ -1,5 +1,9 @@
+import axios from 'axios'
+
+// ==========================================
+// Funciones Mock
+// ==========================================
 export const getSecurityTip = async (): Promise<string> => {
-  // Mock security tips - in production, this would call an actual AI service
   const tips = [
     'Use a unique password for each account to prevent credential stuffing attacks.',
     'Enable two-factor authentication whenever possible for an extra layer of security.',
@@ -12,7 +16,6 @@ export const getSecurityTip = async (): Promise<string> => {
 }
 
 export const getAIGreeting = async (name: string): Promise<string> => {
-  // Mock AI greetings - in production, this would call an actual AI service
   const greetings = [
     `Welcome back, ${name}! Your digital fortress awaits.`,
     `Hello ${name}! Ready to secure your digital identity?`,
@@ -23,3 +26,50 @@ export const getAIGreeting = async (name: string): Promise<string> => {
 
   return greetings[Math.floor(Math.random() * greetings.length)]
 }
+
+// ==========================================
+// Configuración de Axios
+// ==========================================
+export const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
+})
+
+// ✅ INTERCEPTOR DE PETICIÓN (REQUEST)
+api.interceptors.request.use(
+  (config) => {
+    if (typeof window !== 'undefined') {
+      // Agregar Token
+      const token = localStorage.getItem('token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+
+      // Agregar ID de Organización
+      const organizacionId = localStorage.getItem('organizacionId')
+      if (organizacionId) {
+        config.headers['x-organizacion-id'] = organizacionId
+      }
+    }
+    return config
+  },
+  (error) => {
+    return Promise.reject(error)
+  }
+)
+
+// ✅ INTERCEPTOR DE RESPUESTA (RESPONSE)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const isAuthMe = error.config?.url?.includes('/auth/me')
+    const isLogout = error.config?.url?.includes('/auth/logout')
+
+    if (error.response?.status === 401) {
+      if (!isAuthMe && !isLogout && typeof window !== 'undefined') {
+        window.location.href = '/iniciar-sesion'
+      }
+    }
+    return Promise.reject(error)
+  }
+)

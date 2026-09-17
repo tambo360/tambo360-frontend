@@ -2,14 +2,14 @@ import {
   Cloud,
   CloudRain,
   CloudSnow,
+  CloudFog, // ✅ Cambiado de 'Fog' a 'CloudFog'
   Droplets,
-  Fog,
   Sun,
   Thermometer,
   Umbrella,
+  Loader2,
 } from 'lucide-react'
 import { useWeather } from '@/hooks/weather/useWeather'
-import { Loader2 } from 'lucide-react'
 
 export function WeatherIndicator() {
   const { data: weather, isLoading, error } = useWeather()
@@ -42,7 +42,7 @@ export function WeatherIndicator() {
     if (description.includes('Nieve'))
       return <CloudSnow className="w-4 h-4 text-blue-300" />
     if (description.includes('Niebla'))
-      return <Fog className="w-4 h-4 text-gray-400" />
+      return <CloudFog className="w-4 h-4 text-gray-400" /> // ✅ Usando CloudFog
     if (description.includes('Tormenta'))
       return <Umbrella className="w-4 h-4 text-purple-500" />
     return <Thermometer className="w-4 h-4 text-gray-500" />

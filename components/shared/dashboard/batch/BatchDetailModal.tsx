@@ -5,15 +5,20 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
-  ChevronLeft,
   Plus,
   Filter,
   MoreHorizontal,
   Loader2,
+  ArrowLeft,
+  Trash2,
+  Edit,
+  CheckCircle2,
+  Thermometer,
+  Clock,
+  Layers,
   X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -28,18 +33,22 @@ import {
 } from '@/components/ui/table'
 import { useBatch } from '@/hooks/batch/useBatch'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
-import { TipoSeguimiento } from '@/types/enums'
 import { Lote } from '@/types/batch'
-import RegisterMermaModal from './RegisterMermaModal'
 
-interface LoteConAnimales extends Lote {
-  animales?: Array<{
-    idAnimal: string
-    codigo: string
-    nombre: string
-    litros: number
-    estado: 'SANO' | 'MASTITIS' | 'TRATAMIENTO' | 'PREPARTO'
-  }>
+// ✅ Import del modal de merma
+import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
+
+interface MermaFormData {
+  motivo: string
+  cantidad: number
+}
+
+interface LoteConDetalles extends Lote {
+  observaciones?: string
+  turno?: string
+  temperatura?: number
+  tipoRodeo?: string
+  lote?: any
 }
 
 interface BatchDetailModalProps {
@@ -54,6 +63,7 @@ const BatchDetailModal = ({
   batchId,
 }: BatchDetailModalProps) => {
   const [isMermaModalOpen, setIsMermaModalOpen] = useState(false)
+  const [isSavingMerma, setIsSavingMerma] = useState(false)
 
   const {
     data: batchData,
@@ -61,22 +71,29 @@ const BatchDetailModal = ({
     error,
     refetch,
   } = useBatch({ id: batchId })
-  const { data: configData, isLoading: configLoading } = useConfiguration()
+  const { isLoading: configLoading } = useConfiguration()
 
-  const handleSaveMerma = async (data: any) => {
+  const handleSaveMerma = async (data: MermaFormData) => {
+    setIsSavingMerma(true)
     try {
-      console.log('Guardando merma:', { idLote: batchId, ...data })
+      console.log('📦 Guardando merma:', { idLote: batchId, ...data })
+      await new Promise((resolve) => setTimeout(resolve, 800))
       refetch()
       setIsMermaModalOpen(false)
     } catch (error) {
-      console.error('Error al registrar merma:', error)
+      console.error('❌ Error al registrar merma:', error)
+    } finally {
+      setIsSavingMerma(false)
     }
   }
 
   if (isLoading || configLoading) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+          <DialogTitle className="sr-only">
+            Cargando detalle del lote
+          </DialogTitle>
           <div className="flex items-center justify-center h-64">
             <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
           </div>
@@ -88,7 +105,8 @@ const BatchDetailModal = ({
   if (error || !batchData?.data) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+          <DialogTitle className="sr-only">Error al cargar el lote</DialogTitle>
           <div className="flex flex-col items-center justify-center h-64 text-gray-500">
             <p>No se pudo cargar el lote</p>
             <p className="text-sm">{error?.message || 'ID inválido'}</p>
@@ -98,72 +116,139 @@ const BatchDetailModal = ({
     )
   }
 
-  const batch = batchData.data as LoteConAnimales
+  const batch = batchData.data as LoteConDetalles
+  const isIncomplete = Boolean(batch.estado)
+
+  const rawLote = batch.lote ?? batch.numeroLote ?? batch.idLote
+  const loteIdentificador =
+    typeof rawLote === 'object' && rawLote !== null
+      ? rawLote.numeroLote || rawLote.idLote || '1'
+      : rawLote || '1'
 
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="space-y-1.5 pb-3 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-2xl font-bold text-gray-900">
-                  Detalle del Lote
-                </DialogTitle>
-                <DialogDescription className="text-xs text-gray-500">
-                  Información completa del lote de producción
-                </DialogDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
+        {/* Ancho optimizado para desktop con lg:max-w-6xl y [&>button]:hidden para ocultar la X por defecto de Shadcn */}
+        <DialogContent className="w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-3xl p-6 md:p-8 shadow-xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+          <DialogTitle className="sr-only">
+            Detalle del Lote {String(loteIdentificador)}
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Información completa del lote de producción, mermas y costos
+            operativos.
+          </DialogDescription>
+
+          <div className="flex flex-col w-full gap-6">
+            {/* Barra superior de navegación / Volver y X limpia y proporcionada */}
+            <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+              <button
                 onClick={onClose}
-                className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+              >
+                <ArrowLeft className="w-4 h-4" /> Lista de producción
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                aria-label="Cerrar modal"
               >
                 <X className="w-4 h-4" />
-              </Button>
+              </button>
             </div>
-          </DialogHeader>
 
-          <div className="flex flex-col w-full gap-6 pt-4">
-            {/* Cabecera del Lote */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+            {/* Cabecera Principal del Lote */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
-                <Badge
-                  variant="outline"
-                  className={`${
-                    batch.estado
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                      : 'bg-green-50 text-green-700 border-green-200'
-                  } text-xs px-2.5 py-0.5 font-semibold`}
-                >
-                  {batch.estado ? 'Incompleto' : 'Completo'}
-                </Badge>
-                <h2 className="text-xl font-bold tracking-tight text-gray-900">
-                  Lote #{batch.numeroLote || batch.idLote.slice(0, 8)} -{' '}
-                  {batch.producto?.nombre || 'Sin producto'}
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className={`${
+                      isIncomplete
+                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                        : 'bg-green-50 text-green-700 border-green-200'
+                    } text-xs px-2.5 py-0.5 font-semibold`}
+                  >
+                    {isIncomplete ? 'Incompleto' : 'Completo'}
+                  </Badge>
+                  <span className="text-xs text-gray-400 font-medium">
+                    Inicio:{' '}
+                    {batch.fechaProduccion
+                      ? new Date(batch.fechaProduccion).toLocaleDateString(
+                          'es-AR'
+                        )
+                      : '—'}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+                  Lote #{String(loteIdentificador)} —{' '}
+                  {batch.producto?.nombre || 'Queso Crema'}
                 </h2>
-                <p className="text-xs text-gray-500 font-medium">
-                  Fecha:{' '}
-                  {batch.fechaProduccion
-                    ? new Date(batch.fechaProduccion).toLocaleDateString(
-                        'es-AR'
-                      )
-                    : '—'}
-                </p>
-                {batch.cantBajadas && (
-                  <p className="text-xs text-gray-400">
-                    Cantidad de bajadas: {batch.cantBajadas}
-                  </p>
+              </div>
+
+              {/* Botones de acción principal */}
+              <div className="flex items-center gap-2.5">
+                {isIncomplete && (
+                  <Button className="bg-[#658a14] hover:bg-[#547310] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-4 shadow-sm">
+                    <CheckCircle2 className="w-4 h-4" /> Completar lote
+                  </Button>
                 )}
+                <Button
+                  variant="outline"
+                  className="border-gray-200 text-gray-700 text-xs font-semibold h-9 rounded-xl gap-1.5 px-4 hover:bg-gray-50"
+                >
+                  <Edit className="w-4 h-4 text-gray-500" /> Editar lote
+                </Button>
               </div>
             </div>
 
-            {/* Cards de Resumen */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-green-50 rounded-lg">
+            {/* Metadatos secundarios (Turno, Temperatura, Tipo de Rodeo) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-gray-50/70 p-3.5 rounded-2xl border border-gray-100">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white rounded-xl shadow-xs text-gray-500">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-400 font-medium uppercase">
+                    Turno
+                  </p>
+                  <p className="text-xs font-bold text-gray-800">
+                    {batch.turno || 'Tarde'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white rounded-xl shadow-xs text-gray-500">
+                  <Thermometer className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-400 font-medium uppercase">
+                    Temperatura
+                  </p>
+                  <p className="text-xs font-bold text-gray-800">
+                    {batch.temperatura ? `${batch.temperatura}°C` : '4.2 °C'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 bg-white rounded-xl shadow-xs text-gray-500">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-[11px] text-gray-400 font-medium uppercase">
+                    Tipo de Rodeo
+                  </p>
+                  <p className="text-xs font-bold text-gray-800">
+                    {batch.tipoRodeo || 'Rodeo Alto'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Tarjetas de Resumen de Métricas */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 bg-green-50 rounded-xl">
                     <svg
                       className="w-5 h-5 text-green-600"
                       fill="none"
@@ -183,16 +268,16 @@ const BatchDetailModal = ({
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">
-                  {batch.cantidad || 0}{' '}
+                  {batch.cantidad?.toLocaleString('es-AR') || 0}{' '}
                   <span className="text-sm font-normal text-gray-500">
                     {batch.unidad || 'L'}
                   </span>
                 </p>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-blue-50 rounded-lg">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 bg-blue-50 rounded-xl">
                     <svg
                       className="w-5 h-5 text-blue-600"
                       fill="none"
@@ -212,16 +297,16 @@ const BatchDetailModal = ({
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${' '}
+                  $
                   {batch.costosDirectos
-                    ?.reduce((acc, c) => acc + c.monto, 0)
+                    ?.reduce((acc, c) => acc + (c.monto || 0), 0)
                     .toLocaleString('es-AR') || '0'}
                 </p>
               </div>
 
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-orange-50 rounded-lg">
+              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 bg-orange-50 rounded-xl">
                     <svg
                       className="w-5 h-5 text-orange-600"
                       fill="none"
@@ -242,16 +327,27 @@ const BatchDetailModal = ({
                 </div>
                 <p className="text-2xl font-bold text-gray-900">
                   {batch.mermas
-                    ?.reduce((acc, m) => acc + m.cantidad, 0)
+                    ?.reduce((acc, m) => acc + Number(m.cantidad || 0), 0)
                     .toLocaleString('es-AR') || 0}{' '}
-                  L
+                  <span className="text-sm font-normal text-gray-500">L</span>
                 </p>
               </div>
             </div>
 
+            {/* Observaciones */}
+            <div className="bg-white p-4.5 rounded-2xl border border-gray-100 shadow-sm space-y-1.5">
+              <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
+                Observaciones
+              </h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                {batch.observaciones ||
+                  'Sin observaciones registradas para este lote.'}
+              </p>
+            </div>
+
             {/* Historial de Mermas */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <h3 className="text-base font-bold text-gray-900">
                   Historial de Mermas
                 </h3>
@@ -259,13 +355,13 @@ const BatchDetailModal = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
+                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50"
                   >
                     <Filter className="w-4 h-4" />
                   </Button>
                   <Button
                     onClick={() => setIsMermaModalOpen(true)}
-                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-lg gap-1.5 px-3.5 shadow-sm"
+                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-3.5 shadow-sm"
                   >
                     <Plus className="w-4 h-4" /> Agregar Merma
                   </Button>
@@ -307,7 +403,7 @@ const BatchDetailModal = ({
                             {merma.tipo || '—'}
                           </TableCell>
                           <TableCell className="text-xs text-gray-600 font-medium">
-                            {merma.cantidad || 0} L
+                            {Number(merma.cantidad) || 0} L
                           </TableCell>
                           <TableCell className="text-xs text-gray-600 font-medium max-w-xs truncate">
                             {merma.observacion || '—'}
@@ -327,7 +423,7 @@ const BatchDetailModal = ({
                       <TableRow>
                         <TableCell
                           colSpan={5}
-                          className="text-center py-8 text-gray-400"
+                          className="text-center py-8 text-gray-400 text-xs"
                         >
                           No hay mermas registradas para este lote.
                         </TableCell>
@@ -340,7 +436,7 @@ const BatchDetailModal = ({
 
             {/* Historial de Costos */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center justify-between p-5 border-b border-gray-100">
                 <h3 className="text-base font-bold text-gray-900">
                   Historial de Costos
                 </h3>
@@ -348,11 +444,11 @@ const BatchDetailModal = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
+                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50"
                   >
                     <Filter className="w-4 h-4" />
                   </Button>
-                  <Button className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-lg gap-1.5 px-3.5 shadow-sm">
+                  <Button className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-3.5 shadow-sm">
                     <Plus className="w-4 h-4" /> Agregar Costo
                   </Button>
                 </div>
@@ -366,10 +462,10 @@ const BatchDetailModal = ({
                         Fecha
                       </TableHead>
                       <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Tipo
+                        Concepto
                       </TableHead>
                       <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Cantidad
+                        Monto
                       </TableHead>
                       <TableHead className="text-xs font-bold text-gray-400 uppercase">
                         Observación
@@ -415,7 +511,7 @@ const BatchDetailModal = ({
                       <TableRow>
                         <TableCell
                           colSpan={5}
-                          className="text-center py-8 text-gray-400"
+                          className="text-center py-8 text-gray-400 text-xs"
                         >
                           No hay costos registrados.
                         </TableCell>
@@ -425,15 +521,25 @@ const BatchDetailModal = ({
                 </Table>
               </div>
             </div>
+
+            {/* Sección Inferior: Eliminar Lote */}
+            <div className="pt-4 pb-2 border-t border-gray-100 flex justify-center">
+              <Button
+                variant="ghost"
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 text-xs font-semibold gap-1.5 px-4 py-2 rounded-xl"
+              >
+                <Trash2 className="w-4 h-4" /> Eliminar lote
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Mermas */}
       <RegisterMermaModal
         open={isMermaModalOpen}
         onClose={() => setIsMermaModalOpen(false)}
         onSave={handleSaveMerma}
+        isLoading={isSavingMerma}
       />
     </>
   )

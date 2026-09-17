@@ -2,6 +2,7 @@ import React from 'react'
 import { MapPin, Menu } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
+import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
 
 interface NavbarProps {
@@ -11,9 +12,11 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
   const { user } = useAuth()
   const pathname = usePathname()
-  const { data } = useEstablishment({ id: pathname.split('/')[3] })
+  const { data: configData } = useConfiguration()
+  const { data: estData } = useEstablishment({
+    id: configData?.data.idEstablecimiento,
+  })
 
-  //detección del estado de la conexión a internet
   const [isOnline, setIsOnline] = React.useState(navigator.onLine)
   React.useEffect(() => {
     const handleOnline = () => setIsOnline(true)
@@ -42,24 +45,21 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </h3>
           ) : (
             <h3 className="text-[16px] font-bold text-[#959595] truncate">
-              {data?.data.establecimiento?.nombre || 'Establecimiento'}
+              {estData?.data?.nombre || 'Establecimiento'}
             </h3>
           )}
         </div>
       </div>
 
       <div className="flex items-center gap-2 sm:gap-4">
-        {data?.data.establecimiento?.provincia &&
-          data?.data.establecimiento?.localidad && (
-            <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5">
-              <MapPin className="h-4 w-4 text-black" />
-              <span className="text-xs font-semibold text-gray-700">
-                {data?.data.establecimiento?.provincia +
-                  ', ' +
-                  data?.data.establecimiento?.localidad}
-              </span>
-            </div>
-          )}
+        {configData?.data.provincia && configData?.data.localidad && (
+          <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5">
+            <MapPin className="h-4 w-4 text-black" />
+            <span className="text-xs font-semibold text-gray-700">
+              {configData.data.provincia + ', ' + configData.data.localidad}
+            </span>
+          </div>
+        )}
         <div className="items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 flex">
           {isOnline ? (
             <>
