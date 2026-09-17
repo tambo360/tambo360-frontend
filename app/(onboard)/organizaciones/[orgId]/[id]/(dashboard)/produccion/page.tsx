@@ -1,4 +1,5 @@
 'use client'
+
 import React, { useState } from 'react'
 import {
   Plus,
@@ -57,9 +58,11 @@ import DeleteBatch from '@/components/shared/dashboard/batch/DeleteBatch'
 import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
 import CompleteBatch from '@/components/shared/dashboard/batch/CompleteBatch'
-import Link from 'next/link'
 import { getClosingStatus } from '@/utils/getClosingStatus'
-import { WeatherIndicator } from '@/components/weather/WeatherIndicator' // ✅ Import del clima
+import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
+
+// ✅ IMPORT DEL MODAL DE DETALLE
+import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 
 const Produccion: React.FC = () => {
   const [isChangeDecreaseOpen, setIsChangeDecreaseOpen] = useState(false)
@@ -69,12 +72,15 @@ const Produccion: React.FC = () => {
   const [isCompleteBatchOpen, setIsCompleteBatchOpen] = useState(false)
   const [loteId, setLoteId] = useState('')
 
+  // ✅ Estados para el modal de detalle
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [selectedBatchId, setSelectedBatchId] = useState('')
+
   const [nombre, setNombre] = useState('')
   const [orden, setOrden] = useState<'asc' | 'desc'>('desc')
   const [pagina, setPagina] = useState(1)
 
   const [nameDebounced] = useDebounce(nombre, 300)
-
   const searchFilter = nameDebounced?.replace(/^0+/, '')
 
   const { data, isPending, error, refetch } = useBatches({
@@ -99,12 +105,18 @@ const Produccion: React.FC = () => {
 
   const highlightQuery = nombre.replace(/^0+/, '')
 
+  // ✅ Función auxiliar para abrir el modal de detalle
+  const handleOpenDetail = (id: string) => {
+    setSelectedBatchId(id)
+    setIsDetailModalOpen(true)
+  }
+
   return (
     <div
       className="flex flex-col w-full gap-8 animate-in fade-in duration-500"
       id="top"
     >
-      {/* ✅ Header: Título a la izquierda | Ubicación + Clima a la derecha */}
+      {/* Header: Título a la izquierda | Ubicación + Clima a la derecha */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
@@ -112,17 +124,12 @@ const Produccion: React.FC = () => {
           </h1>
         </div>
 
-        {/* ✅ Fila superior: Ubicación (ya tiene lógica) + Clima */}
         <div className="flex items-center gap-2">
-          {/* Aquí va tu componente de ubicación existente */}
-          {/* <LocationBadge /> */}
-
-          {/* ✅ Clima al lado de la ubicación */}
           <WeatherIndicator />
         </div>
       </div>
 
-      {/* ✅ Botón "Registrar lote" alineado a la derecha, debajo */}
+      {/* Botón "Registrar lote" alineado a la derecha */}
       <div className="flex justify-end">
         <Button
           className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
@@ -263,7 +270,6 @@ const Produccion: React.FC = () => {
                     const closingStatus = getClosingStatus(
                       batch.fechaProduccion
                     )
-
                     const turnoText = (batch as any).turno || 'Mañana'
                     const rodeoText = batch.rodeo?.label ?? 'Rodeo Alto'
 
@@ -306,9 +312,9 @@ const Produccion: React.FC = () => {
                         </TableCell>
 
                         <TableCell className="font-medium">
-                          <Link
-                            href={`produccion/lote/${batch.idLote}`}
-                            className="hover:underline text-gray-900"
+                          <button
+                            onClick={() => handleOpenDetail(batch.idLote)}
+                            className="hover:underline text-gray-900 text-left"
                           >
                             <HighlightMatch
                               text={
@@ -316,7 +322,7 @@ const Produccion: React.FC = () => {
                               }
                               query={highlightQuery}
                             />
-                          </Link>
+                          </button>
                         </TableCell>
 
                         <TableCell className="text-gray-600">
@@ -332,9 +338,9 @@ const Produccion: React.FC = () => {
                         </TableCell>
 
                         <TableCell className="text-gray-600">
-                          <Link
-                            href={`produccion/lote/${batch.idLote}/#mermas`}
-                            className="hover:underline"
+                          <button
+                            onClick={() => handleOpenDetail(batch.idLote)}
+                            className="hover:underline text-left"
                           >
                             {batch.mermas
                               ?.reduce((total, m) => {
@@ -345,7 +351,7 @@ const Produccion: React.FC = () => {
                                 return total + qty
                               }, 0)
                               .toLocaleString('es-AR') ?? '0'}
-                          </Link>
+                          </button>
                         </TableCell>
 
                         <TableCell>
@@ -364,11 +370,7 @@ const Produccion: React.FC = () => {
                               >
                                 <div className="inline-flex items-center gap-1.5 cursor-pointer">
                                   <span
-                                    className={`size-2.5 rounded-full ${
-                                      batch.estado
-                                        ? 'bg-emerald-500'
-                                        : 'bg-rose-500'
-                                    }`}
+                                    className={`size-2.5 rounded-full ${batch.estado ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                   />
                                   <span className="text-xs font-semibold text-gray-700">
                                     {batch.estado ? 'Completado' : 'Incompleto'}
@@ -395,13 +397,12 @@ const Produccion: React.FC = () => {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-48">
                               <DropdownMenuGroup>
-                                <DropdownMenuItem asChild>
-                                  <Link
-                                    href={`produccion/lote/${batch.idLote}`}
-                                    className="flex items-center gap-2 cursor-pointer w-full"
-                                  >
-                                    <Eye className="w-4 h-4" /> Ver Detalles
-                                  </Link>
+                                {/* ✅ CORREGIDO: Ahora abre el modal en lugar de navegar */}
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenDetail(batch.idLote)}
+                                  className="flex items-center gap-2 cursor-pointer w-full"
+                                >
+                                  <Eye className="w-4 h-4" /> Ver Detalles
                                 </DropdownMenuItem>
                               </DropdownMenuGroup>
                               <DropdownMenuSeparator />
@@ -567,6 +568,13 @@ const Produccion: React.FC = () => {
         batchId={selectedBatch?.idLote}
         batch={selectedBatch ?? undefined}
         refetch={refetch}
+      />
+
+      {/* ✅ MODAL DE DETALLE INTEGRADO EN LA VISTA PRINCIPAL */}
+      <BatchDetailModal
+        open={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        batchId={selectedBatchId}
       />
     </div>
   )

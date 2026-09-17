@@ -49,6 +49,7 @@ import {
   AnimalOpcion,
 } from '@/utils/api/establishment/configuration.api' // Ajusta ruta si es necesario
 import { useIndividualLoteForm } from '@/hooks/batch/useIndividualLoteForm'
+import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 
 // ✅ Labels corregidos según backend
 const ESTADO_LABELS: Record<string, string> = {
@@ -56,6 +57,15 @@ const ESTADO_LABELS: Record<string, string> = {
   MASTITIS: 'Mastitis',
   TRATAMIENTO: 'Tratamiento',
   PREPARTO: 'Preparto',
+}
+
+// Convierte "yyyy-mm-dd" (lo que entrega useCurrentDateTime) a "dd/mm/aaaa"
+// (lo que espera el input, el Zod schema y el onSubmit de este formulario)
+const toDisplayDate = (isoDate: string): string => {
+  if (!isoDate) return ''
+  const [year, month, day] = isoDate.split('-')
+  if (!year || !month || !day) return isoDate
+  return `${day}/${month}/${year}`
 }
 
 interface RodeoOption {
@@ -84,6 +94,12 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     hora: horaActual,
     loading: dateTimeLoading,
   } = useCurrentDateTime()
+
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
+  const [createdBatchId, setCreatedBatchId] = useState('')
+
+  // Fecha ya convertida al formato que usa este formulario (dd/mm/aaaa)
+  const fechaActualDisplay = toDisplayDate(fechaActual)
 
   // ✅ 1. USAMOS EL NUEVO HOOK EN LUGAR DE useConfiguration
   const { data: opcionesData, isLoading: opcionesLoading } =
@@ -128,7 +144,9 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
       unidad: Unidad.LITROS,
       idRodeo: '',
       animales: [],
-      destino: undefined,
+      destino: '', // ✅ FIX: antes era `undefined` — causaba el warning de
+      // Select cambiando de "uncontrolled" a "controlled" apenas
+      // el usuario elegía un destino
       tempTanque: '',
     },
   })
@@ -151,13 +169,20 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
 
     const commonValues = {
       tipoSeguimiento,
-      idProducto: '',
+      // ✅ FIX (race condition): si /productos ya cargó ANTES que las
+      // opciones de seguimiento, el efecto de auto-selección de producto
+      // (más abajo) ya puso un idProducto/unidad válidos en el form. Si
+      // acá los reseteábamos a '' incondicionalmente, ese otro efecto
+      // nunca volvía a correr (sus dependencias no cambian) y el
+      // formulario quedaba con idProducto vacío para siempre — por eso
+      // 'Crear lote' no hacía nada: Zod bloqueaba el submit en silencio.
+      idProducto: watch('idProducto') || '',
       cantidad: '',
       cantBajadas: '1',
-      fechaProduccion: fechaActual,
+      fechaProduccion: fechaActualDisplay,
       horaProduccion: horaActual,
-      unidad: Unidad.LITROS,
-      destino: undefined,
+      unidad: watch('unidad') || Unidad.LITROS,
+      destino: '', // ✅ FIX: antes era `undefined`
       tempTanque: '',
     }
 
@@ -166,15 +191,16 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     } else {
       reset({ ...commonValues, idRodeo: '' })
     }
-  }, [tipoSeguimiento, batch, reset, fechaActual, horaActual])
+  }, [tipoSeguimiento, batch, reset, fechaActualDisplay, horaActual])
 
   // Auto-completar fecha/hora al abrir
   useEffect(() => {
     if (batch || dateTimeLoading) return
-    if (!watch('fechaProduccion')) setValue('fechaProduccion', fechaActual)
+    if (!watch('fechaProduccion'))
+      setValue('fechaProduccion', fechaActualDisplay)
     if (!watch('horaProduccion')) setValue('horaProduccion', horaActual)
     if (!watch('cantBajadas')) setValue('cantBajadas', 1)
-  }, [batch, dateTimeLoading, fechaActual, horaActual, setValue, watch])
+  }, [batch, dateTimeLoading, fechaActualDisplay, horaActual, setValue, watch])
 
   // Auto-seleccionar primer rodeo
   useEffect(() => {
@@ -222,7 +248,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
       unidad: batch.unidad ?? Unidad.LITROS,
       idRodeo: batch.rodeo?.idRodeo ?? '',
       tempTanque: batch.tempTanque?.toString() ?? '',
-      destino: batch.destino,
+      destino: batch.destino ?? '', // ✅ FIX: por si `batch.destino` viene undefined
     })
   }, [batch, reset, tipoSeguimiento, horaActual])
 
@@ -269,7 +295,9 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
         try {
           await mutateAsync(newBatch)
           setId(idLote)
+          setCreatedBatchId(idLote)
           setFinished(true)
+          setIsDetailModalOpen(true) // ✅ Abrir modal de detalle
         } catch (error) {
           console.error('❌ Error al crear lote:', error)
           showErrorMessage('Error al crear el lote. Revisa los datos.')
@@ -340,16 +368,15 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
             <Button
               variant="default"
               className="flex items-center justify-center w-full h-12 text-base font-bold bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl shadow-md transition-all"
-              asChild
+              onClick={() => {
+                setIsDetailModalOpen(true)
+                setFinished(false)
+              }}
             >
-              <Link
-                href={`${pathname.includes('/lote') ? pathname.split('/lote')[0] : pathname}/lote/${id}`}
-                className="flex items-center justify-center gap-2"
-                onClick={onClose}
-              >
+              <span className="flex items-center justify-center gap-2">
                 Ir al detalle del lote
                 <ArrowRight className="w-5 h-5" />
-              </Link>
+              </span>
             </Button>
             {!batch && (
               <Button
@@ -669,7 +696,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
               <div className="space-y-2 w-full">
                 <Label className="font-bold text-xs">Destino *</Label>
                 <Select
-                  value={watch('destino')}
+                  value={watch('destino') ?? ''} // ✅ FIX: fallback a '' en vez de undefined
                   onValueChange={(e) => setValue('destino', e as TipoDestino)}
                 >
                   <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
@@ -757,6 +784,11 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
         open={showConnectionError}
         onRetry={retry}
         onCancel={() => dismiss(reset)}
+      />
+      <BatchDetailModal
+        open={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        batchId={createdBatchId}
       />
     </Dialog>
   )
