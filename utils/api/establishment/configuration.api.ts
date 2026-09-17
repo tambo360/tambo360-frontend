@@ -22,7 +22,7 @@ export interface RazaOpcion {
 export interface RodeoOpcion {
   idRodeo: string
   label: string
-  value: string // ej: "ALTA_PRODUCCION", "UNICO_ORDENIE", "BAJA_PRODUCCION"
+  value: string
   costoRacion: number
   cantVacas: number
   razas?: RazaOpcion[]
@@ -32,6 +32,7 @@ export interface AnimalOpcion {
   idAnimal: string
   codigo: string
   nombre: string
+  raza?: string
   categoria: string
   estado: 'SANO' | 'MASTITIS' | 'TRATAMIENTO' | 'PREPARTO'
   fechaNacimiento: string
@@ -44,24 +45,66 @@ export interface OpcionesSeguimientoResponse {
 }
 
 /**
- * Obtiene los recursos disponibles (rodeos o animales) para crear lotes,
- * validados contra la configuración ACTIVA del establecimiento.
+ * Helper: Filtra los animales "fallback" que el backend usa como placeholders
+ */
+const filtrarAnimalesReales = (animales: AnimalOpcion[]): AnimalOpcion[] => {
+  return animales.filter((animal) => {
+    const nombre = (animal.nombre || '').toLowerCase()
+    const codigo = (animal.codigo || '').toLowerCase()
+    // Excluir cualquier animal que sea fallback o temporal
+    if (nombre.includes('fallback')) return false
+    if (codigo.includes('fallback')) return false
+    if (codigo.includes('temp-')) return false
+    return true
+  })
+}
+
+/**
+ * Endpoint alternativo que SÍ devuelve los animales reales.
+ * Se usa como respaldo cuando el endpoint oficial falla o trae basura.
+ */
+export const getAnimalesReales = async (): Promise<AnimalOpcion[]> => {
+  const res = await api.get('/conf/animal/listar')
+  const animales = res.data?.data ?? []
+  return filtrarAnimalesReales(animales)
+}
+
+/**
+ * Obtiene los recursos disponibles (rodeos o animales) para crear lotes.
+ * Si el endpoint oficial devuelve solo fallbacks, usa el alternativo.
  */
 export const getOpcionesSeguimiento =
   async (): Promise<OpcionesSeguimientoResponse> => {
     const res = await api.get('/establecimiento/info/opciones-seguimiento')
-    return res.data.data
-  }
+    const data: OpcionesSeguimientoResponse = res.data.data
 
-// ==========================================
-// 3. Fallback (Por si el backend pide cambiar a Organización)
-// ==========================================
-/**
- * NOTA: Si el backend te confirma que el endpoint anterior está desactivado
- * y debes usar el de organización, descomenta esta función y úsala en el hook
- * en lugar de `getOpcionesSeguimiento`.
- */
-// export const getOpcionesSeguimientoOrg = async (): Promise<OpcionesSeguimientoResponse> => {
-//   const res = await api.get('/organizacion/info/opciones-seguimiento')
-//   return res.data.data
-// }
+    // ✅ FALLBACK INTELIGENTE: Si es INDIVIDUAL y los animales son puros fallbacks,
+    // usamos el endpoint alternativo que sí trae los datos reales
+    if (data.tipoSeguimiento === 'INDIVIDUAL') {
+      const animalesFiltrados = filtrarAnimalesReales(data.animales ?? [])
+
+      // Si no quedó ningún animal real, intentamos con el endpoint alternativo
+      if (animalesFiltrados.length === 0) {
+        try {
+          const animalesReales = await getAnimalesReales()
+          return {
+            ...data,
+            animales: animalesReales,
+          }
+        } catch (error) {
+          console.error(
+            'Error al obtener animales del endpoint alternativo:',
+            error
+          )
+        }
+      }
+
+      // Si había animales pero también fallbacks, filtramos
+      return {
+        ...data,
+        animales: animalesFiltrados,
+      }
+    }
+
+    return data
+  }

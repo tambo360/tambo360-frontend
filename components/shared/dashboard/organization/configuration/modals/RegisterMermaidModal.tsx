@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react' // 👈 Agregamos useEffect
 import {
   Dialog,
   DialogContent,
@@ -8,463 +8,196 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  ChevronLeft,
-  Plus,
-  Filter,
-  MoreHorizontal,
-  Loader2,
-  X,
-} from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { useBatch } from '@/hooks/batch/useBatch'
-import { useConfiguration } from '@/hooks/establishment/useConfiguration'
-import { TipoSeguimiento } from '@/types/enums'
-import { Lote } from '@/types/batch'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Info } from 'lucide-react'
 
-import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
-
-interface LoteConAnimales extends Lote {
-  animales?: Array<{
-    idAnimal: string
-    codigo: string
-    nombre: string
-    litros: number
-    estado: 'SANO' | 'MASTITIS' | 'TRATAMIENTO' | 'PREPARTO'
-  }>
-}
-
-// ✅ Agregado: Tipo para los datos que vienen del modal de merma
-interface MermaFormData {
+export interface MermaFormData {
+  fecha: string
+  hora: string
   motivo: string
   cantidad: number
 }
 
-interface BatchDetailModalProps {
+interface RegisterMermaModalProps {
   open: boolean
   onClose: () => void
-  batchId: string
+  onSave: (data: MermaFormData) => Promise<void>
+  isLoading?: boolean
 }
 
-const BatchDetailModal = ({
+const RegisterMermaModal = ({
   open,
   onClose,
-  batchId,
-}: BatchDetailModalProps) => {
-  const [isMermaModalOpen, setIsMermaModalOpen] = useState(false)
+  onSave,
+  isLoading = false,
+}: RegisterMermaModalProps) => {
+  const [fecha, setFecha] = useState('')
+  const [hora, setHora] = useState('')
+  const [motivo, setMotivo] = useState('')
+  const [cantidad, setCantidad] = useState('')
 
-  // ✅ Agregado: Estado para controlar el spinner de carga del modal de merma
-  const [isSavingMerma, setIsSavingMerma] = useState(false)
+  // ✅ Efecto para cargar la fecha y hora automáticamente al abrir el modal
+  useEffect(() => {
+    if (open) {
+      const now = new Date()
 
-  const {
-    data: batchData,
-    isLoading,
-    error,
-    refetch,
-  } = useBatch({ id: batchId })
+      // Formatear Fecha a YYYY-MM-DD (local)
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      setFecha(`${year}-${month}-${day}`)
 
-  const { data: configData, isLoading: configLoading } = useConfiguration()
+      // Formatear Hora a HH:MM (local)
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      setHora(`${hours}:${minutes}`)
 
-  // ✅ Mejorado: Función asíncrona con manejo de estado de carga
-  const handleSaveMerma = async (data: MermaFormData) => {
-    setIsSavingMerma(true)
-    try {
-      console.log('📦 Guardando merma:', { idLote: batchId, ...data })
-
-      // -----------------------------------------------------------------
-      // 🚀 AQUÍ VA TU CONEXIÓN REAL CON EL BACKEND
-      // Ejemplo: await api.post(`/lotes/${batchId}/mermas`, data)
-      // O con React Query: await mutateMerma({ idLote: batchId, ...data })
-      // -----------------------------------------------------------------
-
-      // Simulamos un pequeño delay de red para que veas el spinner funcionando
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      refetch() // Refresca los datos del lote para mostrar la nueva merma
-      setIsMermaModalOpen(false)
-    } catch (error) {
-      console.error('❌ Error al registrar merma:', error)
-      // Aquí podrías agregar un toast de error si tienes configurado sonner/react-hot-toast
-    } finally {
-      setIsSavingMerma(false)
+      // Limpiar los otros campos por si quedaron datos de una apertura anterior
+      setMotivo('')
+      setCantidad('')
     }
-  }
+  }, [open])
 
-  if (isLoading || configLoading) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
-  }
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!fecha || !hora || !motivo || !cantidad) return
 
-  if (error || !batchData?.data) {
-    return (
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-            <p>No se pudo cargar el lote</p>
-            <p className="text-sm">{error?.message || 'ID inválido'}</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-    )
+    await onSave({
+      fecha,
+      hora,
+      motivo,
+      cantidad: Number(cantidad),
+    })
   }
-
-  const batch = batchData.data as LoteConAnimales
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="max-w-4xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader className="space-y-1.5 pb-3 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-2xl font-bold text-gray-900">
-                  Detalle del Lote
-                </DialogTitle>
-                <DialogDescription className="text-xs text-gray-500">
-                  Información completa del lote de producción
-                </DialogDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="h-8 w-8 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[95%] sm:max-w-[480px] p-0 overflow-hidden bg-white rounded-3xl border-0 shadow-2xl">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <DialogHeader className="p-6 pb-4 border-b border-gray-100">
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Registrar merma
+            </DialogTitle>
+            <DialogDescription className="text-sm text-gray-500 mt-1">
+              Ingresa los datos para asociar la merma a un lote de producción
+            </DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col w-full gap-6 pt-4">
-            {/* Cabecera del Lote */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gray-50 p-6 rounded-2xl border border-gray-100">
-              <div className="space-y-1.5">
-                <Badge
-                  variant="outline"
-                  className={`${
-                    batch.estado
-                      ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                      : 'bg-green-50 text-green-700 border-green-200'
-                  } text-xs px-2.5 py-0.5 font-semibold`}
+          <div className="p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="fecha"
+                  className="text-sm font-semibold text-gray-700"
                 >
-                  {batch.estado ? 'Incompleto' : 'Completo'}
-                </Badge>
-                <h2 className="text-xl font-bold tracking-tight text-gray-900">
-                  Lote #{batch.numeroLote || batch.idLote.slice(0, 8)} -{' '}
-                  {batch.producto?.nombre || 'Sin producto'}
-                </h2>
-                <p className="text-xs text-gray-500 font-medium">
-                  Fecha:{' '}
-                  {batch.fechaProduccion
-                    ? new Date(batch.fechaProduccion).toLocaleDateString(
-                        'es-AR'
-                      )
-                    : '—'}
-                </p>
-                {batch.cantBajadas && (
-                  <p className="text-xs text-gray-400">
-                    Cantidad de bajadas: {batch.cantBajadas}
-                  </p>
-                )}
+                  Fecha
+                </Label>
+                <Input
+                  id="fecha"
+                  type="date"
+                  value={fecha}
+                  readOnly // 👈 Solo lectura
+                  disabled // 👈 Deshabilitado para que se vea gris
+                  className="h-11 bg-gray-100 border-gray-200 rounded-xl text-gray-500 cursor-not-allowed focus-visible:ring-0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="hora"
+                  className="text-sm font-semibold text-gray-700"
+                >
+                  Hora
+                </Label>
+                <Input
+                  id="hora"
+                  type="time"
+                  value={hora}
+                  readOnly // 👈 Solo lectura
+                  disabled // 👈 Deshabilitado
+                  className="h-11 bg-gray-100 border-gray-200 rounded-xl text-gray-500 cursor-not-allowed focus-visible:ring-0"
+                />
               </div>
             </div>
 
-            {/* Cards de Resumen */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-green-50 rounded-lg">
-                    <svg
-                      className="w-5 h-5 text-green-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-xs text-gray-500 font-medium">
-                    Cantidad Producida
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {batch.cantidad || 0}{' '}
-                  <span className="text-sm font-normal text-gray-500">
-                    {batch.unidad || 'L'}
-                  </span>
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <svg
-                      className="w-5 h-5 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-xs text-gray-500 font-medium">
-                    Costo Operativo Total
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  ${' '}
-                  {batch.costosDirectos
-                    ?.reduce((acc, c) => acc + c.monto, 0)
-                    .toLocaleString('es-AR') || '0'}
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 bg-orange-50 rounded-lg">
-                    <svg
-                      className="w-5 h-5 text-orange-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                      />
-                    </svg>
-                  </div>
-                  <span className="text-xs text-gray-500 font-medium">
-                    Merma Registrada
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {/* ✅ CORREGIDO: Se asegura que cantidad sea número para evitar errores de suma */}
-                  {batch.mermas
-                    ?.reduce((acc, m) => acc + Number(m.cantidad), 0)
-                    .toLocaleString('es-AR') || 0}{' '}
-                  L
-                </p>
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-700">
+                Motivo de merma <span className="text-red-500">*</span>
+              </Label>
+              <Select value={motivo} onValueChange={setMotivo} required>
+                <SelectTrigger className="h-11 bg-gray-50 border-gray-200 rounded-xl focus:ring-1 focus:ring-[#2E7D53]">
+                  <SelectValue placeholder="Selecciona un motivo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Rodeo alta producción (120cab)">
+                    Rodeo alta producción (120cab)
+                  </SelectItem>
+                  <SelectItem value="Rodeo baja producción">
+                    Rodeo baja producción
+                  </SelectItem>
+                  <SelectItem value="Mastitis">Mastitis</SelectItem>
+                  <SelectItem value="Tratamiento">Tratamiento</SelectItem>
+                  <SelectItem value="Otro">Otro</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            {/* Historial de Mermas */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-base font-bold text-gray-900">
-                  Historial de Mermas
-                </h3>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
-                  >
-                    <Filter className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    onClick={() => setIsMermaModalOpen(true)}
-                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-lg gap-1.5 px-3.5 shadow-sm"
-                  >
-                    <Plus className="w-4 h-4" /> Agregar Merma
-                  </Button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gray-50/50">
-                    <TableRow>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase py-3.5 pl-6">
-                        Fecha
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Tipo
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Cantidad
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Observación
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase text-right pr-6">
-                        Acción
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {batch.mermas && batch.mermas.length > 0 ? (
-                      batch.mermas.map((merma) => (
-                        <TableRow
-                          key={merma.idMerma}
-                          className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
-                        >
-                          <TableCell className="text-xs text-gray-600 font-medium pl-6 py-4">
-                            {new Date(merma.fecha).toLocaleDateString('es-AR')}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium">
-                            {merma.tipo || '—'}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium">
-                            {Number(merma.cantidad) || 0} L
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium max-w-xs truncate">
-                            {merma.observacion || '—'}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-gray-400 hover:text-gray-600"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={5}
-                          className="text-center py-8 text-gray-400"
-                        >
-                          No hay mermas registradas para este lote.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
-
-            {/* Historial de Costos */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h3 className="text-base font-bold text-gray-900">
-                  Historial de Costos
-                </h3>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50"
-                  >
-                    <Filter className="w-4 h-4" />
-                  </Button>
-                  <Button className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-lg gap-1.5 px-3.5 shadow-sm">
-                    <Plus className="w-4 h-4" /> Agregar Costo
-                  </Button>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader className="bg-gray-50/50">
-                    <TableRow>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase py-3.5 pl-6">
-                        Fecha
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Tipo
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Cantidad
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase">
-                        Observación
-                      </TableHead>
-                      <TableHead className="text-xs font-bold text-gray-400 uppercase text-right pr-6">
-                        Acción
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {batch.costosDirectos && batch.costosDirectos.length > 0 ? (
-                      batch.costosDirectos.map((costo) => (
-                        <TableRow
-                          key={costo.idCostoDirecto}
-                          className="border-b border-gray-100 hover:bg-gray-50/50"
-                        >
-                          <TableCell className="text-xs text-gray-600 font-medium pl-6 py-4">
-                            {new Date(costo.fechaCreacion).toLocaleDateString(
-                              'es-AR'
-                            )}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium">
-                            {costo.concepto || '—'}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium">
-                            $ {costo.monto?.toLocaleString('es-AR') || 0}
-                          </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium max-w-xs truncate">
-                            {costo.observaciones || '—'}
-                          </TableCell>
-                          <TableCell className="text-right pr-6">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 text-gray-400 hover:text-gray-600"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell
-                          colSpan={5}
-                          className="text-center py-8 text-gray-400"
-                        >
-                          No hay costos registrados.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+            <div className="space-y-2">
+              <Label
+                htmlFor="cantidad"
+                className="text-sm font-semibold text-gray-700"
+              >
+                Merma (Litros)
+              </Label>
+              <Input
+                id="cantidad"
+                type="number"
+                placeholder="Ej: 2450"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                className="h-11 bg-gray-50 border-gray-200 rounded-xl focus-visible:ring-1 focus-visible:ring-[#2E7D53]"
+                required
+              />
+              <div className="flex items-start gap-2 mt-2 bg-gray-50 p-3 rounded-lg">
+                <Info className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" />
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Este valor se restará del stock disponible sin modificar la
+                  producción original
+                </p>
               </div>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
 
-      {/* ✅ Modal de Mermas Integrado */}
-      <RegisterMermaModal
-        open={isMermaModalOpen}
-        onClose={() => setIsMermaModalOpen(false)}
-        onSave={handleSaveMerma}
-        isLoading={isSavingMerma} // ✅ Pasamos el estado de carga para el spinner
-      />
-    </>
+          <div className="p-6 pt-2 flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t border-gray-100 bg-gray-50/50">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isLoading}
+              className="h-11 rounded-xl px-6 border-gray-200 text-gray-700 font-semibold w-full sm:w-auto"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="h-11 rounded-xl px-6 bg-[#2E7D53] hover:bg-[#236342] text-white font-semibold w-full sm:w-auto shadow-sm"
+            >
+              {isLoading ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-export default BatchDetailModal
+export default RegisterMermaModal

@@ -26,9 +26,10 @@ import {
   Check,
   LayoutDashboard,
   Loader2,
+  Calendar,
+  Clock,
 } from 'lucide-react'
-import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Lote, BatchSchema } from '@/types/batch'
@@ -42,25 +43,24 @@ import { TipoDestino, Unidad, TipoSeguimiento } from '@/types/enums'
 import { usePathname } from 'next/navigation'
 import { useCurrentDateTime } from '@/hooks/useCurrentDateTime'
 
-// ✅ IMPORTS NUEVOS PARA LA SOLUCIÓN DEL BUG
 import { useOpcionesSeguimiento } from '@/hooks/establishment/useOpcionesSeguimiento'
 import {
   RodeoOpcion,
   AnimalOpcion,
-} from '@/utils/api/establishment/configuration.api' // Ajusta ruta si es necesario
+} from '@/utils/api/establishment/configuration.api'
 import { useIndividualLoteForm } from '@/hooks/batch/useIndividualLoteForm'
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 
-// ✅ Labels corregidos según backend
+// ✅ IMPORTAMOS EL HOOK DE CONFIGURACIÓN (Cuestionario)
+import { useConfiguration } from '@/hooks/establishment/useConfiguration'
+
 const ESTADO_LABELS: Record<string, string> = {
-  SANO: 'Sano',
+  SANO: 'Sana',
   MASTITIS: 'Mastitis',
   TRATAMIENTO: 'Tratamiento',
   PREPARTO: 'Preparto',
 }
 
-// Convierte "yyyy-mm-dd" (lo que entrega useCurrentDateTime) a "dd/mm/aaaa"
-// (lo que espera el input, el Zod schema y el onSubmit de este formulario)
 const toDisplayDate = (isoDate: string): string => {
   if (!isoDate) return ''
   const [year, month, day] = isoDate.split('-')
@@ -95,30 +95,73 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     loading: dateTimeLoading,
   } = useCurrentDateTime()
 
+  // ✅ 1. OBTENEMOS LA CONFIGURACIÓN REAL DEL CUESTIONARIO
+  const { data: configData, isLoading: configLoading } = useConfiguration()
+
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [createdBatchId, setCreatedBatchId] = useState('')
 
-  // Fecha ya convertida al formato que usa este formulario (dd/mm/aaaa)
   const fechaActualDisplay = toDisplayDate(fechaActual)
 
-  // ✅ 1. USAMOS EL NUEVO HOOK EN LUGAR DE useConfiguration
   const { data: opcionesData, isLoading: opcionesLoading } =
     useOpcionesSeguimiento()
 
-  const tipoSeguimiento = opcionesData?.tipoSeguimiento as
-    | TipoSeguimiento
-    | undefined
-
-  // ✅ 2. MAPEO LIMPIO (El backend ya envía el label formateado, ej: "Rodeo Alta Producción")
-  const rodeos: RodeoOption[] = (opcionesData?.rodeos ?? []).map(
-    (r: RodeoOpcion) => ({
-      idRodeo: r.idRodeo,
-      label: r.label,
-      cantAnimales: r.cantVacas,
-    })
-  )
-
+  // ✅ 2. ANIMALES FILTRADOS (Los que vienen del backend sin fallbacks)
   const animalesDisponibles = opcionesData?.animales ?? []
+
+  // ✅ 3. RODEOS: Usamos los del backend, o los del cuestionario si el backend falla
+  const rodeos: RodeoOption[] = useMemo(() => {
+    // Si el endpoint de opciones trae rodeos, los usamos
+    if (opcionesData?.rodeos && opcionesData.rodeos.length > 0) {
+      return opcionesData.rodeos.map((r: RodeoOpcion) => ({
+        idRodeo: r.idRodeo,
+        label: r.label,
+        cantAnimales: r.cantVacas,
+      }))
+    }
+    // Si no, los sacamos de la configuración del cuestionario (Caso 2 o 3)
+    if (configData?.data?.rodeos && configData.data.rodeos.length > 0) {
+      return configData.data.rodeos.map((r: any) => ({
+        idRodeo: r.idRodeo || r.tipoRodeo,
+        label: `Rodeo ${r.tipoRodeo.replace(/_/g, ' ').toLowerCase()} (${r.cantVacas} vacas)`,
+        cantAnimales: r.cantVacas,
+      }))
+    }
+    return []
+  }, [opcionesData, configData])
+
+  // ✅ 4. LÓGICA DE ORO: Determinamos el tipo real basándonos en el cuestionario
+  const tipoSeguimiento = useMemo(() => {
+    // 1. Intentamos obtener el tipo desde la configuración del cuestionario
+    const configTipo = (configData?.data as any)?.tipoSeguimiento as
+      | TipoSeguimiento
+      | undefined
+
+    // Si el cuestionario dice explícitamente RODEO o RODEO_UNICO, respetamos eso.
+    if (
+      configTipo === TipoSeguimiento.RODEO ||
+      configTipo === TipoSeguimiento.RODEO_UNICO
+    ) {
+      return configTipo
+    }
+
+    // 2. Si no, revisamos si hay rodeos configurados pero no animales individuales
+    const tieneRodeos =
+      configData?.data?.rodeos && configData.data.rodeos.length > 0
+    const tieneAnimales =
+      (configData?.data as any)?.animales &&
+      (configData?.data as any).animales.length > 0
+
+    if (tieneRodeos && !tieneAnimales) {
+      // Si hay rodeos pero no animales individuales, forzamos el modo Rodeo
+      return configData.data.rodeos.length === 1
+        ? TipoSeguimiento.RODEO_UNICO
+        : TipoSeguimiento.RODEO
+    }
+
+    // 3. Si nada de lo anterior, usamos lo que dice el endpoint de opciones
+    return opcionesData?.tipoSeguimiento as TipoSeguimiento | undefined
+  }, [configData, opcionesData])
 
   const { showErrorMessage } = useErrorMessage()
   const {
@@ -144,9 +187,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
       unidad: Unidad.LITROS,
       idRodeo: '',
       animales: [],
-      destino: '', // ✅ FIX: antes era `undefined` — causaba el warning de
-      // Select cambiando de "uncontrolled" a "controlled" apenas
-      // el usuario elegía un destino
+      destino: '',
       tempTanque: '',
     },
   })
@@ -160,7 +201,6 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     watch,
   } = form
 
-  // ✅ 3. PASAMOS LOS ANIMALES DISPONIBLES AL HOOK
   const individualLote = useIndividualLoteForm(form, animalesDisponibles)
 
   // Forzar tipoSeguimiento y resetear según variante
@@ -169,20 +209,13 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
 
     const commonValues = {
       tipoSeguimiento,
-      // ✅ FIX (race condition): si /productos ya cargó ANTES que las
-      // opciones de seguimiento, el efecto de auto-selección de producto
-      // (más abajo) ya puso un idProducto/unidad válidos en el form. Si
-      // acá los reseteábamos a '' incondicionalmente, ese otro efecto
-      // nunca volvía a correr (sus dependencias no cambian) y el
-      // formulario quedaba con idProducto vacío para siempre — por eso
-      // 'Crear lote' no hacía nada: Zod bloqueaba el submit en silencio.
       idProducto: watch('idProducto') || '',
       cantidad: '',
       cantBajadas: '1',
       fechaProduccion: fechaActualDisplay,
       horaProduccion: horaActual,
       unidad: watch('unidad') || Unidad.LITROS,
-      destino: '', // ✅ FIX: antes era `undefined`
+      destino: '',
       tempTanque: '',
     }
 
@@ -248,7 +281,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
       unidad: batch.unidad ?? Unidad.LITROS,
       idRodeo: batch.rodeo?.idRodeo ?? '',
       tempTanque: batch.tempTanque?.toString() ?? '',
-      destino: batch.destino ?? '', // ✅ FIX: por si `batch.destino` viene undefined
+      destino: batch.destino ?? '',
     })
   }, [batch, reset, tipoSeguimiento, horaActual])
 
@@ -297,7 +330,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
           setId(idLote)
           setCreatedBatchId(idLote)
           setFinished(true)
-          setIsDetailModalOpen(true) // ✅ Abrir modal de detalle
+          setIsDetailModalOpen(true)
         } catch (error) {
           console.error('❌ Error al crear lote:', error)
           showErrorMessage('Error al crear el lote. Revisa los datos.')
@@ -319,9 +352,9 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     })
   )
 
-  // ✅ 4. ACTUALIZAMOS LAS CONDICIONES DE READY Y SUBMIT CON opcionesLoading
   const isReady =
     !opcionesLoading &&
+    !configLoading &&
     !!tipoSeguimiento &&
     (tipoSeguimiento === TipoSeguimiento.INDIVIDUAL ? true : rodeos.length > 0)
 
@@ -342,6 +375,9 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
       }}
     >
       {finished ? (
+        // ==========================================
+        // PANTALLA DE ÉXITO (Tercera imagen)
+        // ==========================================
         <DialogContent className="space-y-6 bg-[#E8F5E9] rounded-3xl p-8 shadow-2xl border border-green-100 max-w-md mx-auto text-center">
           <DialogHeader className="space-y-4">
             <div className="flex justify-center">
@@ -360,7 +396,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
             <DialogDescription className="text-sm text-gray-600 leading-relaxed px-2">
               {batch
                 ? 'El lote ha sido actualizado exitosamente en el sistema.'
-                : 'El nuevo lote ha sido registrado exitosamente en el sistema.'}
+                : 'El nuevo lote ha sido registrado exitosamente en el sistema. Ahora puedes gestionar su seguimiento y producción.'}
             </DialogDescription>
           </DialogHeader>
 
@@ -403,6 +439,9 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
           </DialogFooter>
         </DialogContent>
       ) : (
+        // ==========================================
+        // FORMULARIO DE CREACIÓN
+        // ==========================================
         <DialogContent className="max-w-lg bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="text-2xl font-bold text-gray-900">
@@ -415,18 +454,21 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
             </DialogDescription>
           </DialogHeader>
 
-          <form className="space-y-4 pt-2" onSubmit={onSubmit}>
-            {/* Fecha + Hora + Cant. Bajadas */}
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full">
+          <form className="space-y-5 pt-2" onSubmit={onSubmit}>
+            {/* Fecha + Hora */}
+            <div className="grid grid-cols-2 gap-3 w-full">
               <div className="space-y-2">
-                <Label className="font-bold text-xs">Fecha *</Label>
-                <Input
-                  type="text"
-                  placeholder="dd/mm/aaaa"
-                  className="rounded-xl border-gray-200 bg-gray-50/50"
-                  {...register('fechaProduccion')}
-                  disabled
-                />
+                <Label className="font-bold text-xs">Fecha</Label>
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder="dd/mm/aaaa"
+                    className="rounded-xl border-gray-200 bg-gray-50/50 pr-10"
+                    {...register('fechaProduccion')}
+                    disabled
+                  />
+                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
                 {errors.fechaProduccion && (
                   <span className="text-xs text-red-600">
                     {errors.fechaProduccion.message as string}
@@ -436,38 +478,24 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
 
               <div className="space-y-2">
                 <Label className="font-bold text-xs">Hora</Label>
-                <Input
-                  type="time"
-                  className="rounded-xl border-gray-200 bg-gray-50/50"
-                  {...register('horaProduccion')}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label className="font-bold text-xs">Cant. de Bajadas *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  max="100"
-                  placeholder="Ej: 2"
-                  className="rounded-xl border-gray-200 bg-gray-50/50"
-                  {...register('cantBajadas')}
-                />
-                {errors.cantBajadas && (
-                  <span className="text-xs text-red-600">
-                    {errors.cantBajadas.message as string}
-                  </span>
-                )}
+                <div className="relative">
+                  <Input
+                    type="time"
+                    className="rounded-xl border-gray-200 bg-gray-50/50 pr-10"
+                    {...register('horaProduccion')}
+                  />
+                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
               </div>
             </div>
 
-            {/* MODO RODEO / RODEO_UNICO */}
+            {/* MODO RODEO / RODEO_UNICO (Segunda imagen) */}
             {(tipoSeguimiento === TipoSeguimiento.RODEO ||
               tipoSeguimiento === TipoSeguimiento.RODEO_UNICO) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
+              <>
                 <div className="space-y-2 w-full">
-                  <Label className="font-bold text-xs">Rodeo Origen *</Label>
-                  {opcionesLoading ? (
+                  <Label className="font-bold text-xs">Rodeo Origen</Label>
+                  {opcionesLoading || configLoading ? (
                     <div className="flex items-center gap-2 py-2">
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
                       <span className="text-sm text-gray-400">
@@ -493,7 +521,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                               key={rodeo.idRodeo}
                               value={rodeo.idRodeo}
                             >
-                              {rodeo.label} ({rodeo.cantAnimales} animales)
+                              {rodeo.label}
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -509,7 +537,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
 
                 <div className="space-y-2 w-full">
                   <Label className="font-bold text-xs">
-                    Volumen Total (Litros) *
+                    Volumen Total Bruto (Litros)
                   </Label>
                   <Input
                     type="text"
@@ -524,16 +552,100 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                     </span>
                   )}
                 </div>
-              </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs">
+                      Cantidad de bajadas
+                    </Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      max="100"
+                      placeholder="Ej: 4.5"
+                      className="rounded-xl border-gray-200 bg-gray-50/50"
+                      {...register('cantBajadas')}
+                    />
+                    {errors.cantBajadas && (
+                      <span className="text-xs text-red-600">
+                        {errors.cantBajadas.message as string}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs">Destino</Label>
+                    <Select
+                      value={watch('destino') ?? ''}
+                      onValueChange={(e) =>
+                        setValue('destino', e as TipoDestino)
+                      }
+                    >
+                      <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
+                        <SelectValue placeholder="Selecciona destino..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {Object.values(TipoDestino).map((destino) => (
+                            <SelectItem key={destino} value={destino}>
+                              {destino
+                                .replace('_', ' ')
+                                .toLowerCase()
+                                .replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {errors.destino && (
+                      <span className="text-xs text-red-600">
+                        {errors.destino.message as string}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {watch('destino') === TipoDestino.TANQUE_FRIO && (
+                  <div className="space-y-2 w-full">
+                    <Label className="font-bold text-xs">
+                      Temperatura del tanque (°C)
+                    </Label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.1"
+                      placeholder="Ej: 4.5"
+                      className="rounded-xl border-gray-200 bg-gray-50/50"
+                      {...register('tempTanque')}
+                    />
+                    {errors.tempTanque && (
+                      <span className="text-xs text-red-600">
+                        {errors.tempTanque.message as string}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </>
             )}
 
-            {/* MODO INDIVIDUAL */}
+            {/* MODO INDIVIDUAL (Primera imagen) */}
             {tipoSeguimiento === TipoSeguimiento.INDIVIDUAL && (
               <>
-                <div className="space-y-2 w-full pt-2 border-t">
-                  <Label className="font-bold text-xs">
-                    Seleccionar vacas asociadas *
-                  </Label>
+                <div className="space-y-3 w-full pt-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-bold text-xs">
+                      Seleccionar vacas asociadas
+                    </Label>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-7 text-xs bg-[#2E7D53] hover:bg-[#236342] text-white rounded-lg px-3"
+                      onClick={() => {}}
+                    >
+                      Cambiar estado
+                    </Button>
+                  </div>
 
                   {opcionesLoading ? (
                     <div className="flex items-center gap-2 py-2">
@@ -544,7 +656,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                     </div>
                   ) : individualLote.animals.length === 0 ? (
                     <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded-xl">
-                      No hay animales registrados.
+                      No se encontraron animales reales en el sistema.
                     </div>
                   ) : (
                     <div className="border border-gray-200 rounded-xl divide-y max-h-64 overflow-y-auto">
@@ -564,23 +676,32 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                                   onCheckedChange={() =>
                                     individualLote.toggleAnimal(animal.idAnimal)
                                   }
+                                  className="rounded-full"
                                 />
-                                <span className="text-sm font-medium">
-                                  {animal.codigo} - {animal.nombre}
+                                <span className="text-sm font-medium flex items-center gap-2">
+                                  {animal.codigo && `${animal.codigo} - `}
+                                  {animal.nombre || 'Sin nombre'}
+                                  {animal.raza && (
+                                    <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">
+                                      {animal.raza
+                                        .replace(/_/g, ' ')
+                                        .toLowerCase()}
+                                    </span>
+                                  )}
                                 </span>
                               </div>
+                              <span className="text-xs text-gray-500">
+                                {ESTADO_LABELS[animal.estado] || 'Sana'}
+                              </span>
                             </div>
 
                             {selected && (
-                              <div className="grid grid-cols-2 gap-2 ml-8">
-                                <div>
-                                  <Label className="text-[10px] text-gray-500">
-                                    Litros
-                                  </Label>
+                              <div className="flex items-center gap-3 ml-8">
+                                <div className="flex-1">
                                   <Input
                                     type="number"
                                     inputMode="decimal"
-                                    placeholder="0"
+                                    placeholder="0.00"
                                     className="h-8 text-xs rounded-lg"
                                     value={field?.litros ?? ''}
                                     onChange={(e) =>
@@ -592,59 +713,6 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                                       )
                                     }
                                   />
-                                </div>
-                                <div>
-                                  <Label className="text-[10px] text-gray-500">
-                                    Destino
-                                  </Label>
-                                  <Select
-                                    value={field?.destino ?? ''}
-                                    onValueChange={(v) =>
-                                      individualLote.updateDestino(
-                                        animal.idAnimal,
-                                        v as any
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 text-xs rounded-lg">
-                                      <SelectValue placeholder="Destino" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      <SelectItem value="TANQUE">
-                                        Tanque
-                                      </SelectItem>
-                                      <SelectItem value="DESCARTE">
-                                        Descarte
-                                      </SelectItem>
-                                    </SelectContent>
-                                  </Select>
-                                </div>
-                                <div className="col-span-2">
-                                  <Label className="text-[10px] text-gray-500">
-                                    Estado Sanitario
-                                  </Label>
-                                  <Select
-                                    value={field?.estado ?? ''}
-                                    onValueChange={(v) =>
-                                      individualLote.updateEstado(
-                                        animal.idAnimal,
-                                        v as any
-                                      )
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 text-xs rounded-lg">
-                                      <SelectValue placeholder="Estado" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                      {Object.entries(ESTADO_LABELS).map(
-                                        ([value, label]) => (
-                                          <SelectItem key={value} value={value}>
-                                            {label}
-                                          </SelectItem>
-                                        )
-                                      )}
-                                    </SelectContent>
-                                  </Select>
                                 </div>
                               </div>
                             )}
@@ -664,7 +732,7 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
 
                 <div className="space-y-2 w-full">
                   <Label className="font-bold text-xs">
-                    Producción Total Asociada (Litros) *
+                    Producción Total Asociada (Litros)
                   </Label>
                   <Input
                     type="text"
@@ -688,65 +756,62 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                     </p>
                   )}
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs">Destino</Label>
+                    <Select
+                      value={watch('destino') ?? ''}
+                      onValueChange={(e) =>
+                        setValue('destino', e as TipoDestino)
+                      }
+                    >
+                      <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
+                        <SelectValue placeholder="Selecciona destino..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {Object.values(TipoDestino).map((destino) => (
+                            <SelectItem key={destino} value={destino}>
+                              {destino
+                                .replace('_', ' ')
+                                .toLowerCase()
+                                .replace(/\b\w/g, (c) => c.toUpperCase())}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                    {errors.destino && (
+                      <span className="text-xs text-red-600">
+                        {errors.destino.message as string}
+                      </span>
+                    )}
+                  </div>
+
+                  {watch('destino') === TipoDestino.TANQUE_FRIO && (
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs">
+                        Temperatura del tanque (°C)
+                      </Label>
+                      <Input
+                        type="number"
+                        inputMode="decimal"
+                        step="0.1"
+                        placeholder="Ej: 4.5"
+                        className="rounded-xl border-gray-200 bg-gray-50/50"
+                        {...register('tempTanque')}
+                      />
+                      {errors.tempTanque && (
+                        <span className="text-xs text-red-600">
+                          {errors.tempTanque.message as string}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             )}
-
-            {/* Destino + Temperatura */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full">
-              <div className="space-y-2 w-full">
-                <Label className="font-bold text-xs">Destino *</Label>
-                <Select
-                  value={watch('destino') ?? ''} // ✅ FIX: fallback a '' en vez de undefined
-                  onValueChange={(e) => setValue('destino', e as TipoDestino)}
-                >
-                  <SelectTrigger className="w-full rounded-xl border-gray-200 bg-gray-50/50">
-                    <SelectValue placeholder="Selecciona destino..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      {Object.values(TipoDestino).map((destino) => (
-                        <SelectItem key={destino} value={destino}>
-                          {destino
-                            .replace('_', ' ')
-                            .toLowerCase()
-                            .replace(/\b\w/g, (c) => c.toUpperCase())}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-                {errors.destino && (
-                  <span className="text-xs text-red-600">
-                    {errors.destino.message as string}
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2 w-full">
-                <Label className="font-bold text-xs">
-                  Temperatura del tanque (°C){' '}
-                  {watch('destino') === TipoDestino.TANQUE_FRIO && '*'}
-                </Label>
-                <Input
-                  type="number"
-                  inputMode="decimal"
-                  step="0.1"
-                  placeholder="Ej: 4.5"
-                  className="rounded-xl border-gray-200 bg-gray-50/50"
-                  {...register('tempTanque')}
-                />
-                {errors.tempTanque && (
-                  <span className="text-xs text-red-600">
-                    {errors.tempTanque.message as string}
-                  </span>
-                )}
-                {watch('destino') === TipoDestino.TANQUE_FRIO && (
-                  <p className="text-[10px] text-orange-600">
-                    Obligatorio para Tanque Frío
-                  </p>
-                )}
-              </div>
-            </div>
 
             <span className="flex items-center gap-2 text-xs text-gray-500 pt-1">
               <AlertCircle className="size-4 text-gray-400 shrink-0" />
@@ -766,14 +831,14 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
                 variant="default"
                 className="flex-1 h-12 text-base font-bold rounded-xl bg-[#1B4D3E] hover:bg-[#153c31] text-white disabled:opacity-50"
                 type="submit"
-                disabled={!canSubmit || opcionesLoading}
+                disabled={!canSubmit || opcionesLoading || configLoading}
               >
-                {opcionesLoading ? (
+                {opcionesLoading || configLoading ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : batch ? (
                   'Actualizar lote'
                 ) : (
-                  'Crear lote'
+                  'Guardar'
                 )}
               </Button>
             </DialogFooter>

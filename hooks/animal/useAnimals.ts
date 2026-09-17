@@ -1,4 +1,3 @@
-// hooks/animal/useAnimals.ts
 import { useQuery } from '@tanstack/react-query'
 import { getAnimals, Animal } from '@/utils/api/animal.api'
 
