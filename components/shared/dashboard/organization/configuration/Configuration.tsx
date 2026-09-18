@@ -36,6 +36,7 @@ import RodeoCategoriaCard, {
   RAZA_LABELS,
   blockNegativeKeys,
 } from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
+import { toast } from 'sonner'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.BALDE, Label: 'Balde' },
@@ -241,28 +242,28 @@ const Configuration = () => {
         : { rodeos: rodeosCompletos, animales: undefined }),
     }
 
-    console.log('>> PAYLOAD', payload)
-    // sendConfiguration(payload, {
-    //   onSuccess: () => {
-    //     toast.success('Configuración guardada correctamente', {
-    //       description: 'Tus datos ya están listos para usar en el sistema',
-    //       position: 'top-center',
-    //       duration: 5000,
-    //     })
-    //     const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
-    //     router.replace(dashboardUrl)
-    //   },
-    //   onError: (e) => {
-    //     toast.error(
-    //       e?.response?.data?.message ??
-    //       'No se pudo guardar. Revisá los datos e intentá de nuevo.',
-    //       {
-    //         position: 'top-center',
-    //         duration: 5000,
-    //       }
-    //     )
-    //   },
-    // })
+    // console.log('>> PAYLOAD', payload)
+    sendConfiguration(payload, {
+      onSuccess: () => {
+        toast.success('Configuración guardada correctamente', {
+          description: 'Tus datos ya están listos para usar en el sistema',
+          position: 'top-center',
+          duration: 5000,
+        })
+        const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+        router.replace(dashboardUrl)
+      },
+      onError: (e) => {
+        toast.error(
+          e?.response?.data?.message ??
+            'No se pudo guardar. Revisá los datos e intentá de nuevo.',
+          {
+            position: 'top-center',
+            duration: 5000,
+          }
+        )
+      },
+    })
   }
 
   return (
