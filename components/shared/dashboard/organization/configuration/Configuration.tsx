@@ -34,6 +34,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import RodeoCategoriaCard, {
   RAZA_LABELS,
+  blockNegativeKeys,
 } from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
 import { toast } from 'sonner'
 
@@ -102,6 +103,12 @@ const collectErrorMessages = (
 const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
   const messages = collectErrorMessages(errs)
   console.warn('[Configuration] submit bloqueado por validación:', errs)
+  if (messages.length === 0) {
+    console.warn('Revisá el formulario: hay campos pendientes')
+    return
+  }
+  const [first, ...rest] = messages
+  console.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first)
 }
 
 const Configuration = () => {
@@ -143,9 +150,41 @@ const Configuration = () => {
 
   const animales = watch('animales')
   const promLitros = watch('promLitros')
+  const rodeos = watch('rodeos')
 
-  const esRodeoUnico = !Number.isNaN(promLitros) && promLitros < 2000
+  const totalVacasGeneral =
+    rodeos?.reduce(
+      (acc, rodeo) =>
+        acc +
+        (rodeo?.razas?.reduce(
+          (sub, item) => sub + (Number(item?.cantVacas) || 0),
+          0
+        ) ?? 0),
+      0
+    ) ?? 0
+
+  const esRodeoUnico = !Number.isNaN(promLitros) && promLitros <= 2000
+  const animalesParaRodeoUnico =
+    totalVacasGeneral > 0 && totalVacasGeneral <= 70
+
+  const sugerirRodeoUnico =
+    animalesParaRodeoUnico && !Number.isNaN(promLitros) && promLitros > 2000
+  const bloqueadoPorFaltaDeRegistroDeRodeo =
+    step === 1 && esRodeoUnico && registrarRodeo === undefined
+
+  const mostrarBloqueRodeos = !esRodeoUnico || registrarRodeo === false
+
   const lastStep = esRodeoUnico && registrarRodeo ? 2 : 1
+
+  const isrodeosLlenados =
+    !!rodeos?.length &&
+    rodeos.every(
+      (r) =>
+        Number.isFinite(r?.costoRacion) &&
+        (r?.costoRacion as number) > 0 &&
+        !!r?.razas?.length &&
+        r.razas.every((item) => Number(item?.cantVacas) > 0)
+    )
 
   useEffect(() => {
     if (!esRodeoUnico) setRegistrarRodeo(undefined)
@@ -156,10 +195,10 @@ const Configuration = () => {
     const tipos = esRodeoUnico
       ? [TipoRodeo.UNICO_ORDENIE, TipoRodeo.UNICO_SECA]
       : [
-          TipoRodeo.ALTA_PRODUCCION,
-          TipoRodeo.BAJA_PRODUCCION,
-          TipoRodeo.VACAS_SECAS,
-        ]
+        TipoRodeo.ALTA_PRODUCCION,
+        TipoRodeo.BAJA_PRODUCCION,
+        TipoRodeo.VACAS_SECAS,
+      ]
 
     setValue('rodeos', tipos.map((tipoRodeo) => ({ tipoRodeo })) as any)
     for (let i = 0; i < tipos.length; i++) {
@@ -192,45 +231,36 @@ const Configuration = () => {
         })),
       }))
 
-    const isIndividual = selectedTipo === TipoSeguimiento.INDIVIDUAL
+    const isIndividualAndRegisterRodeo =
+      selectedTipo === TipoSeguimiento.INDIVIDUAL && registrarRodeo
 
     const payload = {
       TipoSeguimiento: selectedTipo,
       ...data,
-      ...(isIndividual
-        ? {
-            rodeos: undefined,
-            animales: data.animales ?? [
-              {
-                // ✅ CORREGIDO: Código dinámico para evitar colisiones en la BD
-                codigo: `TEMP-${Date.now()}`,
-                raza: 'JERSEY',
-                categoria: 'ORDENE',
-                estado: 'SANO',
-                nombre: 'vaca-fallback',
-              },
-            ],
-          }
-        : { animales: undefined, rodeos: rodeosCompletos }),
+      ...(isIndividualAndRegisterRodeo
+        ? { animales: data.animales, rodeos: undefined }
+        : { rodeos: rodeosCompletos, animales: undefined }),
     }
 
     sendConfiguration(payload, {
       onSuccess: () => {
-        if (pathname.includes('/cuestionario')) {
-          toast.success('Configuración guardada correctamente', {
-            description:
-              'Ya podés invitar a tu equipo o empezar a usar tu establecimiento',
+        toast.success('Configuración guardada correctamente', {
+          description: 'Tus datos ya están listos para usar en el sistema',
+          position: 'top-center',
+          duration: 5000,
+        })
+        const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+        router.replace(dashboardUrl)
+      },
+      onError: (e) => {
+        toast.error(
+          e?.response?.data?.message ??
+          'No se pudo guardar. Revisá los datos e intentá de nuevo.',
+          {
             position: 'top-center',
             duration: 5000,
-          })
-          router.replace(pathname.replace('cuestionario', 'invitar'))
-        } else {
-          toast.success('Configuración guardada correctamente', {
-            position: 'top-center',
-            duration: 5000,
-          })
-        }
-        router.push(pathname.replace('cuestionario', 'invitar'))
+          }
+        )
       },
     })
   }
@@ -239,7 +269,10 @@ const Configuration = () => {
     <div
       className={`flex flex-col gap-10 w-full ${pathname.includes('cuestionario') ? 'p-8' : ''}`}
     >
-      <header className="flex flex-col gap-2">
+      <div className="h-12 lg:h-20 w-auto flex items-start gap-2">
+        <img src="/logos/tambo-logo-360.png" alt="logo" className="h-18.75" />
+      </div>
+      <section className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <h1 className="text-4xl font-bold text-slate-900">
             Configura tu Perfil
@@ -249,7 +282,7 @@ const Configuration = () => {
           Ayudanos a personalizar la experiencia de Tambo360 con los datos
           actuales de tu establecimiento
         </p>
-      </header>
+      </section>
 
       <form
         onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}
@@ -257,12 +290,12 @@ const Configuration = () => {
       >
         {step == 1 ? (
           <>
-            <section className="flex flex-col gap-4 w-full">
+            <section className="flex flex-col gap-3 w-full">
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Dónde está tu tambo?
               </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
+              <div className="flex w-full max-w-4xl items-start gap-x-10">
+                <div className="relative min-w-0 w-full flex-1 space-y-2">
                   <p className="text-[15px] leading-6 text-slate-900">
                     Provincia*
                   </p>
@@ -282,7 +315,7 @@ const Configuration = () => {
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full max-w-110 ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
+                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder="Seleccione una provincia"
                       value={searchProvince}
                       onChange={(e) => {
@@ -327,7 +360,7 @@ const Configuration = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
+                <div className="relative min-w-0 w-full flex-1 space-y-2">
                   <p className="text-[15px] leading-6 text-slate-900">
                     Localidad*
                   </p>
@@ -346,7 +379,7 @@ const Configuration = () => {
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full max-w-110 ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
+                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder={
                         idProvince
                           ? 'Seleccione una localidad'
@@ -408,7 +441,7 @@ const Configuration = () => {
                 ¿Cuántas veces al día ordeñás?
               </p>
               <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
-                {[1, 2, 3].map((n) => (
+                {[1, 2, 3, 4].map((n) => (
                   <Label
                     key={n}
                     className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
@@ -468,6 +501,7 @@ const Configuration = () => {
                   min={0}
                   placeholder="000"
                   {...register('promLitros', { valueAsNumber: true })}
+                  onKeyDown={blockNegativeKeys}
                   className={cn(
                     'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.promLitros
@@ -531,6 +565,10 @@ const Configuration = () => {
                   inputMode="numeric"
                   placeholder="000"
                   {...register('promDEL', { valueAsNumber: true })}
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',') e.preventDefault()
+                    blockNegativeKeys(e)
+                  }}
                   className={cn(
                     'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.promDEL
@@ -558,6 +596,7 @@ const Configuration = () => {
                   min={0}
                   placeholder="000"
                   {...register('precioLitro', { valueAsNumber: true })}
+                  onKeyDown={blockNegativeKeys}
                   className={cn(
                     'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.precioLitro
@@ -604,21 +643,31 @@ const Configuration = () => {
               </section>
             )}
 
-            <section className="flex flex-col gap-4">
+            <section
+              className={`${mostrarBloqueRodeos ? '' : 'hidden'} flex flex-col gap-4`}
+            >
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuántos animales tenés por categoría?
               </p>
+              {sugerirRodeoUnico && (
+                <p className="text-xs font-medium text-amber-600">
+                  Con {totalVacasGeneral} vaca
+                  {totalVacasGeneral === 1 ? '' : 's'} deberías bajar tu
+                  promedio de leche a 2000 lts o menos para tratarlo como rodeo
+                  único.
+                </p>
+              )}
               <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
                 {(esRodeoUnico
                   ? [
-                      { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
-                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
-                    ]
+                    { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
+                    { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
+                  ]
                   : [
-                      { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
-                      { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
-                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
-                    ]
+                    { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
+                    { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
+                    { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
+                  ]
                 ).map(({ titulo, tipo }, idx) => (
                   <RodeoCategoriaCard
                     key={`${titulo}-${tipo}`}
@@ -658,80 +707,103 @@ const Configuration = () => {
                     <div className="col-span-1" />
                   </div>
 
-                  {(animales ?? []).map((a: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-12 gap-4 items-center py-3 border-b"
-                    >
-                      <div className="col-span-2">
-                        <Input
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.codigo` as const)}
-                          defaultValue={a.codigo}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <Input
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.nombre` as const)}
-                          defaultValue={a.nombre}
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <select
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.raza` as const)}
-                        >
-                          <option value="" disabled>
-                            Seleccioná
-                          </option>
-                          {Object.values(RazasVacas).map((v) => (
-                            <option key={v} value={v}>
-                              {RAZA_LABELS[v]}
+                  {(animales ?? []).map((a: any, idx: number) => {
+                    const categoriaField = register(
+                      `animales.${idx}.categoria` as const
+                    )
+                    const soloSano = a?.categoria === CategoriaAnimal.ORDENE
+                    return (
+                      <div
+                        key={idx}
+                        className="grid grid-cols-12 gap-4 items-center py-3 border-b"
+                      >
+                        <div className="col-span-2">
+                          <Input
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.codigo` as const)}
+                            defaultValue={a.codigo}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.nombre` as const)}
+                            defaultValue={a.nombre}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.raza` as const)}
+                          >
+                            <option value="" disabled>
+                              Seleccioná
                             </option>
-                          ))}
-                        </select>
+                            {Object.values(RazasVacas).map((v) => (
+                              <option key={v} value={v}>
+                                {RAZA_LABELS[v]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...categoriaField}
+                            onChange={(e) => {
+                              categoriaField.onChange(e)
+                              if (e.target.value === CategoriaAnimal.ORDENE) {
+                                setValue(
+                                  `animales.${idx}.estado` as const,
+                                  EstadoAnimal.SANO,
+                                  { shouldValidate: true }
+                                )
+                              }
+                            }}
+                          >
+                            {CATEGORIA_ANIMAL_OPTIONS.map(
+                              ({ value, label }) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
+                        <div className="col-span-3">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.estado` as const)}
+                          >
+                            {(soloSano
+                              ? ESTADO_ANIMAL_OPTIONS.filter(
+                                ({ value }) => value === EstadoAnimal.SANO
+                              )
+                              : ESTADO_ANIMAL_OPTIONS
+                            ).map(({ value, label }) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-1 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = animales ?? []
+                              const copy = [...current]
+                              copy.splice(idx, 1)
+                              setValue('animales', copy)
+                            }}
+                            className="text-red-500"
+                          >
+                            -
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-span-2">
-                        <select
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.categoria` as const)}
-                        >
-                          {CATEGORIA_ANIMAL_OPTIONS.map(({ value, label }) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-span-3">
-                        <select
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.estado` as const)}
-                        >
-                          {ESTADO_ANIMAL_OPTIONS.map(({ value, label }) => (
-                            <option key={value} value={value}>
-                              {label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-span-1 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const current = animales ?? []
-                            const copy = [...current]
-                            copy.splice(idx, 1)
-                            setValue('animales', copy)
-                          }}
-                          className="text-red-500"
-                        >
-                          -
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
 
                   <div className="pt-4 flex justify-between items-center">
                     <span className="text-sm text-slate-500">
@@ -794,13 +866,23 @@ const Configuration = () => {
             <button
               type="button"
               disabled={
-                isPending || (step === 2 && (animales ?? []).length === 0)
+                isPending ||
+                sugerirRodeoUnico ||
+                bloqueadoPorFaltaDeRegistroDeRodeo ||
+                (mostrarBloqueRodeos && !isrodeosLlenados) ||
+                (step === 2 && (animales ?? []).length === 0)
               }
               className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
               onClick={() => {
                 if (step !== lastStep) {
                   setStep(step + 1)
                 } else {
+                  if (esRodeoUnico && registrarRodeo) {
+                    setValue('rodeos', undefined as any, {
+                      shouldDirty: true,
+                    })
+                    clearErrors('rodeos')
+                  }
                   handleSubmit(onSubmit, handleInvalidSubmit)()
                 }
               }}

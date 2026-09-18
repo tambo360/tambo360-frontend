@@ -34,6 +34,15 @@ const formatRazaLabel = (value: string) =>
     ? RAZA_LABELS[value as RazasVacas]
     : value
 
+const formatRazaChip = (value: string) =>
+  formatRazaLabel(value)
+    .replace(/^Raza\s+/i, '')
+    .replace(/\.\s*$/, '')
+
+export const blockNegativeKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault()
+}
+
 const RAZAS_OPTIONS: { value: RazasVacas; label: string }[] = Object.values(
   RazasVacas
 ).map((value) => ({ value, label: RAZA_LABELS[value] }))
@@ -60,6 +69,7 @@ export default function RodeoCategoriaCard({
   const [raza, setRaza] = useState('')
   const [searchRaza, setSearchRaza] = useState('')
   const [cantidad, setCantidad] = useState('')
+  const [cantidadError, setCantidadError] = useState('')
   const [razas, setRazas] = useState<{ raza: string; cantidad: string }[]>([])
 
   useEffect(() => {
@@ -79,6 +89,8 @@ export default function RodeoCategoriaCard({
     [searchRaza]
   )
 
+  const puedeAgregar = !!raza && cantidad !== '' && Number(cantidad) > 0
+
   const syncRazasToForm = (items: { raza: string; cantidad: string }[]) => {
     setValue?.(
       `rodeos.${index}.razas` as const,
@@ -90,16 +102,22 @@ export default function RodeoCategoriaCard({
     )
   }
 
+  const costoRacionField = register?.(`rodeos.${index}.costoRacion` as const, {
+    valueAsNumber: true,
+  })
+
   const handleAgregar = () => {
-    if (!raza || cantidad === '') return
-    const cant = Number(cantidad)
-    if (!Number.isFinite(cant) || cant <= 0) return
+    if (!raza || cantidad === '' || Number(cantidad) <= 0) {
+      setCantidadError('Seleccioná una raza e ingresá una cantidad válida')
+      return
+    }
     const next = [...razas, { raza, cantidad }]
     setRazas(next)
     syncRazasToForm(next)
     setRaza('')
     setSearchRaza('')
     setCantidad('')
+    setCantidadError('')
   }
 
   const handleQuitar = (i: number) => {
@@ -125,16 +143,26 @@ export default function RodeoCategoriaCard({
           <Label className="flex min-h-8 items-end text-xs leading-tight font-normal wrap-break-words text-slate-900">
             Costo de Ración ($/cab/día)
           </Label>
-          <Input
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="000"
-            {...register?.(`rodeos.${index}.costoRacion` as const, {
-              valueAsNumber: true,
-            })}
-            className={`h-10 w-full min-w-0 rounded-lg border bg-white px-3 text-sm font-normal shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0 ${costoRacionError ? 'border-red-400' : 'border-slate-200'}`}
-          />
+          <div className="relative w-full min-w-0">
+            <Input
+              type="number"
+              min={0}
+              step="0"
+              placeholder="000"
+              {...costoRacionField}
+              onKeyDown={blockNegativeKeys}
+              onChange={(e) => {
+                if (e.target.value !== '' && Number(e.target.value) < 0) {
+                  e.target.value = ''
+                }
+                costoRacionField?.onChange?.(e)
+              }}
+              className={`h-10 w-full min-w-0 rounded-lg border bg-white px-3 pr-8 text-sm font-normal shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0 ${costoRacionError ? 'border-red-400' : 'border-slate-200'}`}
+            />
+            <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-semibold text-slate-400">
+              $
+            </span>
+          </div>
           {costoRacionError && (
             <p className="max-w-40 text-xs wrap-break-words text-red-500">
               {costoRacionError}
@@ -196,14 +224,24 @@ export default function RodeoCategoriaCard({
             min={0}
             placeholder="000"
             value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === '.' || e.key === ',') e.preventDefault()
+              blockNegativeKeys(e)
+            }}
+            onChange={(e) => {
+              const val = e.target.value
+              if (val !== '' && Number(val) < 0) return
+              setCantidad(val)
+              if (cantidadError) setCantidadError('')
+            }}
             className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0"
           />
         </div>
         <button
           type="button"
           onClick={handleAgregar}
-          className="h-10 shrink-0 cursor-pointer rounded-lg bg-[#218A5B] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a6f49]"
+          disabled={!puedeAgregar}
+          className="h-10 shrink-0 cursor-pointer rounded-lg bg-[#218A5B] px-4 text-[13px] font-semibold text-white transition-colors hover:bg-[#1a6f49] disabled:cursor-not-allowed disabled:opacity-50"
         >
           Agregar
         </button>
@@ -214,20 +252,25 @@ export default function RodeoCategoriaCard({
           {razas.map((item, i) => (
             <span
               key={`${item.raza}-${i}`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#29845A]/20 bg-white py-1 pr-1.5 pl-3 text-xs font-medium text-slate-700"
+              className="inline-flex items-center gap-1.5 rounded-md bg-[#82C9AC] py-1.5 pr-2 pl-3 text-xs font-semibold text-[#0B1001]"
             >
-              {formatRazaLabel(item.raza)} · {item.cantidad}
+              {formatRazaChip(item.raza)} - {item.cantidad}
               <button
                 type="button"
                 onClick={() => handleQuitar(i)}
-                className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                aria-label={`Quitar ${formatRazaLabel(item.raza)}`}
+                className="flex h-4 w-4 cursor-pointer items-center justify-center rounded-full text-[#0B1001]/60 hover:bg-black/10 hover:text-[#0B1001]"
+                aria-label={`Quitar ${formatRazaChip(item.raza)}`}
               >
                 <X size={12} />
               </button>
             </span>
           ))}
         </div>
+      )}
+      {cantidadError && (
+        <p className="max-w-40 text-xs wrap-break-words text-red-500">
+          {cantidadError}
+        </p>
       )}
       {razasError && (
         <p className="max-w-40 text-xs wrap-break-words text-red-500">
