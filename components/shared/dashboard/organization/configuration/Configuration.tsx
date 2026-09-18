@@ -36,7 +36,6 @@ import RodeoCategoriaCard, {
   RAZA_LABELS,
   blockNegativeKeys,
 } from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
-import { toast } from 'sonner'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.BALDE, Label: 'Balde' },
@@ -48,7 +47,7 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 ]
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
-  { value: VentaLeche.USINA, label: 'Usina' }, // ✅ Corregido typo
+  { value: VentaLeche.USINA, label: 'Usina' },
   { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
   { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
   { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
@@ -61,7 +60,7 @@ const CATEGORIA_ANIMAL_OPTIONS: { value: CategoriaAnimal; label: string }[] = [
 
 const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
   { value: EstadoAnimal.SANO, label: 'Sano' },
-  { value: EstadoAnimal.MASTITIS, label: 'Mastitis' }, // ✅ Corregido typo (era MATITIS)
+  { value: EstadoAnimal.MATITIS, label: 'Mastitis' },
   { value: EstadoAnimal.TRATAMIENTO, label: 'Tratamiento' },
   { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
 ]
@@ -195,10 +194,10 @@ const Configuration = () => {
     const tipos = esRodeoUnico
       ? [TipoRodeo.UNICO_ORDENIE, TipoRodeo.UNICO_SECA]
       : [
-        TipoRodeo.ALTA_PRODUCCION,
-        TipoRodeo.BAJA_PRODUCCION,
-        TipoRodeo.VACAS_SECAS,
-      ]
+          TipoRodeo.ALTA_PRODUCCION,
+          TipoRodeo.BAJA_PRODUCCION,
+          TipoRodeo.VACAS_SECAS,
+        ]
 
     setValue('rodeos', tipos.map((tipoRodeo) => ({ tipoRodeo })) as any)
     for (let i = 0; i < tipos.length; i++) {
@@ -242,27 +241,28 @@ const Configuration = () => {
         : { rodeos: rodeosCompletos, animales: undefined }),
     }
 
-    sendConfiguration(payload, {
-      onSuccess: () => {
-        toast.success('Configuración guardada correctamente', {
-          description: 'Tus datos ya están listos para usar en el sistema',
-          position: 'top-center',
-          duration: 5000,
-        })
-        const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
-        router.replace(dashboardUrl)
-      },
-      onError: (e) => {
-        toast.error(
-          e?.response?.data?.message ??
-          'No se pudo guardar. Revisá los datos e intentá de nuevo.',
-          {
-            position: 'top-center',
-            duration: 5000,
-          }
-        )
-      },
-    })
+    console.log('>> PAYLOAD', payload)
+    // sendConfiguration(payload, {
+    //   onSuccess: () => {
+    //     toast.success('Configuración guardada correctamente', {
+    //       description: 'Tus datos ya están listos para usar en el sistema',
+    //       position: 'top-center',
+    //       duration: 5000,
+    //     })
+    //     const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+    //     router.replace(dashboardUrl)
+    //   },
+    //   onError: (e) => {
+    //     toast.error(
+    //       e?.response?.data?.message ??
+    //       'No se pudo guardar. Revisá los datos e intentá de nuevo.',
+    //       {
+    //         position: 'top-center',
+    //         duration: 5000,
+    //       }
+    //     )
+    //   },
+    // })
   }
 
   return (
@@ -624,9 +624,9 @@ const Configuration = () => {
                   {[
                     { value: true, label: 'Aceptar' },
                     { value: false, label: 'Cancelar' },
-                  ].map(({ value, label }) => (
+                  ].map(({ value, label }, i) => (
                     <Label
-                      key={label}
+                      key={`${value}-${i}-${label}`}
                       className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
                     >
                       <input
@@ -660,14 +660,14 @@ const Configuration = () => {
               <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
                 {(esRodeoUnico
                   ? [
-                    { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
-                    { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
-                  ]
+                      { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
+                    ]
                   : [
-                    { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
-                    { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
-                    { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
-                  ]
+                      { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
+                      { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
+                    ]
                 ).map(({ titulo, tipo }, idx) => (
                   <RodeoCategoriaCard
                     key={`${titulo}-${tipo}`}
@@ -777,8 +777,8 @@ const Configuration = () => {
                           >
                             {(soloSano
                               ? ESTADO_ANIMAL_OPTIONS.filter(
-                                ({ value }) => value === EstadoAnimal.SANO
-                              )
+                                  ({ value }) => value === EstadoAnimal.SANO
+                                )
                               : ESTADO_ANIMAL_OPTIONS
                             ).map(({ value, label }) => (
                               <option key={value} value={value}>
