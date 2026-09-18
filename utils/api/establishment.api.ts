@@ -5,14 +5,11 @@ import {
 } from '@/types/establishment'
 
 export const createEstablishment = (dto: EstablishmentData) =>
-  api.post('/establecimiento', dto, {
-    headers: {
-      'x-organizacion-id': dto.organizacionId,
-    },
-  })
+  api.post('/organizacion', { nombre: dto.nombre })
 
 export const updateEstablishment = (dto: UpdateEstablishmentPayload) =>
   api.patch(`/conf/establecimiento`, dto)
 
+// ✅ Corregido: era /organizacion/${id}, debe ser /establecimiento/${id}
 export const getEstablishment = (id: string) =>
   api.get(`/establecimiento/${id}`)

@@ -17,7 +17,7 @@ import {
 } from '@/components/ui/sidebar'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEstablishment } from '@/hooks/establishment/useEstablishment'
+import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
 import { Button } from '@/components/ui/button'
 
@@ -27,9 +27,9 @@ interface AppSidebarProps {
 
 export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   const pathname = usePathname()
-  const { data } = useEstablishment({ id: pathname.split('/')[3] })
+  const { data: configData } = useConfiguration()
   const { data: noViewedAlerts } = useNoViewedAlerts({
-    id: data?.data.establecimiento?.idEstablecimiento,
+    id: configData?.data.idEstablecimiento,
   })
   const isCollapsed = forcedCollapsed
 
@@ -88,6 +88,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
                 alt="Tambo360"
                 className="h-6 w-auto"
               />
+              <span className="ml-2 text-sm font-bold tracking-tight">QA</span>
             </div>
           )}
         </div>

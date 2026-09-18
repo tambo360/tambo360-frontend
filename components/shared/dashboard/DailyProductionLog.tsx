@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Plus, Download } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -41,21 +41,6 @@ const DailyProductionLog = () => {
           >
             Crear lote
             <Plus className="size-4" />
-          </Button>
-
-          {/*
-            TODO (pendiente de backend): no existe endpoint de exportación.
-            Botón visual mockeado por ahora, sin funcionalidad real todavía.
-          */}
-          <Button
-            variant="darkGreen"
-            className="p-6"
-            onClick={() =>
-              console.warn('Exportar CSV: pendiente de endpoint en backend')
-            }
-          >
-            Exportar CSV
-            <Download className="size-4" />
           </Button>
         </div>
       </CardHeader>

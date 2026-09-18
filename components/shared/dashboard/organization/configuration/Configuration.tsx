@@ -2,16 +2,19 @@
 import {
   configurationSchema,
   ConfigurationData,
+  ConfigurationFormInput,
 } from '@/types/establishment/configuration'
 import {
+  CategoriaAnimal,
+  EstadoAnimal,
+  RazasVacas,
   TipoOrdenie,
+  TipoRodeo,
   TipoSeguimiento,
   VentaLeche,
-  TipoRodeo,
 } from '@/types/enums'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ChevronRight, Minus, Plus } from 'lucide-react'
-import { useForm } from 'react-hook-form'
+import { FieldErrors, useForm } from 'react-hook-form'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useProvince } from '@/hooks/ubication/useProvince'
@@ -27,11 +30,13 @@ import {
 import { Label } from '@/components/ui/label'
 import { useDebounce } from 'use-debounce'
 import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfiguration'
-import { usePathname } from 'next/navigation'
-import { useConfiguration } from '@/hooks/establishment/useConfiguration'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
+import { usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
+import RodeoCategoriaCard, {
+  RAZA_LABELS,
+  blockNegativeKeys,
+} from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
+import { toast } from 'sonner'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.BALDE, Label: 'Balde' },
@@ -42,7 +47,25 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.OTRO, Label: 'Otro' },
 ]
 
-// Clase reutilizable para el look "puntico" del radio (aro + relleno al seleccionar)
+const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
+  { value: VentaLeche.USINA, label: 'Usina' },
+  { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
+  { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
+  { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
+]
+
+const CATEGORIA_ANIMAL_OPTIONS: { value: CategoriaAnimal; label: string }[] = [
+  { value: CategoriaAnimal.ORDENE, label: 'Ordeñe' },
+  { value: CategoriaAnimal.SECAS, label: 'Secas' },
+]
+
+const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
+  { value: EstadoAnimal.SANO, label: 'Sano' },
+  { value: EstadoAnimal.MATITIS, label: 'Mastitis' },
+  { value: EstadoAnimal.TRATAMIENTO, label: 'Tratamiento' },
+  { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
+]
+
 const RADIO_DOT_CLASS =
   'appearance-none w-5 h-5 shrink-0 rounded-full border-2 border-slate-300 bg-white ' +
   'checked:border-[#29845A] checked:bg-[#29845A] ' +
@@ -51,6 +74,43 @@ const RADIO_DOT_CLASS =
   'transition-all duration-150 cursor-pointer ' +
   'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#29845A]'
 
+// Detecta submits bloqueados por validación (errores "silenciosos")
+const collectErrorMessages = (
+  errs: FieldErrors<ConfigurationFormInput>
+): string[] => {
+  const messages: string[] = []
+  const walk = (node: unknown) => {
+    if (!node || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      node.forEach(walk)
+      return
+    }
+    const record = node as Record<string, unknown>
+    if (typeof record.message === 'string' && record.message) {
+      messages.push(record.message)
+    }
+    Object.keys(record).forEach((key) => {
+      if (key !== 'message' && key !== 'ref' && key !== 'type') {
+        walk(record[key])
+      }
+    })
+  }
+  walk(errs)
+  return messages
+}
+
+// Validador de errores silenciosos
+const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
+  const messages = collectErrorMessages(errs)
+  console.warn('[Configuration] submit bloqueado por validación:', errs)
+  if (messages.length === 0) {
+    console.warn('Revisá el formulario: hay campos pendientes')
+    return
+  }
+  const [first, ...rest] = messages
+  console.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first)
+}
+
 const Configuration = () => {
   const [searchProvince, setSearchProvince] = useState('')
   const [idProvince, setIdProvince] = useState<string | undefined>('')
@@ -58,6 +118,9 @@ const Configuration = () => {
   const [selectedLocalityName, setSelectedLocalityName] = useState('')
   const [searchP] = useDebounce(searchProvince, 300)
   const [searchL] = useDebounce(searchLocality, 300)
+  const [registrarRodeo, setRegistrarRodeo] = useState<boolean | undefined>(
+    undefined
+  )
   const [step, setStep] = useState(1)
   const pathname = usePathname()
   const router = useRouter()
@@ -70,198 +133,147 @@ const Configuration = () => {
     isPending,
     error,
   } = useUpdateConfiguration()
-  const { data: config } = useConfiguration()
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
-    reset,
+    clearErrors,
     formState: { errors },
-  } = useForm<ConfigurationData>({
-    defaultValues: {
-      cantOrdenie: 2,
-      tipoOrdenie: undefined,
-      promLitros: undefined,
-      empleados: false,
-      cantEmpleados: 1,
-      ubicacion: {
-        provincia: '',
-        localidad: '',
-      },
-    },
+  } = useForm<ConfigurationFormInput, any, ConfigurationData>({
     resolver: zodResolver(configurationSchema),
+    defaultValues: {
+      ubicacion: { provincia: '', localidad: '' },
+    },
   })
 
-  useEffect(() => {
-    if (!config?.data) return
+  const animales = watch('animales')
+  const promLitros = watch('promLitros')
+  const rodeos = watch('rodeos')
 
-    const data = config.data
-    const savedRodeos = data.rodeos ?? []
-    // Seteamos `rodeos` según el tipo de seguimiento guardado
-    const initialRodeos =
-      data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL
-        ? undefined
-        : data.TipoSeguimiento === TipoSeguimiento.RODEO_UNICO
-          ? // Si es RODEO_UNICO mantenemos un único rodeo con tipo 'UNICO' (schema lo acepta)
-            savedRodeos.length
-            ? savedRodeos.map((r: any) => ({
-                tipoRodeo: r.tipoRodeo || 'UNICO',
-                cantVacas: r.cantVacas ?? 1,
-                costoRacion: r.costoRacion ?? 1,
-              }))
-            : [
-                {
-                  tipoRodeo: 'UNICO',
-                  cantVacas: 1,
-                  costoRacion: 1,
-                },
-              ]
-          : // Si es RODEO o no está definido, mapear los tipos estándar
-            Object.values(TipoRodeo).map((tipo) => {
-              const saved = savedRodeos.find((r: any) => r.tipoRodeo === tipo)
-              return {
-                tipoRodeo: tipo,
-                cantVacas: saved?.cantVacas ?? 1,
-                costoRacion: saved?.costoRacion ?? 1,
-              }
-            })
+  const totalVacasGeneral =
+    rodeos?.reduce(
+      (acc, rodeo) =>
+        acc +
+        (rodeo?.razas?.reduce(
+          (sub, item) => sub + (Number(item?.cantVacas) || 0),
+          0
+        ) ?? 0),
+      0
+    ) ?? 0
 
-    reset({
-      TipoSeguimiento: data.TipoSeguimiento,
-      rodeos: initialRodeos,
-      animales:
-        data.TipoSeguimiento === TipoSeguimiento.INDIVIDUAL
-          ? (data.animales ?? [])
-          : undefined,
-      cantOrdenie: data.ordeñe_por_dia ?? 2,
-      tipoOrdenie: data.tipo_ordeñe,
-      ventaLeche: data.venta_leche,
-      promLitros: data.litros_por_dia,
-      empleados: data.empleados ?? false,
-      cantVacas: data.cantidad_vacas !== null ? data.cantidad_vacas : 1,
-      cantEmpleados:
-        data.cantidad_empleados !== null ? data.cantidad_empleados : 1,
-      ubicacion: {
-        provincia: data.provincia ?? '',
-        localidad: data.localidad ?? '',
-      },
-    })
+  const esRodeoUnico = !Number.isNaN(promLitros) && promLitros <= 2000
+  const animalesParaRodeoUnico =
+    totalVacasGeneral > 0 && totalVacasGeneral <= 70
 
-    setSearchProvince(data.provincia ?? '')
-    setSearchLocality(data.localidad ?? '')
-  }, [config, reset])
+  const sugerirRodeoUnico =
+    animalesParaRodeoUnico && !Number.isNaN(promLitros) && promLitros > 2000
+  const bloqueadoPorFaltaDeRegistroDeRodeo =
+    step === 1 && esRodeoUnico && registrarRodeo === undefined
 
-  useEffect(() => {
-    if (!config?.data || !province?.provincias) return
+  const mostrarBloqueRodeos = !esRodeoUnico || registrarRodeo === false
 
-    const match = province.provincias.find(
-      (p) => p.nombre.toLowerCase() === config.data.provincia?.toLowerCase()
+  const lastStep = esRodeoUnico && registrarRodeo ? 2 : 1
+
+  const isrodeosLlenados =
+    !!rodeos?.length &&
+    rodeos.every(
+      (r) =>
+        Number.isFinite(r?.costoRacion) &&
+        (r?.costoRacion as number) > 0 &&
+        !!r?.razas?.length &&
+        r.razas.every((item) => Number(item?.cantVacas) > 0)
     )
 
-    if (match) {
-      setIdProvince(match.id)
-    }
-  }, [config, province])
-
-  const cantEmpleados = watch('cantEmpleados') ?? 1
-  const tipoOrdenie = watch('tipoOrdenie')
-  const cantOrdenie = watch('cantOrdenie')
-  const ventaLeche = watch('ventaLeche')
-  const empleados = watch('empleados')
-  const cantVacas = watch('cantVacas')
-  const tipoSeguimiento = watch('TipoSeguimiento')
-  const rodeos = watch('rodeos')
-  const animales = watch('animales')
-  const lastStep = tipoSeguimiento === TipoSeguimiento.INDIVIDUAL ? 2 : 1
+  useEffect(() => {
+    if (!esRodeoUnico) setRegistrarRodeo(undefined)
+    if (step > lastStep) setStep(lastStep)
+  }, [esRodeoUnico, step, lastStep])
 
   useEffect(() => {
-    if (tipoSeguimiento === TipoSeguimiento.RODEO) {
-      const current = watch('rodeos')
-      if (!current || current.length === 0) {
-        setValue(
-          'rodeos',
-          Object.values(TipoRodeo).map((tipo) => ({
-            tipoRodeo: tipo,
-            cantVacas: 1,
-            costoRacion: 1,
-          })),
-          { shouldValidate: true }
-        )
-      }
-    }
+    const tipos = esRodeoUnico
+      ? [TipoRodeo.UNICO_ORDENIE, TipoRodeo.UNICO_SECA]
+      : [
+          TipoRodeo.ALTA_PRODUCCION,
+          TipoRodeo.BAJA_PRODUCCION,
+          TipoRodeo.VACAS_SECAS,
+        ]
 
-    if (tipoSeguimiento === TipoSeguimiento.RODEO_UNICO) {
-      const current = watch('rodeos')
-      if (!current || current.length !== 1) {
-        setValue(
-          'rodeos',
-          [{ tipoRodeo: 'UNICO', cantVacas: 1, costoRacion: 1 }],
-          {
-            shouldValidate: true,
-          }
-        )
-      }
+    setValue('rodeos', tipos.map((tipoRodeo) => ({ tipoRodeo })) as any)
+    for (let i = 0; i < tipos.length; i++) {
+      setValue(`rodeos.${i}.costoRacion` as const, undefined as any, {
+        shouldDirty: true,
+      })
+      setValue(`rodeos.${i}.razas` as const, undefined as any, {
+        shouldDirty: true,
+      })
     }
-
-    if (tipoSeguimiento === TipoSeguimiento.INDIVIDUAL) {
-      const current = watch('animales')
-      if (!current || current.length === 0) {
-        setValue('animales', [
-          { codigo: '', nombre: '', categoria: 'ORDENE', estado: 'SANA' },
-        ])
-      }
-      // Al seleccionar INDIVIDUAL, removemos `rodeos` para no romper la validación discriminada
-      setValue('rodeos', undefined)
-    }
-  }, [tipoSeguimiento])
+    tipos.forEach((tipoRodeo, i) => {
+      setValue(`rodeos.${i}.tipoRodeo` as const, tipoRodeo)
+    })
+    clearErrors('rodeos')
+  }, [esRodeoUnico, setValue, clearErrors])
 
   const onSubmit = (data: ConfigurationData) => {
-    // `data` here contains a nested `data` property (ConfigurationData -> { data: {...} })
-    // spread the inner object to match the expected ConfigurationRequest shape
-    const inner = (data as any).data ?? data
-    const selectedTipo =
-      inner.TipoSeguimiento ??
-      inner.tipoSeguimiento ??
-      tipoSeguimiento ??
-      TipoSeguimiento.RODEO
+    const selectedTipo = esRodeoUnico
+      ? TipoSeguimiento.INDIVIDUAL
+      : TipoSeguimiento.RODEO
+
+    const rodeosCompletos = (data.rodeos ?? [])
+      .filter((r) => Number.isFinite(r.costoRacion))
+      .map((r) => ({
+        tipoRodeo: r.tipoRodeo,
+        costoRacion: r.costoRacion as number,
+        razas: (r.razas ?? []).map((item) => ({
+          raza: item.raza,
+          cantVacas: item.cantVacas as number,
+        })),
+      }))
+
+    const isIndividualAndRegisterRodeo =
+      selectedTipo === TipoSeguimiento.INDIVIDUAL && registrarRodeo
 
     const payload = {
       TipoSeguimiento: selectedTipo,
-      tipoSeguimiento: selectedTipo,
-      idEstablecimiento: config?.data?.idEstablecimiento ?? '',
-      ...inner,
+      ...data,
+      ...(isIndividualAndRegisterRodeo
+        ? { animales: data.animales, rodeos: undefined }
+        : { rodeos: rodeosCompletos, animales: undefined }),
     }
+
+    // console.log('>> PAYLOAD', payload)
     sendConfiguration(payload, {
       onSuccess: () => {
-        if (pathname.includes('/cuestionario')) {
-          toast.success('Configuración guardada correctamente', {
-            description:
-              'Ya podés invitar a tu equipo o empezar a usar tu establecimiento',
+        toast.success('Configuración guardada correctamente', {
+          description: 'Tus datos ya están listos para usar en el sistema',
+          position: 'top-center',
+          duration: 5000,
+        })
+        const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+        router.replace(dashboardUrl)
+      },
+      onError: (e) => {
+        toast.error(
+          e?.response?.data?.message ??
+            'No se pudo guardar. Revisá los datos e intentá de nuevo.',
+          {
             position: 'top-center',
             duration: 5000,
-          })
-          router.replace(pathname.replace('cuestionario', 'invitar'))
-        } else {
-          toast.success('Configuración guardada correctamente', {
-            position: 'top-center',
-            duration: 5000,
-          })
-        }
-
-        router.push(pathname.replace('cuestionario', 'invitar'))
+          }
+        )
       },
     })
   }
-
-  console.log(errors)
 
   return (
     <div
       className={`flex flex-col gap-10 w-full ${pathname.includes('cuestionario') ? 'p-8' : ''}`}
     >
-      <header className="flex flex-col gap-2">
+      <div className="h-12 lg:h-20 w-auto flex items-start gap-2">
+        <img src="/logos/tambo-logo-360.png" alt="logo" className="h-18.75" />
+      </div>
+      <section className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
           <h1 className="text-4xl font-bold text-slate-900">
             Configura tu Perfil
@@ -271,54 +283,50 @@ const Configuration = () => {
           Ayudanos a personalizar la experiencia de Tambo360 con los datos
           actuales de tu establecimiento
         </p>
-      </header>
+      </section>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-12">
+      <form
+        onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}
+        className="flex flex-col gap-8"
+      >
         {step == 1 ? (
           <>
-            {/* 7. Ubicación */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-sm font-medium text-slate-700">
-                7. ¿Dónde está tu tambo?
-              </Label>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label
-                    className={`font-bold ${errors.ubicacion?.provincia ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
-                  >
+            <section className="flex flex-col gap-3 w-full">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Dónde está tu tambo?
+              </p>
+              <div className="flex w-full max-w-4xl items-start gap-x-10">
+                <div className="relative min-w-0 w-full flex-1 space-y-2">
+                  <p className="text-[15px] leading-6 text-slate-900">
                     Provincia*
-                  </Label>
+                  </p>
                   <Combobox
                     onValueChange={(id: any) => {
                       const selectedProv = province?.provincias.find(
                         (p) => p.id === id
                       )
-
                       if (!selectedProv) return
-
                       setIdProvince(id)
-
                       setSearchProvince(selectedProv.nombre)
-
-                      setValue('ubicacion.provincia', selectedProv.nombre)
-
+                      setValue('ubicacion.provincia', selectedProv.nombre, {
+                        shouldValidate: true,
+                      })
                       setSelectedLocalityName('')
                       setSearchLocality('')
-                      setValue('ubicacion.localidad', '')
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.provincia ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'bg-[#F9F9F7] border-[#D1CFCA]'}`}
+                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder="Seleccione una provincia"
                       value={searchProvince}
                       onChange={(e) => {
                         const val = e.target.value
                         setSearchProvince(val)
-
                         if (val === '') {
                           setIdProvince('')
-                          setValue('ubicacion.provincia', '')
+                          setValue('ubicacion.provincia', '', {
+                            shouldValidate: true,
+                          })
                         }
                       }}
                       data-testid="province-combobox-input"
@@ -347,35 +355,32 @@ const Configuration = () => {
                     </ComboboxContent>
                   </Combobox>
                   {errors.ubicacion?.provincia && (
-                    <p className="text-xs font-medium text-[#B91C1C]">
+                    <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.provincia.message}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label
-                    className={`font-bold ${errors.ubicacion?.localidad ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
-                  >
+                <div className="relative min-w-0 w-full flex-1 space-y-2">
+                  <p className="text-[15px] leading-6 text-slate-900">
                     Localidad*
-                  </Label>
+                  </p>
                   <Combobox
                     disabled={!idProvince}
                     onValueChange={(id: any) => {
                       const selectedLoc = locality?.municipios.find(
                         (l) => l.id === id
                       )
-
                       if (!selectedLoc) return
-
                       setSelectedLocalityName(selectedLoc.nombre)
                       setSearchLocality(selectedLoc.nombre)
-
-                      setValue('ubicacion.localidad', selectedLoc.nombre)
+                      setValue('ubicacion.localidad', selectedLoc.nombre, {
+                        shouldValidate: true,
+                      })
                     }}
                   >
                     <ComboboxInput
-                      className={`h-14 w-full ${errors.ubicacion?.localidad ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'bg-[#F9F9F7] border-[#D1CFCA]'}`}
+                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
                       placeholder={
                         idProvince
                           ? 'Seleccione una localidad'
@@ -387,7 +392,9 @@ const Configuration = () => {
                         setSearchLocality(val)
                         if (val !== selectedLocalityName) {
                           setSelectedLocalityName('')
-                          setValue('ubicacion.localidad', '')
+                          setValue('ubicacion.localidad', '', {
+                            shouldValidate: true,
+                          })
                         }
                       }}
                       disabled={!idProvince}
@@ -417,57 +424,33 @@ const Configuration = () => {
                     </ComboboxContent>
                   </Combobox>
                   {errors.ubicacion?.localidad && (
-                    <p className="text-xs font-medium text-[#B91C1C]">
+                    <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.localidad.message}
                     </p>
                   )}
                 </div>
               </div>
-            </section>
-
-            {/* 1. cantidad de vacas y costo de racion */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-xs font-medium text-slate-700">
-                Cantidad de vacas
-              </Label>
-              <Input
-                type="number"
-                min={1}
-                {...register(`cantVacas` as const, {
-                  valueAsNumber: true,
-                })}
-                className={cn(
-                  'h-14 w-full border-2 rounded-xl px-4 outline-none transition-colors',
-                  errors.cantVacas
-                    ? 'border-red-500'
-                    : 'border-slate-200 focus:border-slate-300'
-                )}
-              />
-              {errors.cantVacas && (
-                <p className="text-xs text-red-500">
-                  {errors.cantVacas.message}
+              {typeof (errors.ubicacion as any)?.message === 'string' && (
+                <p className="text-xs font-medium text-red-500">
+                  {(errors.ubicacion as any).message}
                 </p>
               )}
             </section>
 
-            {/* 2. Frecuencia de Ordeñe */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-sm font-medium text-slate-700">
-                2. ¿Cuántas veces al día ordeñás?
-              </Label>
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
-                {[1, 2, 3].map((n) => (
+            <section className="flex flex-col gap-3">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Cuántas veces al día ordeñás?
+              </p>
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+                {[1, 2, 3, 4].map((n) => (
                   <Label
                     key={n}
-                    className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700"
+                    className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
                   >
-                    <Input
+                    <input
                       type="radio"
                       value={n}
-                      checked={cantOrdenie === n}
-                      onChange={() =>
-                        setValue('cantOrdenie', n, { shouldValidate: true })
-                      }
+                      {...register('cantOrdenie', { valueAsNumber: true })}
                       className={RADIO_DOT_CLASS}
                     />
                     {n === 1 ? '1 vez' : `${n} veces`}
@@ -481,28 +464,24 @@ const Configuration = () => {
               )}
             </section>
 
-            {/* 3. Tipo de Ordeñe */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-sm font-medium text-slate-700">
-                3. ¿Qué tipo de ordeñe usás?
-              </Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                {TIPO_ORDENIE_OPTIONS.map(({ value, Label }) => (
-                  <button
+            <section className="flex flex-col gap-3">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Que tipo de ordeñe usas?
+              </p>
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+                {TIPO_ORDENIE_OPTIONS.map(({ value, Label: label }) => (
+                  <Label
                     key={value}
-                    type="button"
-                    onClick={() =>
-                      setValue('tipoOrdenie', value, { shouldValidate: true })
-                    }
-                    className={cn(
-                      'p-4 rounded-xl border font-medium transition-all',
-                      tipoOrdenie === value
-                        ? 'bg-emerald-200 border-emerald-300 text-[#29845A]'
-                        : 'bg-white border-slate-200 text-slate-500 shadow-sm'
-                    )}
+                    className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
                   >
-                    {Label}
-                  </button>
+                    <input
+                      type="radio"
+                      value={value}
+                      {...register('tipoOrdenie')}
+                      className={RADIO_DOT_CLASS}
+                    />
+                    {label}
+                  </Label>
                 ))}
               </div>
               {errors.tipoOrdenie && (
@@ -512,26 +491,27 @@ const Configuration = () => {
               )}
             </section>
 
-            {/* 4. Producción Diaria */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-sm font-medium text-slate-700">
-                4. ¿Cuántos litros producís en promedio por día?
-              </Label>
-              <div className="relative">
+            <section className="flex flex-col gap-3 w-full">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Cuántos litros producís en promedio por día?
+              </p>
+              <div className="relative w-full max-w-4xl">
                 <Input
                   type="number"
                   step="0.1"
+                  min={0}
                   placeholder="000"
                   {...register('promLitros', { valueAsNumber: true })}
+                  onKeyDown={blockNegativeKeys}
                   className={cn(
-                    'w-full p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.promLitros
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-slate-200 focus:border-[#29845A]'
                   )}
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                  LTS
+                  lts
                 </span>
               </div>
               {errors.promLitros && (
@@ -541,32 +521,23 @@ const Configuration = () => {
               )}
             </section>
 
-            {/* 5. Frecuencia de Ordeñe */}
-            <section className="flex flex-col gap-4">
-              <Label className="text-sm font-medium text-slate-700">
-                5. ¿A quién le vendes la leche?
-              </Label>
-              <div className="flex flex-wrap gap-x-8 gap-y-3">
-                {[
-                  VentaLeche.USINA,
-                  VentaLeche.FABRICA_PROPIA,
-                  VentaLeche.COOPERATIVA,
-                  VentaLeche.VARIOS,
-                ].map((n) => (
+            <section className="flex flex-col gap-3">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Cuál es el destino del producto?
+              </p>
+              <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+                {DESTINO_PRODUCTO_OPTIONS.map(({ value, label }) => (
                   <Label
-                    key={n}
-                    className="flex items-center gap-2.5 cursor-pointer text-sm text-slate-700 capitalize"
+                    key={value}
+                    className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
                   >
-                    <Input
+                    <input
                       type="radio"
-                      value={n}
-                      checked={ventaLeche === n}
-                      onChange={() =>
-                        setValue('ventaLeche', n, { shouldValidate: true })
-                      }
+                      value={value}
+                      {...register('ventaLeche')}
                       className={RADIO_DOT_CLASS}
                     />
-                    {n == 'fabrica_propia' ? 'Fábrica propia' : n}
+                    {label}
                   </Label>
                 ))}
               </div>
@@ -577,426 +548,263 @@ const Configuration = () => {
               )}
             </section>
 
-            {/* 6. Empleados y Plan */}
-            <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-end">
-              <div className="flex flex-col gap-4">
-                <Label className="text-sm font-medium text-slate-700">
-                  6. ¿Tenés empleados que cargarían datos?
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setValue('empleados', false, { shouldValidate: true })
-                    }
-                    className={cn(
-                      'p-4 rounded-xl border flex items-center gap-3 text-sm font-medium transition-all',
-                      !empleados
-                        ? 'border-2 border-[#29845A] bg-emerald-100'
-                        : 'border-slate-200'
-                    )}
-                  >
-                    <div
-                      className={cn(
-                        'w-4 h-4 rounded-full border-2',
-                        !empleados
-                          ? 'bg-[#29845A] border-[#669213]'
-                          : 'border-slate-300'
-                      )}
-                    />
-                    No, solo yo
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setValue('empleados', true, { shouldValidate: true })
-                    }
-                    className={cn(
-                      'p-4 rounded-xl border-2 flex items-center justify-between text-sm font-medium transition-all',
-                      empleados
-                        ? 'border-[#29845A] bg-emerald-100'
-                        : 'border-slate-200'
-                    )}
-                  >
-                    Sí, tengo empleados
-                    <div
-                      className={cn(
-                        'w-4 h-4 rounded-full',
-                        empleados ? 'bg-[#29845A]' : 'bg-slate-300'
-                      )}
-                    />
-                  </button>
-                </div>
-                {errors.empleados && (
-                  <p className="text-xs text-red-500">
-                    {errors.empleados.message}
-                  </p>
-                )}
-              </div>
-
-              {/* Plan Sugerido Card */}
-              <div className="flex flex-col gap-3">
-                <p className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider">
-                  Plan Sugerido
+            <section className="flex flex-col gap-3 w-full">
+              <div className="flex flex-col gap-1">
+                <p className="text-[15px] leading-6 text-slate-900">
+                  ¿Cuál es el DEL promedio de tu rodeo lechero hoy?
                 </p>
-                <div className="flex justify-between items-center bg-emerald-200/60 p-4 rounded-xl border border-emerald-300 ">
-                  <span className="text-sm font-bold text-[#29845A]">
-                    {empleados ? 'Plan Equipo/Multi' : 'Plan Individual'}
-                  </span>
-                  {empleados && (
-                    <div className="flex items-center gap-4 bg-white px-3 py-1 rounded-lg border border-emerald-200">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue(
-                            'cantEmpleados',
-                            Math.max(1, cantEmpleados - 1),
-                            {
-                              shouldValidate: true,
-                            }
-                          )
-                        }
-                      >
-                        <Minus size={14} />
-                      </button>
-                      <span className="font-bold">{cantEmpleados}</span>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue('cantEmpleados', cantEmpleados + 1, {
-                            shouldValidate: true,
-                          })
-                        }
-                      >
-                        <Plus size={14} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-                {errors.cantEmpleados && (
-                  <p className="text-xs text-red-500">
-                    {errors.cantEmpleados.message}
-                  </p>
-                )}
+                <p className="text-[13px] leading-5 text-slate-500">
+                  *Recordá que un rodeo eficiente suele promediar entre 150 y
+                  180 días.
+                </p>
               </div>
+              <div className="relative w-full max-w-4xl">
+                <Input
+                  type="number"
+                  step={1}
+                  min={0}
+                  inputMode="numeric"
+                  placeholder="000"
+                  {...register('promDEL', { valueAsNumber: true })}
+                  onKeyDown={(e) => {
+                    if (e.key === '.' || e.key === ',') e.preventDefault()
+                    blockNegativeKeys(e)
+                  }}
+                  className={cn(
+                    'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    errors.promDEL
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-slate-200 focus:border-[#29845A]'
+                  )}
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                  días
+                </span>
+              </div>
+              {errors.promDEL && (
+                <p className="text-xs text-red-500">{errors.promDEL.message}</p>
+              )}
             </section>
 
-            {/* renderizado de rodeo unico o por rodeos */}
-            {cantVacas !== undefined && cantVacas > 1 && (
-              /* Si hay menos de 70 vacas 3 opciones de rodeo */
-              <>
-                <div className="flex flex-col gap-4">
-                  <Label className="text-sm font-medium text-slate-700">
-                    8. ¿Cómo querés registrar tu rodeo?
-                  </Label>
-
-                  {/* Unico */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          'TipoSeguimiento',
-                          TipoSeguimiento.RODEO_UNICO,
-                          {
-                            shouldValidate: true,
-                          }
-                        )
-                      }
-                      className={cn(
-                        'p-4 rounded-xl border flex items-center gap-3 text-sm font-medium transition-all',
-                        tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
-                          ? 'border-2 border-[#29845A] bg-emerald-100'
-                          : 'border-slate-200'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'w-4 h-4 rounded-full border-2',
-                          tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
-                            ? 'bg-[#29845A] border-[#669213]'
-                            : 'border-slate-300'
-                        )}
-                      />
-                      Unico
-                    </button>
-
-                    {/* Individual */}
-                    {/* Solo si tiene menos de 70 vacas */}
-                    {cantVacas < 70 && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setValue(
-                            'TipoSeguimiento',
-                            TipoSeguimiento.INDIVIDUAL,
-                            {
-                              shouldValidate: true,
-                            }
-                          )
-                        }
-                        className={cn(
-                          'p-4 rounded-xl border flex items-center gap-3 text-sm font-medium transition-all',
-                          tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
-                            ? 'border-2 border-[#29845A] bg-emerald-100'
-                            : 'border-slate-200'
-                        )}
-                      >
-                        <div
-                          className={cn(
-                            'w-4 h-4 rounded-full border-2',
-                            tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
-                              ? 'bg-[#29845A] border-[#669213]'
-                              : 'border-slate-300'
-                          )}
-                        />
-                        Individual
-                      </button>
-                    )}
-
-                    {/* Por Rodeos */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue('TipoSeguimiento', TipoSeguimiento.RODEO, {
-                          shouldValidate: true,
-                        })
-                      }
-                      className={cn(
-                        'p-4 rounded-xl border flex items-center gap-3 text-sm font-medium transition-all',
-                        tipoSeguimiento === TipoSeguimiento.RODEO
-                          ? 'border-2 border-[#29845A] bg-emerald-100'
-                          : 'border-slate-200'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'w-4 h-4 rounded-full border-2',
-                          tipoSeguimiento === TipoSeguimiento.RODEO
-                            ? 'bg-[#29845A] border-[#669213]'
-                            : 'border-slate-300'
-                        )}
-                      />
-                      Por Rodeos
-                    </button>
-                  </div>
-                  {errors.TipoSeguimiento && (
-                    <p className="text-xs text-red-500">
-                      {errors.TipoSeguimiento.message}
-                    </p>
+            <section className="flex flex-col gap-3 w-full">
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Cuál es tu precio de venta actual por litro ($/Lts)?
+              </p>
+              <div className="relative w-full max-w-4xl">
+                <Input
+                  type="number"
+                  step="0.1"
+                  min={0}
+                  placeholder="000"
+                  {...register('precioLitro', { valueAsNumber: true })}
+                  onKeyDown={blockNegativeKeys}
+                  className={cn(
+                    'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    errors.precioLitro
+                      ? 'border-red-400 focus:border-red-500'
+                      : 'border-slate-200 focus:border-[#29845A]'
                   )}
-                </div>
-              </>
-            )}
-
-            {tipoSeguimiento === TipoSeguimiento.RODEO_UNICO && (
-              <div className="flex flex-col gap-4">
-                <Label className="text-sm font-medium text-slate-700">
-                  9. ¿Cómo querés registrar tu rodeo?
-                </Label>
-                <p className="text-sm text-slate-500">
-                  Vas a poder registrar tu rodeo como un único grupo de vacas.
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  {(
-                    rodeos ?? [
-                      {
-                        tipoRodeo: 'UNICO',
-                        cantVacas: 1,
-                        costoRacion: 1,
-                      },
-                    ]
-                  )
-                    .slice(0, 1)
-                    .map((r: any, idx: number) => (
-                      <div
-                        key={`UNICO-${idx}`}
-                        className="p-4 rounded-xl border bg-white shadow-sm flex flex-col gap-3"
-                      >
-                        <Label className="text-sm font-semibold text-slate-700">
-                          {String(r.tipoRodeo).replace('_', ' ')}
-                        </Label>
-
-                        <Input
-                          type="hidden"
-                          {...register(`rodeos.${idx}.tipoRodeo` as const)}
-                          defaultValue={r.tipoRodeo}
-                        />
-
-                        <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-600">
-                            Cantidad de vacas
-                          </Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            {...register(`rodeos.${idx}.cantVacas` as const, {
-                              valueAsNumber: true,
-                            })}
-                            className="h-12 w-full border rounded-lg px-3"
-                          />
-                        </div>
-
-                        <div className="flex flex-col gap-2">
-                          <Label className="text-xs text-slate-600">
-                            Costo de ración
-                          </Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            {...register(`rodeos.${idx}.costoRacion` as const, {
-                              valueAsNumber: true,
-                            })}
-                            className="h-12 w-full border rounded-lg px-3"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                </div>
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                  $/Lts
+                </span>
               </div>
-            )}
-
-            {/* Muestra los rodeos por alta baja y seca */}
-            {tipoSeguimiento === TipoSeguimiento.RODEO && (
-              <div className="flex flex-col gap-4">
-                <Label className="text-sm font-medium text-slate-700">
-                  10. ¿Cuantos rodeos vas a registrar?
-                </Label>
-                <p className="text-sm text-slate-500">
-                  Vas a poder registrar rodeos para Baja, Media y Alta
-                  Producción.
+              {errors.precioLitro && (
+                <p className="text-xs text-red-500">
+                  {errors.precioLitro.message}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  {(
-                    rodeos ??
-                    Object.values(TipoRodeo).map((tipo) => ({
-                      tipoRodeo: tipo,
-                      cantVacas: 1,
-                      costoRacion: 1,
-                    }))
-                  ).map((r: any, idx: number) => (
-                    <div
-                      key={r.tipoRodeo}
-                      className="p-4 rounded-xl border bg-white shadow-sm flex flex-col gap-3"
+              )}
+            </section>
+
+            {esRodeoUnico && (
+              <section className="flex flex-col gap-3">
+                <p className="text-[15px] leading-6 text-slate-900">
+                  ¿Querés registrar tu rodeo?
+                </p>
+                <div className="flex flex-wrap items-center gap-x-10 gap-y-3">
+                  {[
+                    { value: true, label: 'Aceptar' },
+                    { value: false, label: 'Cancelar' },
+                  ].map(({ value, label }, i) => (
+                    <Label
+                      key={`${value}-${i}-${label}`}
+                      className="flex items-center gap-3 cursor-pointer text-[15px] font-normal text-slate-900"
                     >
-                      <Label className="text-sm font-semibold text-slate-700">
-                        {r.tipoRodeo.replace('_', ' ')}
-                      </Label>
-
-                      <Input
-                        type="hidden"
-                        {...register(`rodeos.${idx}.tipoRodeo` as const)}
-                        defaultValue={r.tipoRodeo}
+                      <input
+                        type="radio"
+                        name="registrarRodeo"
+                        checked={registrarRodeo === value}
+                        onChange={() => setRegistrarRodeo(value)}
+                        className={RADIO_DOT_CLASS}
                       />
-
-                      <div className="flex flex-col gap-2">
-                        <Label className="text-xs text-slate-600">
-                          Cantidad de vacas
-                        </Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          {...register(`rodeos.${idx}.cantVacas` as const, {
-                            valueAsNumber: true,
-                          })}
-                          className="h-12 w-full border rounded-lg px-3"
-                        />
-                      </div>
-
-                      <div className="flex flex-col gap-2">
-                        <Label className="text-xs text-slate-600">
-                          Costo de ración
-                        </Label>
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          {...register(`rodeos.${idx}.costoRacion` as const, {
-                            valueAsNumber: true,
-                          })}
-                          className="h-12 w-full border rounded-lg px-3"
-                        />
-                      </div>
-                    </div>
+                      {label}
+                    </Label>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
+
+            <section
+              className={`${mostrarBloqueRodeos ? '' : 'hidden'} flex flex-col gap-4`}
+            >
+              <p className="text-[15px] leading-6 text-slate-900">
+                ¿Cuántos animales tenés por categoría?
+              </p>
+              {sugerirRodeoUnico && (
+                <p className="text-xs font-medium text-amber-600">
+                  Con {totalVacasGeneral} vaca
+                  {totalVacasGeneral === 1 ? '' : 's'} deberías bajar tu
+                  promedio de leche a 2000 lts o menos para tratarlo como rodeo
+                  único.
+                </p>
+              )}
+              <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
+                {(esRodeoUnico
+                  ? [
+                      { titulo: 'Rodeo único', tipo: TipoRodeo.UNICO_ORDENIE },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.UNICO_SECA },
+                    ]
+                  : [
+                      { titulo: 'Rodeo Alto', tipo: TipoRodeo.ALTA_PRODUCCION },
+                      { titulo: 'Rodeo Bajo', tipo: TipoRodeo.BAJA_PRODUCCION },
+                      { titulo: 'Rodeo en seca', tipo: TipoRodeo.VACAS_SECAS },
+                    ]
+                ).map(({ titulo, tipo }, idx) => (
+                  <RodeoCategoriaCard
+                    key={`${titulo}-${tipo}`}
+                    titulo={titulo}
+                    index={idx}
+                    tipoRodeo={tipo}
+                    register={register}
+                    setValue={setValue}
+                    costoRacionError={
+                      (errors.rodeos as any)?.[idx]?.costoRacion?.message
+                    }
+                    razasError={(errors.rodeos as any)?.[idx]?.razas?.message}
+                  />
+                ))}
+              </div>
+              {typeof (errors.rodeos as any)?.message === 'string' && (
+                <p className="text-xs text-red-500">
+                  {(errors.rodeos as any).message}
+                </p>
+              )}
+            </section>
           </>
         ) : (
           <div className="flex flex-col gap-6 py-8">
-            {tipoSeguimiento === TipoSeguimiento.INDIVIDUAL ? (
+            {esRodeoUnico ? (
               <div>
                 <h2 className="text-2xl font-bold mb-4">
                   Registro Individual de Animales
                 </h2>
-
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
                     <div className="col-span-2">RP/N°</div>
-                    <div className="col-span-3">Nombre</div>
-                    <div className="col-span-3">Categoría</div>
+                    <div className="col-span-2">Nombre</div>
+                    <div className="col-span-2">Raza</div>
+                    <div className="col-span-2">Categoría</div>
                     <div className="col-span-3">Estado</div>
                     <div className="col-span-1" />
                   </div>
 
-                  {(animales ?? []).map((a: any, idx: number) => (
-                    <div
-                      key={idx}
-                      className="grid grid-cols-12 gap-4 items-center py-3 border-b"
-                    >
-                      <div className="col-span-2">
-                        <Input
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.codigo` as const)}
-                          defaultValue={a.codigo}
-                        />
+                  {(animales ?? []).map((a: any, idx: number) => {
+                    const categoriaField = register(
+                      `animales.${idx}.categoria` as const
+                    )
+                    const soloSano = a?.categoria === CategoriaAnimal.ORDENE
+                    return (
+                      <div
+                        key={idx}
+                        className="grid grid-cols-12 gap-4 items-center py-3 border-b"
+                      >
+                        <div className="col-span-2">
+                          <Input
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.codigo` as const)}
+                            defaultValue={a.codigo}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <Input
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.nombre` as const)}
+                            defaultValue={a.nombre}
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.raza` as const)}
+                          >
+                            <option value="" disabled>
+                              Seleccioná
+                            </option>
+                            {Object.values(RazasVacas).map((v) => (
+                              <option key={v} value={v}>
+                                {RAZA_LABELS[v]}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...categoriaField}
+                            onChange={(e) => {
+                              categoriaField.onChange(e)
+                              if (e.target.value === CategoriaAnimal.ORDENE) {
+                                setValue(
+                                  `animales.${idx}.estado` as const,
+                                  EstadoAnimal.SANO,
+                                  { shouldValidate: true }
+                                )
+                              }
+                            }}
+                          >
+                            {CATEGORIA_ANIMAL_OPTIONS.map(
+                              ({ value, label }) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              )
+                            )}
+                          </select>
+                        </div>
+                        <div className="col-span-3">
+                          <select
+                            className="w-full border rounded px-2 h-9"
+                            {...register(`animales.${idx}.estado` as const)}
+                          >
+                            {(soloSano
+                              ? ESTADO_ANIMAL_OPTIONS.filter(
+                                  ({ value }) => value === EstadoAnimal.SANO
+                                )
+                              : ESTADO_ANIMAL_OPTIONS
+                            ).map(({ value, label }) => (
+                              <option key={value} value={value}>
+                                {label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-1 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const current = animales ?? []
+                              const copy = [...current]
+                              copy.splice(idx, 1)
+                              setValue('animales', copy)
+                            }}
+                            className="text-red-500"
+                          >
+                            -
+                          </button>
+                        </div>
                       </div>
-                      <div className="col-span-3">
-                        <Input
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.nombre` as const)}
-                          defaultValue={a.nombre}
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <select
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.categoria` as const)}
-                        >
-                          <option value="ORDENE">Ordeñe</option>
-                          <option value="SECAS">Secas</option>
-                          <option value="PREPARTO">Preparto</option>
-                        </select>
-                      </div>
-                      <div className="col-span-3">
-                        <select
-                          className="w-full border rounded px-2 h-9"
-                          {...register(`animales.${idx}.estado` as const)}
-                        >
-                          <option value="MATITIS">Mastitis</option>
-                          <option value="PREPARTO">Preparto</option>
-                          <option value="TRATAMIENTO">Tratamiento</option>
-                          <option value="DESCARTE">Descarte</option>
-                        </select>
-                      </div>
-                      <div className="col-span-1 flex justify-center">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const current = animales ?? []
-                            const copy = [...current]
-                            copy.splice(idx, 1)
-                            setValue('animales', copy)
-                          }}
-                          className="text-red-500"
-                        >
-                          -
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
 
                   <div className="pt-4 flex justify-between items-center">
                     <span className="text-sm text-slate-500">
@@ -1012,8 +820,9 @@ const Configuration = () => {
                             {
                               codigo: '',
                               nombre: '',
-                              categoria: 'ORDENE',
-                              estado: 'SANA',
+                              raza: '',
+                              categoria: CategoriaAnimal.ORDENE,
+                              estado: EstadoAnimal.SANO,
                             },
                           ])
                         }}
@@ -1031,7 +840,6 @@ const Configuration = () => {
           </div>
         )}
 
-        {/* Muestra errores del back */}
         {error?.response?.data?.message && (
           <p className="text-xs text-red-500 text-center">
             {error.response.data.message}
@@ -1039,37 +847,44 @@ const Configuration = () => {
         )}
 
         {/* Footer de Navegación */}
-        <footer className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 pt-8 border-t border-slate-100">
+        <footer className="flex flex-col sm:flex-row items-stretch justify-end sm:items-center gap-4 pt-8 border-t border-slate-100">
           {pathname.includes('cuestionario') && (
             <div className="flex gap-4 w-full sm:w-auto">
               <button
                 type="button"
-                className="px-12 py-4 bg-emerald-200 text-emerald-800 font-bold rounded-xl hover:bg-emerald-300 transition-all cursor-pointer w-full sm:w-auto"
+                className="px-8 py-3.5 border border-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-all cursor-pointer w-full sm:w-auto"
                 onClick={() =>
                   step != 1 ? setStep(step - 1) : router.push('/organizaciones')
                 }
                 disabled={isPending}
               >
-                Atrás
+                {step != 1 ? 'Atras' : 'Cancelar'}
               </button>
             </div>
           )}
 
-          <div className="flex gap-4 w-full justify-end">
+          <div className="flex gap-4 justify-end">
             <button
               type="button"
               disabled={
                 isPending ||
-                (tipoSeguimiento === TipoSeguimiento.INDIVIDUAL &&
-                  (animales ?? []).length === 0)
+                sugerirRodeoUnico ||
+                bloqueadoPorFaltaDeRegistroDeRodeo ||
+                (mostrarBloqueRodeos && !isrodeosLlenados) ||
+                (step === 2 && (animales ?? []).length === 0)
               }
-              className="px-12 py-4 bg-emerald-700 text-white font-bold rounded-xl hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+              className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
               onClick={() => {
                 if (step !== lastStep) {
                   setStep(step + 1)
                 } else {
-                  // ejecutar validación y submit sólo en el último paso
-                  handleSubmit(onSubmit)()
+                  if (esRodeoUnico && registrarRodeo) {
+                    setValue('rodeos', undefined as any, {
+                      shouldDirty: true,
+                    })
+                    clearErrors('rodeos')
+                  }
+                  handleSubmit(onSubmit, handleInvalidSubmit)()
                 }
               }}
             >
@@ -1077,8 +892,7 @@ const Configuration = () => {
                 ? 'Guardando...'
                 : step === lastStep
                   ? 'Finalizar Configuración'
-                  : 'Siguiente'}{' '}
-              <ChevronRight size={20} />
+                  : 'Siguiente'}
             </button>
           </div>
         </footer>
