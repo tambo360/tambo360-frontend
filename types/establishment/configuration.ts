@@ -91,7 +91,7 @@ export type ConfigurationRequest = Omit<
   rodeos?: Array<{
     tipoRodeo: string
     costoRacion: number
-    razas: Array<{
+    razas?: Array<{
       raza: string
       cantVacas: number
     }>
