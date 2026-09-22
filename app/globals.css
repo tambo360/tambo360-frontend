@@ -148,3 +148,9 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Oculta el ojo nativo de Edge en inputs password (se usa toggle custom) */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}
