@@ -20,6 +20,7 @@ import { usePathname } from 'next/navigation'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
 
 interface AppSidebarProps {
   forcedCollapsed?: boolean
@@ -27,6 +28,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   const pathname = usePathname()
+  const { logout } = useAuth()
   const { data: configData } = useConfiguration()
   const { data: noViewedAlerts } = useNoViewedAlerts({
     id: configData?.data.idEstablecimiento,
@@ -137,19 +139,20 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
         <SidebarMenu>
           <Button
             variant="ghost"
+            onClick={logout}
             className={`w-full ${isCollapsed ? 'justify-center' : ''}`}
           >
             {!isCollapsed ? (
               <Link
-                href="/organizaciones"
+                href="/iniciar-sesion"
                 className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
               >
                 <ArrowLeft className="h-5 w-5 shrink-0" />
-                Volver
+                Cerrar Sesion
               </Link>
             ) : (
               <Link
-                href="/organizaciones"
+                href="/iniciar-sesion"
                 className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
               >
                 <ArrowLeft className="h-5 w-5 shrink-0" />

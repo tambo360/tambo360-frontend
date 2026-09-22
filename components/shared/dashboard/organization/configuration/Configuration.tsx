@@ -869,9 +869,16 @@ const Configuration = () => {
               <button
                 type="button"
                 className="px-8 py-3.5 border border-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-all cursor-pointer w-full sm:w-auto"
-                onClick={() =>
-                  step != 1 ? setStep(step - 1) : router.push('/organizaciones')
-                }
+                onClick={() => {
+                  if (step != 1) {
+                    setStep(step - 1)
+                    return
+                  }
+                  // Cancelar vuelve al dashboard; el OnboardingGate rebota a
+                  // cuestionario si el onboarding sigue incompleto.
+                  const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+                  router.replace(dashboardUrl)
+                }}
                 disabled={isPending}
               >
                 {step != 1 ? 'Atras' : 'Cancelar'}
