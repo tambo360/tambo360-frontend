@@ -216,30 +216,46 @@ const Configuration = () => {
   }, [esRodeoUnico, setValue, clearErrors])
 
   const onSubmit = (data: ConfigurationData) => {
-    const selectedTipo = esRodeoUnico
-      ? TipoSeguimiento.INDIVIDUAL
-      : TipoSeguimiento.RODEO
+    const selectedTipo = !esRodeoUnico
+      ? TipoSeguimiento.RODEO
+      : registrarRodeo
+        ? TipoSeguimiento.INDIVIDUAL
+        : TipoSeguimiento.RODEO_UNICO
 
-    const rodeosCompletos = (data.rodeos ?? [])
-      .filter((r) => Number.isFinite(r.costoRacion))
-      .map((r) => ({
-        tipoRodeo: r.tipoRodeo,
-        costoRacion: r.costoRacion as number,
-        razas: (r.razas ?? []).map((item) => ({
-          raza: item.raza,
-          cantVacas: item.cantVacas as number,
-        })),
+    const { rodeos: _rodeos, animales: _animales, ...rest } = data
+
+    let payload
+
+    if (selectedTipo === TipoSeguimiento.INDIVIDUAL) {
+      const animales = (data.animales ?? []).map((a) => ({
+        codigo: a.codigo,
+        nombre: a.nombre,
+        raza: a.raza,
+        categoria: a.categoria,
+        estado: a.estado,
+        fechaNacimiento: a.fechaNacimiento,
       }))
-
-    const isIndividualAndRegisterRodeo =
-      selectedTipo === TipoSeguimiento.INDIVIDUAL && registrarRodeo
-
-    const payload = {
-      TipoSeguimiento: selectedTipo,
-      ...data,
-      ...(isIndividualAndRegisterRodeo
-        ? { animales: data.animales, rodeos: undefined }
-        : { rodeos: rodeosCompletos, animales: undefined }),
+      payload = {
+        TipoSeguimiento: selectedTipo,
+        ...rest,
+        animales,
+      }
+    } else {
+      const rodeos = (data.rodeos ?? [])
+        .filter((r) => Number.isFinite(r.costoRacion))
+        .map((r) => ({
+          tipoRodeo: r.tipoRodeo,
+          costoRacion: r.costoRacion as number,
+          razas: (r.razas ?? []).map((item) => ({
+            raza: item.raza,
+            cantVacas: item.cantVacas as number,
+          })),
+        }))
+      payload = {
+        TipoSeguimiento: selectedTipo,
+        ...rest,
+        rodeos,
+      }
     }
 
     // console.log('>> PAYLOAD', payload)
@@ -876,13 +892,18 @@ const Configuration = () => {
               className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
               onClick={() => {
                 if (step !== lastStep) {
-                  setStep(step + 1)
-                } else {
                   if (esRodeoUnico && registrarRodeo) {
                     setValue('rodeos', undefined as any, {
                       shouldDirty: true,
                     })
                     clearErrors('rodeos')
+                  }
+                  setStep(step + 1)
+                } else {
+                  if (esRodeoUnico && registrarRodeo) {
+                    clearErrors('rodeos')
+                  } else {
+                    clearErrors('animales')
                   }
                   handleSubmit(onSubmit, handleInvalidSubmit)()
                 }
