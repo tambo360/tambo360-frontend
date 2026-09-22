@@ -13,16 +13,16 @@ const Register: React.FC = () => {
       <Button
         variant="secondary"
         size="icon"
-        className="absolute top-4 left-4 z-10 rounded-full"
+        className="cursor-pointer! absolute top-4 left-4 z-30! rounded-full"
+        asChild
       >
         <Link href="/">
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
-      <div className="absolute inset-0 bg-black/10 z-0" />
-      <div className="hidden md:flex md:w-1/3 xl:w-1/2" />
-      <div className="w-full md:w-2/3 xl:w-1/2 flex items-center justify-center md:justify-end p-4 md:p-8 z-10">
-        <Card className="w-full max-w-125 border-none shadow-2xl py-8 bg-white/95 backdrop-blur-md rounded-xl relative">
+      <div className="absolute inset-0 bg-black/30 z-0" />
+      <div className="w-full h-screen flex items-center justify-center sm:items-start sm:justify-end p-4 z-10">
+        <Card className="w-full sm:h-full sm:max-w-125 border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative">
           <RegisterForm />
         </Card>
       </div>
