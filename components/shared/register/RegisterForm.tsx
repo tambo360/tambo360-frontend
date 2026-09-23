@@ -12,6 +12,7 @@ import { useErrorMessage } from '@/hooks/useErrorMessage'
 import { CardContent } from '@/components/ui/card'
 import { useResendEmail } from '@/hooks/auth/useResendEmail'
 import Link from 'next/link'
+import { allowOnlyLettersKeyDown } from '@/lib/utils'
 
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -57,7 +58,7 @@ const RegisterForm = () => {
   const {
     register,
     handleSubmit,
-    formState: { errors, submitCount },
+    formState: { errors, submitCount, isValid },
   } = useForm({
     defaultValues: {
       correo: '',
@@ -66,6 +67,7 @@ const RegisterForm = () => {
       confirmarContraseña: '',
     },
     resolver: zodResolver(RegisterSchema),
+    mode: 'onChange',
   })
 
   useEffect(() => {
@@ -123,7 +125,7 @@ const RegisterForm = () => {
             </div>
             <div className="space-y-2 text-left">
               <Label
-                className={`font-bold ${errors.nombre ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`font-bold ${submitCount > 0 && errors.nombre ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
               >
                 Nombre*
               </Label>
@@ -131,11 +133,12 @@ const RegisterForm = () => {
                 placeholder="Ingresa tu nombre y apellido"
                 {...register('nombre')}
                 maxLength={20}
-                className={`h-14 ${errors.nombre ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                onKeyDown={allowOnlyLettersKeyDown}
+                className={`h-14 ${submitCount > 0 && errors.nombre ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                 disabled={isPending || isResendingEmail}
                 data-testid="full-name-input"
               />
-              {errors.nombre && (
+              {submitCount > 0 && errors.nombre && (
                 <p className="text-xs font-medium text-[#B91C1C]">
                   {errors.nombre.message}
                 </p>
@@ -144,18 +147,18 @@ const RegisterForm = () => {
 
             <div className="space-y-2 text-left">
               <Label
-                className={`font-bold ${errors.correo ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`font-bold ${submitCount > 0 && errors.correo ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
               >
                 Correo electrónico*
               </Label>
               <Input
                 placeholder="Ingresa tu correo electrónico"
                 {...register('correo')}
-                className={`h-14 ${errors.correo ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                className={`h-14 ${submitCount > 0 && errors.correo ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                 disabled={isPending || isResendingEmail}
                 data-testid="email-input"
               />
-              {errors.correo && (
+              {submitCount > 0 && errors.correo && (
                 <p className="text-xs font-medium text-[#B91C1C]">
                   {errors.correo.message}
                 </p>
@@ -164,7 +167,7 @@ const RegisterForm = () => {
 
             <div className="space-y-2 text-left">
               <Label
-                className={`font-bold ${errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`font-bold ${submitCount > 0 && errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
               >
                 Contraseña*
               </Label>
@@ -173,7 +176,7 @@ const RegisterForm = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   {...register('contraseña')}
-                  className={`h-14 ${errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                  className={`h-14 ${submitCount > 0 && errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                   disabled={isPending || isResendingEmail}
                   data-testid="password-input"
                 />
@@ -191,13 +194,13 @@ const RegisterForm = () => {
                   )}
                 </Button>
               </div>
-              {!errors.contraseña && (
+              {!(submitCount > 0 && errors.contraseña) && (
                 <p className="text-[10px] text-[#626059]">
                   Requisitos: 8 caracteres, mayúscula, minúscula y carácter
                   especial.
                 </p>
               )}
-              {errors.contraseña && (
+              {submitCount > 0 && errors.contraseña && (
                 <p className="text-xs font-medium text-[#B91C1C]">
                   {errors.contraseña.message}
                 </p>
@@ -206,7 +209,7 @@ const RegisterForm = () => {
 
             <div className="space-y-2 text-left">
               <Label
-                className={`font-bold ${errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`font-bold ${submitCount > 0 && errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
               >
                 Confirmar contraseña*
               </Label>
@@ -215,7 +218,7 @@ const RegisterForm = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   {...register('confirmarContraseña')}
-                  className={`h-14 ${errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                  className={`h-14 ${submitCount > 0 && errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                   disabled={isPending || isResendingEmail}
                   data-testid="confirm-password-input"
                 />
@@ -233,7 +236,7 @@ const RegisterForm = () => {
                   )}
                 </Button>
               </div>
-              {errors.confirmarContraseña && (
+              {submitCount > 0 && errors.confirmarContraseña && (
                 <p className="text-xs font-medium text-[#B91C1C]">
                   {errors.confirmarContraseña.message}
                 </p>
@@ -244,7 +247,7 @@ const RegisterForm = () => {
             <Button
               type="submit"
               className="w-full h-14 rounded-lg text-lg font-medium transition-all bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1] flex items-center justify-center gap-2"
-              disabled={isPending || isResendingEmail}
+              disabled={isPending || isResendingEmail || !isValid}
               data-testid="register-submit-button"
             >
               {isPending || isResendingEmail ? 'Cargando...' : 'Siguiente'}

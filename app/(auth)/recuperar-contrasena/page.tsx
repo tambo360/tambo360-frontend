@@ -70,10 +70,13 @@ const ResetPassword: React.FC = () => {
   const emailForm = useForm({
     resolver: zodResolver(EmailSchema),
     defaultValues: { email: '' },
+    mode: 'onChange',
   })
 
   const passForm = useForm({
     resolver: zodResolver(PasswordsSchema),
+    defaultValues: { contraseña: '', confirmarContraseña: '' },
+    mode: 'onChange',
   })
 
   useEffect(() => {
@@ -166,7 +169,7 @@ const ResetPassword: React.FC = () => {
                   />
                   <div className="space-y-2 text-left">
                     <Label
-                      className={`font-bold ${emailForm.formState.errors.email ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                      className={`font-bold ${emailForm.formState.submitCount > 0 && emailForm.formState.errors.email ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
                     >
                       Correo electrónico
                     </Label>
@@ -174,20 +177,21 @@ const ResetPassword: React.FC = () => {
                       type="email"
                       placeholder="ejemplo@correo.com"
                       {...emailForm.register('email')}
-                      className={`h-14 ${emailForm.formState.errors.email ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                      className={`h-14 ${emailForm.formState.submitCount > 0 && emailForm.formState.errors.email ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                       disabled={isSendingEmail}
                       data-testid="email-input"
                     />
-                    {emailForm.formState.errors.email && (
-                      <p className="text-xs font-medium text-[#B91C1C]">
-                        {emailForm.formState.errors.email.message}
-                      </p>
-                    )}
+                    {emailForm.formState.submitCount > 0 &&
+                      emailForm.formState.errors.email && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {emailForm.formState.errors.email.message}
+                        </p>
+                      )}
                   </div>
                 </div>
                 <div>
                   <Button
-                    disabled={isSendingEmail}
+                    disabled={isSendingEmail || !emailForm.formState.isValid}
                     className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
                     data-testid="send-reset-link-button"
                   >
@@ -221,7 +225,7 @@ const ResetPassword: React.FC = () => {
                   />
                   <div className="space-y-2">
                     <Label
-                      className={`font-bold ${passForm.formState.errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                      className={`font-bold ${passForm.formState.submitCount > 0 && passForm.formState.errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
                     >
                       Nueva contraseña*
                     </Label>
@@ -229,7 +233,7 @@ const ResetPassword: React.FC = () => {
                       <Input
                         type={showPass ? 'text' : 'password'}
                         {...passForm.register('contraseña')}
-                        className={`h-14 ${passForm.formState.errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                        className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                         disabled={isResetting}
                         data-testid="new-password-input"
                       />
@@ -246,15 +250,19 @@ const ResetPassword: React.FC = () => {
                         )}
                       </button>
                     </div>
-                    {passForm.formState.errors.contraseña && (
-                      <p className="text-xs font-medium text-[#B91C1C]">
-                        {passForm.formState.errors.contraseña.message as string}
-                      </p>
-                    )}
+                    {passForm.formState.submitCount > 0 &&
+                      passForm.formState.errors.contraseña && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {
+                            passForm.formState.errors.contraseña
+                              .message as string
+                          }
+                        </p>
+                      )}
                   </div>
                   <div className="space-y-2">
                     <Label
-                      className={`font-bold ${passForm.formState.errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                      className={`font-bold ${passForm.formState.submitCount > 0 && passForm.formState.errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
                     >
                       Confirmar contraseña*
                     </Label>
@@ -262,7 +270,7 @@ const ResetPassword: React.FC = () => {
                       <Input
                         type={showConfirmPass ? 'text' : 'password'}
                         {...passForm.register('confirmarContraseña')}
-                        className={`h-14 ${passForm.formState.errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                        className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                         disabled={isResetting}
                         data-testid="confirm-password-input"
                       />
@@ -279,20 +287,21 @@ const ResetPassword: React.FC = () => {
                         )}
                       </button>
                     </div>
-                    {passForm.formState.errors.confirmarContraseña && (
-                      <p className="text-xs font-medium text-[#B91C1C]">
-                        {
-                          passForm.formState.errors.confirmarContraseña
-                            .message as string
-                        }
-                      </p>
-                    )}
+                    {passForm.formState.submitCount > 0 &&
+                      passForm.formState.errors.confirmarContraseña && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {
+                            passForm.formState.errors.confirmarContraseña
+                              .message as string
+                          }
+                        </p>
+                      )}
                   </div>
                 </div>
                 <div>
                   <Button
                     type="submit"
-                    disabled={isResetting}
+                    disabled={isResetting || !passForm.formState.isValid}
                     className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
                     data-testid="update-password-button"
                   >
