@@ -30,8 +30,10 @@ import {
 import { Label } from '@/components/ui/label'
 import { useDebounce } from 'use-debounce'
 import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfiguration'
-import { usePathname, useRouter } from 'next/navigation'
+import { useParams, usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
+import { LogOut } from 'lucide-react'
+import { useAuth } from '@/context/AuthContext'
 import RodeoCategoriaCard, {
   RAZA_LABELS,
   blockNegativeKeys,
@@ -123,7 +125,9 @@ const Configuration = () => {
   )
   const [step, setStep] = useState(1)
   const pathname = usePathname()
+  const params = useParams()
   const router = useRouter()
+  const { logout } = useAuth()
 
   const { data: province } = useProvince({ name: searchP })
   const { data: locality } = useLocality({ id: idProvince, search: searchL })
@@ -266,7 +270,12 @@ const Configuration = () => {
           position: 'top-center',
           duration: 5000,
         })
-        const dashboardUrl = `${pathname.split('/').slice(0, -1).join('/')}/analisis`
+        const orgId = params?.orgId as string
+        const estId = params?.id as string
+        const dashboardUrl =
+          orgId && estId
+            ? `/organizaciones/${orgId}/${estId}/analisis`
+            : `${pathname.split('/').slice(0, -1).join('/')}/analisis`
         router.replace(dashboardUrl)
       },
       onError: (e) => {
@@ -710,7 +719,7 @@ const Configuration = () => {
         ) : (
           <div className="flex flex-col gap-6 py-8">
             {esRodeoUnico ? (
-              <div>
+              <div className="max-w-393">
                 <h2 className="text-2xl font-bold mb-4">
                   Registro Individual de Animales
                 </h2>
@@ -863,58 +872,73 @@ const Configuration = () => {
         )}
 
         {/* Footer de Navegación */}
-        <footer className="flex flex-col sm:flex-row items-stretch justify-end sm:items-center gap-4 pt-8 border-t border-slate-100">
-          {pathname.includes('cuestionario') && (
-            <div className="flex gap-4 w-full sm:w-auto">
+        <footer className="flex flex-col sm:flex-row items-stretch justify-between sm:items-center gap-4 pt-8 border-t border-slate-100 max-w-393">
+          <button
+            type="button"
+            onClick={logout}
+            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all cursor-pointer w-full sm:w-auto"
+          >
+            <LogOut className="h-4 w-4" />
+            Cerrar sesión
+          </button>
+
+          <div className="flex flex-col sm:flex-row gap-4 justify-end w-full sm:w-auto sm:items-center">
+            {pathname.includes('cuestionario') && (
+              <div
+                className={`${esRodeoUnico && registrarRodeo ? '' : 'hidden'} flex gap-4 w-full sm:w-auto`}
+              >
+                <button
+                  type="button"
+                  className="px-8 py-3.5 border border-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-all cursor-pointer w-full sm:w-auto"
+                  onClick={() => {
+                    if (step != 1) {
+                      setStep(step - 1)
+                      return
+                    }
+                  }}
+                  disabled={isPending}
+                >
+                  Atras
+                </button>
+              </div>
+            )}
+            <div className="flex gap-4 justify-end">
               <button
                 type="button"
-                className="px-8 py-3.5 border border-gray-300 text-gray-800 font-semibold rounded-lg hover:bg-gray-100 transition-all cursor-pointer w-full sm:w-auto"
-                onClick={() =>
-                  step != 1 ? setStep(step - 1) : router.push('/organizaciones')
+                disabled={
+                  isPending ||
+                  sugerirRodeoUnico ||
+                  bloqueadoPorFaltaDeRegistroDeRodeo ||
+                  (mostrarBloqueRodeos && !isrodeosLlenados) ||
+                  (step === 2 && (animales ?? []).length === 0)
                 }
-                disabled={isPending}
+                className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
+                onClick={() => {
+                  if (step !== lastStep) {
+                    if (esRodeoUnico && registrarRodeo) {
+                      setValue('rodeos', undefined as any, {
+                        shouldDirty: true,
+                      })
+                      clearErrors('rodeos')
+                    }
+                    setStep(step + 1)
+                  } else {
+                    if (esRodeoUnico && registrarRodeo) {
+                      clearErrors('rodeos')
+                    } else {
+                      clearErrors('animales')
+                    }
+                    handleSubmit(onSubmit, handleInvalidSubmit)()
+                  }
+                }}
               >
-                {step != 1 ? 'Atras' : 'Cancelar'}
+                {isPending
+                  ? 'Guardando...'
+                  : step === lastStep
+                    ? 'Finalizar Configuración'
+                    : 'Siguiente'}
               </button>
             </div>
-          )}
-
-          <div className="flex gap-4 justify-end">
-            <button
-              type="button"
-              disabled={
-                isPending ||
-                sugerirRodeoUnico ||
-                bloqueadoPorFaltaDeRegistroDeRodeo ||
-                (mostrarBloqueRodeos && !isrodeosLlenados) ||
-                (step === 2 && (animales ?? []).length === 0)
-              }
-              className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
-              onClick={() => {
-                if (step !== lastStep) {
-                  if (esRodeoUnico && registrarRodeo) {
-                    setValue('rodeos', undefined as any, {
-                      shouldDirty: true,
-                    })
-                    clearErrors('rodeos')
-                  }
-                  setStep(step + 1)
-                } else {
-                  if (esRodeoUnico && registrarRodeo) {
-                    clearErrors('rodeos')
-                  } else {
-                    clearErrors('animales')
-                  }
-                  handleSubmit(onSubmit, handleInvalidSubmit)()
-                }
-              }}
-            >
-              {isPending
-                ? 'Guardando...'
-                : step === lastStep
-                  ? 'Finalizar Configuración'
-                  : 'Siguiente'}
-            </button>
           </div>
         </footer>
       </form>

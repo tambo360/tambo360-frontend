@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowRight, Eye, EyeOff, ChevronLeft } from 'lucide-react'
+import { ArrowRight, EyeOff, ChevronLeft, EyeIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -240,9 +240,9 @@ const ResetPassword: React.FC = () => {
                         data-testid="toggle-password-visibility"
                       >
                         {showPass ? (
-                          <EyeOff className="size-5" />
+                          <EyeIcon className="size-5" />
                         ) : (
-                          <Eye className="size-5" />
+                          <EyeOff className="size-5" />
                         )}
                       </button>
                     </div>
@@ -273,9 +273,9 @@ const ResetPassword: React.FC = () => {
                         data-testid="toggle-confirm-password-visibility"
                       >
                         {showConfirmPass ? (
-                          <EyeOff className="size-5" />
+                          <EyeIcon className="size-5" />
                         ) : (
-                          <Eye className="size-5" />
+                          <EyeOff className="size-5" />
                         )}
                       </button>
                     </div>

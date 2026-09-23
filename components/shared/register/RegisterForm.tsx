@@ -185,9 +185,9 @@ const RegisterForm = () => {
                   data-testid="toggle-password-visibility"
                 >
                   {showPassword ? (
-                    <EyeOff className="size-5" />
-                  ) : (
                     <EyeIcon className="size-5" />
+                  ) : (
+                    <EyeOff className="size-5" />
                   )}
                 </Button>
               </div>
@@ -227,9 +227,9 @@ const RegisterForm = () => {
                   data-testid="toggle-confirm-password-visibility"
                 >
                   {showConfirmPassword ? (
-                    <EyeOff className="size-5" />
-                  ) : (
                     <EyeIcon className="size-5" />
+                  ) : (
+                    <EyeOff className="size-5" />
                   )}
                 </Button>
               </div>
