@@ -6,13 +6,14 @@ import { useCurrentMonth } from '@/hooks/dashboard/useCurrentMonth'
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser'
 import { StatCard } from '@/components/shared/StatCard'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
-import { usePathname } from 'next/navigation'
+import { useParams } from 'next/navigation'
 
 const Dashboard = () => {
   const { data, isPending } = useCurrentMonth()
-  const pathname = usePathname()
+  const params = useParams()
+  const estId = params?.id as string
   const { data: establishment } = useEstablishment({
-    id: pathname.split('/')[3],
+    id: estId,
   })
   const { data: currentUser } = useCurrentUser()
   const primerNombre = currentUser?.data?.nombre?.split(' ')[0]

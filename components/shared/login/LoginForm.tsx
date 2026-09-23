@@ -17,7 +17,7 @@ const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const { mutateAsync, isPending, error: apiError } = useLogin()
   const { showErrorMessage } = useErrorMessage()
-  const { login } = useAuth()
+  const { login, setCuestionarioCompletado } = useAuth()
 
   const {
     register,
@@ -49,6 +49,14 @@ const LoginForm: React.FC = () => {
   const onSubmit = handleSubmit(async (data) => {
     try {
       const response = await mutateAsync(data)
+      const orgUsuario = response.data.user.organizaciones?.[0]
+      const completado =
+        orgUsuario?.establecimientoOrganizacionUsuarios?.[0]?.establecimiento
+          ?.cuestionarioCompletado ??
+        orgUsuario?.organizacion?.establecimientos?.[0]
+          ?.cuestionarioCompletado ??
+        false
+      setCuestionarioCompletado(completado)
       login({ token: response.data.token, user: response.data.user })
     } catch (err) {
       console.warn('Error al iniciar sesión:', err)

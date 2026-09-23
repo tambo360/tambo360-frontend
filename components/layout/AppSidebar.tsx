@@ -16,7 +16,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useParams, usePathname } from 'next/navigation'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,7 @@ interface AppSidebarProps {
 
 export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   const pathname = usePathname()
+  const params = useParams()
   const { logout } = useAuth()
   const { data: configData } = useConfiguration()
   const { data: noViewedAlerts } = useNoViewedAlerts({
@@ -35,7 +36,12 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   })
   const isCollapsed = forcedCollapsed
 
-  const baseUrl = pathname.split('/').slice(0, 4).join('/')
+  const orgId = params?.orgId as string
+  const estId = params?.id as string
+  const baseUrl =
+    orgId && estId
+      ? `/organizaciones/${orgId}/${estId}`
+      : pathname.split('/').slice(0, 4).join('/')
 
   const mainMenuItems = [
     {

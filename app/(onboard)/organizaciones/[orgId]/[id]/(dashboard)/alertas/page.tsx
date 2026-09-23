@@ -14,14 +14,15 @@ import { useAlerts } from '@/hooks/alerts/useAlerts'
 import { Alert } from '@/types/alerts'
 import { Bot, RotateCw } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
 
 const TamboEngine: React.FC = () => {
   const [range, setRange] = useState<'7' | '14' | '30'>('7')
-  const pathname = usePathname()
+  const params = useParams()
+  const estId = params?.id as string
   const { data: establishment } = useEstablishment({
-    id: pathname.split('/')[3],
+    id: estId,
   })
   const { data, isPending, refetch, isFetching } = useAlerts({
     id: establishment?.data.establecimiento?.idEstablecimiento,
