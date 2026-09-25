@@ -30,7 +30,7 @@ export const CompleteBatchModal = ({
   const [showError, setShowError] = useState(false)
 
   const { mutate: completeBatch, isPending } = useMutation({
-    mutationFn: () => api.patch(`/lote/${batchId}/completar`),
+    mutationFn: () => api.post(`/lote/completar/${batchId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.batch.lists(),

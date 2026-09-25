@@ -39,23 +39,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <StatCard
-          title="Sólidos"
-          value={data?.data.actual.quesos}
-          unit=" Kg"
-          trend={
-            data?.data.variaciones.quesos != null
-              ? {
-                  value: data.data.variaciones.quesos,
-                  isPositive: data.data.variaciones.quesos >= 0,
-                }
-              : null
-          }
-          description={'vs ' + data?.data.mesPrevio}
-          isPending={isPending}
-        />
-
+      {/* Grid de 5 columnas (se quitó la card "Sólidos") */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           title="Líquidos"
           value={data?.data.actual.leches}

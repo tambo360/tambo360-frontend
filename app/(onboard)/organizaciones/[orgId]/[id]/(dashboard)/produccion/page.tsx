@@ -15,7 +15,6 @@ import {
   ArrowDown,
   X,
   CloudOff,
-  PackageCheck,
   MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -62,13 +61,10 @@ import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
-import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
-import { BatchSuccessScreen } from '@/components/shared/dashboard/batch/BatchSuccessScreen'
 
 const Produccion: React.FC = () => {
   // Estados de modales
   const [isChangeBatchOpen, setIsChangeBatchOpen] = useState(false)
-  const [isCompleteBatchOpen, setIsCompleteBatchOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isRegisterMermaOpen, setIsRegisterMermaOpen] = useState(false)
 
@@ -80,10 +76,6 @@ const Produccion: React.FC = () => {
   const [nombre, setNombre] = useState('')
   const [orden, setOrden] = useState<'asc' | 'desc'>('desc')
   const [pagina, setPagina] = useState(1)
-
-  // Estado para pantalla de éxito
-  const [showSuccessScreen, setShowSuccessScreen] = useState(false)
-  const [completedBatchId, setCompletedBatchId] = useState<string | null>(null)
 
   const [nameDebounced] = useDebounce(nombre, 300)
   const searchFilter = nameDebounced?.replace(/^0+/, '')
@@ -376,33 +368,25 @@ const Produccion: React.FC = () => {
                             <TableCell>
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    className="p-0 h-auto hover:bg-transparent"
-                                    onClick={() => {
-                                      if (locked) return
-                                      setSelectedBatch(batch)
-                                      setIsCompleteBatchOpen(true)
-                                    }}
-                                    disabled={locked}
-                                    asChild
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      handleOpenDetail(batch.idLote)
+                                    }
+                                    className={`text-sm font-semibold hover:underline cursor-pointer ${
+                                      isComplete
+                                        ? 'text-emerald-600'
+                                        : 'text-rose-500'
+                                    }`}
                                   >
-                                    <span
-                                      className={`text-sm font-semibold cursor-pointer ${
-                                        isComplete
-                                          ? 'text-emerald-600'
-                                          : 'text-rose-500'
-                                      }`}
-                                    >
-                                      {isComplete ? 'Completado' : 'Incompleto'}
-                                    </span>
-                                  </Button>
+                                    {isComplete ? 'Completado' : 'Incompleto'}
+                                  </button>
                                 </TooltipTrigger>
                                 <TooltipContent>
                                   <p>
                                     {isComplete
                                       ? 'Lote con mermas registradas'
-                                      : 'Click para completar'}
+                                      : 'Click para ver detalles y completar'}
                                   </p>
                                 </TooltipContent>
                               </Tooltip>
@@ -434,17 +418,6 @@ const Produccion: React.FC = () => {
                                   </DropdownMenuGroup>
                                   <DropdownMenuSeparator />
                                   <DropdownMenuGroup>
-                                    <DropdownMenuItem
-                                      onClick={() => {
-                                        setSelectedBatch(batch)
-                                        setIsCompleteBatchOpen(true)
-                                      }}
-                                      disabled={locked}
-                                      className="cursor-pointer"
-                                    >
-                                      <PackageCheck className="w-4 h-4 mr-2" />{' '}
-                                      Completar
-                                    </DropdownMenuItem>
                                     <DropdownMenuItem
                                       onClick={() => {
                                         setSelectedBatch(batch)
@@ -520,13 +493,8 @@ const Produccion: React.FC = () => {
                             />
                           </span>
                           <button
-                            onClick={() => {
-                              if (locked) return
-                              setSelectedBatch(batch)
-                              setIsCompleteBatchOpen(true)
-                            }}
-                            disabled={locked}
-                            className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                            onClick={() => handleOpenDetail(batch.idLote)}
+                            className={`text-xs font-semibold px-2 py-1 rounded-md cursor-pointer ${
                               isComplete
                                 ? 'text-emerald-600 bg-emerald-50'
                                 : 'text-rose-500 bg-rose-50'
@@ -607,17 +575,6 @@ const Produccion: React.FC = () => {
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuGroup>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsCompleteBatchOpen(true)
-                                    }}
-                                    disabled={locked}
-                                    className="cursor-pointer"
-                                  >
-                                    <PackageCheck className="w-4 h-4 mr-2" />{' '}
-                                    Completar
-                                  </DropdownMenuItem>
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setSelectedBatch(batch)
@@ -736,22 +693,8 @@ const Produccion: React.FC = () => {
           setSelectedBatch(null)
         }}
         onOpen={() => setIsChangeBatchOpen(true)}
+        onViewDetail={handleOpenDetail}
         batch={selectedBatch ? selectedBatch : undefined}
-      />
-
-      <CompleteBatchModal
-        open={isCompleteBatchOpen}
-        onClose={() => {
-          setIsCompleteBatchOpen(false)
-          setSelectedBatch(null)
-        }}
-        batchId={selectedBatch?.idLote || ''}
-        onSuccess={() => {
-          if (selectedBatch?.idLote) {
-            setCompletedBatchId(selectedBatch.idLote)
-            setShowSuccessScreen(true)
-          }
-        }}
       />
 
       <BatchDetailModal
@@ -762,11 +705,6 @@ const Produccion: React.FC = () => {
           setIsDetailModalOpen(false)
           setSelectedBatch(batch)
           setIsChangeBatchOpen(true)
-        }}
-        onCompleteRequest={(batch) => {
-          setIsDetailModalOpen(false)
-          setSelectedBatch(batch)
-          setIsCompleteBatchOpen(true)
         }}
         onDeleted={() => {
           refetch()
@@ -783,28 +721,6 @@ const Produccion: React.FC = () => {
         onSave={handleSaveMermaFromList}
         isLoading={isCreatingMerma}
       />
-
-      {/* Pantalla de éxito */}
-      {showSuccessScreen && completedBatchId && (
-        <BatchSuccessScreen
-          batchId={completedBatchId}
-          onGoToDetail={() => {
-            setShowSuccessScreen(false)
-            setCompletedBatchId(null)
-            handleOpenDetail(completedBatchId)
-          }}
-          onCreateAnother={() => {
-            setShowSuccessScreen(false)
-            setCompletedBatchId(null)
-            setIsChangeBatchOpen(true)
-          }}
-          onReturnToDashboard={() => {
-            setShowSuccessScreen(false)
-            setCompletedBatchId(null)
-            window.location.href = '/dashboard'
-          }}
-        />
-      )}
     </div>
   )
 }

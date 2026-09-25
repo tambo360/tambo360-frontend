@@ -33,7 +33,6 @@ import { Lote } from '@/types/batch'
 import { TipoDestino, TipoSeguimiento } from '@/types/enums'
 import { useChangeBatchForm } from '@/hooks/batch/useChangeBatchForm'
 import { ConnectionErrorModal } from '@/components/ConnectionErrorModal'
-import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -53,10 +52,17 @@ interface ChangeBatchProps {
   open: boolean
   onClose: () => void
   onOpen?: () => void
+  onViewDetail?: (batchId: string) => void
   batch?: Lote
 }
 
-const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
+const ChangeBatch = ({
+  open,
+  onClose,
+  onOpen,
+  onViewDetail,
+  batch,
+}: ChangeBatchProps) => {
   const {
     register,
     errors,
@@ -72,8 +78,6 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
     finished,
     startAnotherBatch,
     handleDialogChange,
-    isDetailModalOpen,
-    setIsDetailModalOpen,
     createdBatchId,
     isTransferModalOpen,
     setIsTransferModalOpen,
@@ -93,7 +97,10 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
         // ==========================================
         // PANTALLA DE ÉXITO
         // ==========================================
-        <DialogContent className="w-[95vw] sm:max-w-md mx-auto bg-[#E8F5E9] rounded-3xl p-8 shadow-2xl border border-green-100 text-center">
+        <DialogContent
+          onOpenAutoFocus={(e) => e.preventDefault()}
+          className="w-[95vw] sm:max-w-md mx-auto bg-[#E8F5E9] rounded-3xl p-8 shadow-2xl border border-green-100 text-center [&>button]:hidden"
+        >
           <DialogHeader className="space-y-4">
             <div className="flex justify-center">
               <div className="relative">
@@ -119,7 +126,12 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
             <Button
               variant="default"
               className="w-full h-12 text-base font-bold bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl shadow-md transition-all"
-              onClick={() => setIsDetailModalOpen(true)}
+              onClick={() => {
+                // Guardamos el id antes de cerrar: el hook puede reiniciarlo
+                const id = createdBatchId
+                onClose()
+                if (id) onViewDetail?.(id)
+              }}
             >
               <span className="flex items-center justify-center gap-2">
                 Ir al detalle del lote
@@ -582,15 +594,12 @@ const ChangeBatch = ({ open, onClose, onOpen, batch }: ChangeBatchProps) => {
         onRetry={retry}
         onCancel={handleConnectionCancel}
       />
-      <BatchDetailModal
-        open={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        batchId={createdBatchId}
-      />
       <TransferModal
         open={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
-        onSave={handleSaveTransfer}
+        tipoSeguimiento={TipoSeguimiento.INDIVIDUAL}
+        animales={individualLote.animals}
+        preselectedIds={individualLote.fields.map((f) => f.idAnimal)}
       />
     </Dialog>
   )

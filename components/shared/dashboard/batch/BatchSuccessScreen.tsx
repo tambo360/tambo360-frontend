@@ -5,12 +5,20 @@ import { Button } from '@/components/ui/button'
 
 interface BatchSuccessScreenProps {
   batchId: string
+  title?: string
+  description?: string
+  goToDetailLabel?: string
+  showCreateAnother?: boolean
   onGoToDetail: () => void
-  onCreateAnother: () => void
+  onCreateAnother?: () => void
   onReturnToDashboard: () => void
 }
 
 export const BatchSuccessScreen = ({
+  title = 'Lote creado correctamente',
+  description = 'El nuevo lote ha sido registrado exitosamente en el sistema. Ahora puedes gestionar su seguimiento y producción.',
+  goToDetailLabel = 'Ir al detalle del lote',
+  showCreateAnother = true,
   onGoToDetail,
   onCreateAnother,
   onReturnToDashboard,
@@ -30,12 +38,9 @@ export const BatchSuccessScreen = ({
 
           {/* Contenido */}
           <div className="space-y-4">
-            <h1 className="text-3xl font-bold text-gray-900">
-              Lote creado correctamente
-            </h1>
+            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
             <p className="text-gray-600 text-sm leading-relaxed max-w-sm mx-auto">
-              El nuevo lote ha sido registrado exitosamente en el sistema. Ahora
-              puedes gestionar su seguimiento y producción.
+              {description}
             </p>
           </div>
 
@@ -45,20 +50,24 @@ export const BatchSuccessScreen = ({
               onClick={onGoToDetail}
               className="h-14 rounded-xl px-8 bg-[#2E7D53] hover:bg-[#236342] text-white font-semibold text-base shadow-lg flex items-center justify-center gap-2"
             >
-              Ir al detalle del lote
+              {goToDetailLabel}
               <ArrowRight className="w-5 h-5" />
             </Button>
-            <Button
-              onClick={onCreateAnother}
-              variant="outline"
-              className="h-14 rounded-xl px-8 border-2 border-gray-200 bg-white text-gray-700 font-semibold text-base hover:bg-gray-50 flex items-center justify-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Crear otro lote
-            </Button>
+
+            {showCreateAnother && onCreateAnother && (
+              <Button
+                onClick={onCreateAnother}
+                variant="outline"
+                className="h-14 rounded-xl px-8 border-2 border-gray-200 bg-white text-gray-700 font-semibold text-base hover:bg-gray-50 flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Crear otro lote
+              </Button>
+            )}
+
             <button
               onClick={onReturnToDashboard}
-              className="mt-2 text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center gap-2 transition-colors"
+              className="mt-2 text-sm text-gray-500 hover:text-gray-700 font-medium flex items-center justify-center gap-2 transition-colors"
             >
               <svg
                 className="w-4 h-4"

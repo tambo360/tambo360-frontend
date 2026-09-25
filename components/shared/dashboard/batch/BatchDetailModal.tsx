@@ -31,14 +31,16 @@ import {
 import { useBatch } from '@/hooks/batch/useBatch'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useBatchDecrease } from '@/hooks/decrease/useBatchDecrease'
+import { useUpdateDecrease } from '@/hooks/decrease/useUpdateDecrease'
 import { useErrorMessage } from '@/hooks/useErrorMessage'
 import { Lote } from '@/types/batch'
-import { TIPO_MERMA_LABELS } from '@/types/decrease'
+import { Merma, TIPO_MERMA_LABELS } from '@/types/decrease'
 import { api } from '@/services/api'
 import { queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
+import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
 
 interface LoteConDetalles extends Lote {
   observaciones?: string
@@ -51,7 +53,6 @@ interface BatchDetailModalProps {
   onClose: () => void
   batchId: string
   onEditRequest?: (batch: Lote) => void
-  onCompleteRequest?: (batch: Lote) => void
   onDeleted?: () => void
 }
 
@@ -74,7 +75,6 @@ const BatchDetailModal = ({
   onClose,
   batchId,
   onEditRequest,
-  onCompleteRequest,
   onDeleted,
 }: BatchDetailModalProps) => {
   const { data: batchData, isLoading, error } = useBatch({ id: batchId })
@@ -93,10 +93,21 @@ const BatchDetailModal = ({
     isDeleting,
   } = useBatchDecrease({ batchId })
 
-  // ── Observaciones ──
+  // ✅ Hook para actualizar merma
+  const { mutateAsync: updateDecrease, isPending: isUpdatingDecrease } =
+    useUpdateDecrease({ idLote: batchId })
+
+  // ── Observaciones del lote ──
   const [isEditingObs, setIsEditingObs] = useState(false)
   const [obsDraft, setObsDraft] = useState('')
   const [isDeletingBatch, setIsDeletingBatch] = useState(false)
+
+  // ── Editar merma ──
+  const [mermaToEdit, setMermaToEdit] = useState<Merma | null>(null)
+
+  // ── Flujo de Completar Lote ──
+  const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+
   const { mutateAsync: updateObservations, isPending: isSavingObs } =
     useUpdateObservations(batchId)
   const { showErrorMessage } = useErrorMessage()
@@ -104,6 +115,7 @@ const BatchDetailModal = ({
   useEffect(() => {
     setIsEditingObs(false)
     setObsDraft('')
+    setMermaToEdit(null)
   }, [batchId, open])
 
   const dialogClass =
@@ -123,6 +135,28 @@ const BatchDetailModal = ({
           'No se pudo eliminar el lote. Intenta de nuevo.'
       )
       setIsDeletingBatch(false)
+    }
+  }
+
+  // ── Guardar edición de merma ──
+  const handleUpdateMerma = async (data: {
+    tipo?: string
+    cantidad: number
+    observacion?: string
+  }) => {
+    if (!mermaToEdit) return
+    try {
+      await updateDecrease({
+        values: data as never,
+        id: mermaToEdit.idMerma,
+      })
+      setMermaToEdit(null)
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } }
+      showErrorMessage(
+        e?.response?.data?.message ||
+          'No se pudo actualizar la merma. Intenta de nuevo.'
+      )
     }
   }
 
@@ -155,16 +189,13 @@ const BatchDetailModal = ({
     )
   }
 
-  // La respuesta viene { lote, alertas }, leer el lote interno
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = batchData.data as any
   const batch: LoteConDetalles = (raw?.lote ?? raw) as LoteConDetalles
 
-  // Estado visible (derivado de mermas)
   const hasMermas = Array.isArray(batch.mermas) && batch.mermas.length > 0
   const isComplete = hasMermas
   const isIncomplete = !isComplete
-
-  // Estado real del backend para habilitar/deshabilitar acciones
   const isLocked = Boolean(batch.estado)
 
   const rawLote = batch.lote ?? batch.numeroLote ?? batch.idLote
@@ -208,7 +239,7 @@ const BatchDetailModal = ({
           </DialogDescription>
 
           <div className="flex flex-col w-full gap-6">
-            {/* Barra superior de navegación */}
+            {/* Barra superior */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <button
                 onClick={onClose}
@@ -225,7 +256,7 @@ const BatchDetailModal = ({
               </button>
             </div>
 
-            {/* Cabecera Principal del Lote */}
+            {/* Cabecera */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
@@ -257,7 +288,7 @@ const BatchDetailModal = ({
               <div className="flex items-center gap-2.5">
                 {!isLocked && (
                   <Button
-                    onClick={() => onCompleteRequest?.(batch)}
+                    onClick={() => setIsCompleteModalOpen(true)}
                     className="bg-[#658a14] hover:bg-[#547310] text-white text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 shadow-sm"
                   >
                     <CheckCircle2 className="w-4 h-4" /> Completar lote
@@ -339,7 +370,7 @@ const BatchDetailModal = ({
               </div>
             </div>
 
-            {/* Observaciones (editable) */}
+            {/* Observaciones del lote */}
             <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
@@ -473,6 +504,16 @@ const BatchDetailModal = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                                onClick={() => setMermaToEdit(merma)}
+                                disabled={isLocked}
+                                aria-label="Editar merma"
+                              >
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
                                 className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
                                 onClick={() => requestDelete(merma)}
                                 aria-label="Eliminar merma"
@@ -498,7 +539,7 @@ const BatchDetailModal = ({
               </div>
             </div>
 
-            {/* Sección Inferior: Eliminar Lote */}
+            {/* Eliminar Lote */}
             {!isLocked && (
               <div className="pt-2 pb-2">
                 <button
@@ -514,12 +555,29 @@ const BatchDetailModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Registrar merma */}
+      {/* Registrar merma (crear) */}
       <RegisterMermaModal
         open={isCreateOpen}
         onClose={closeCreate}
         onSave={handleCreate}
         isLoading={isCreating}
+      />
+
+      {/* Editar merma */}
+      <RegisterMermaModal
+        open={!!mermaToEdit}
+        onClose={() => setMermaToEdit(null)}
+        onSave={handleUpdateMerma}
+        isLoading={isUpdatingDecrease}
+        initialData={
+          mermaToEdit
+            ? {
+                tipo: mermaToEdit.tipo,
+                cantidad: mermaToEdit.cantidad,
+                observacion: mermaToEdit.observacion ?? null,
+              }
+            : null
+        }
       />
 
       {/* Confirmar eliminación de merma */}
@@ -599,6 +657,18 @@ const BatchDetailModal = ({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Completar lote */}
+      <CompleteBatchModal
+        open={isCompleteModalOpen}
+        onClose={() => setIsCompleteModalOpen(false)}
+        batchId={batchId}
+        onSuccess={() => {
+          setIsCompleteModalOpen(false)
+          onDeleted?.()
+          onClose()
+        }}
+      />
     </>
   )
 }

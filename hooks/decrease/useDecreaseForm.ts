@@ -11,11 +11,18 @@ export interface DecreaseTypeOption {
   label: string
 }
 
+export interface InitialDecreaseData {
+  tipo: string
+  cantidad: number | string
+  observacion?: string | null
+}
+
 type FieldErrors = Partial<Record<'tipo' | 'cantidad' | 'observacion', string>>
 
 interface UseDecreaseFormProps {
   open: boolean
   onSave: (data: DecreaseData) => Promise<void>
+  initialData?: InitialDecreaseData | null
 }
 
 // Respaldo por si el endpoint /mermas/tipos falla o responde vacío
@@ -25,8 +32,6 @@ const FALLBACK_TYPES: DecreaseTypeOption[] = Object.entries(
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-// Fecha y hora locales del dispositivo. Solo se muestran: el backend asigna
-// `fechaCreacion` por su cuenta al crear la merma.
 const getNowParts = () => {
   const now = new Date()
   return {
@@ -35,7 +40,11 @@ const getNowParts = () => {
   }
 }
 
-export function useDecreaseForm({ open, onSave }: UseDecreaseFormProps) {
+export function useDecreaseForm({
+  open,
+  onSave,
+  initialData,
+}: UseDecreaseFormProps) {
   const [fecha, setFecha] = useState('')
   const [hora, setHora] = useState('')
   const [tipo, setTipo] = useState('')
@@ -45,23 +54,30 @@ export function useDecreaseForm({ open, onSave }: UseDecreaseFormProps) {
 
   const { data: typesData, isLoading: typesLoading } = useDecreaseType()
 
-  // La respuesta puede venir como arreglo directo o envuelta en { data: [...] }
   const types: DecreaseTypeOption[] = useMemo(() => {
     const list = Array.isArray(typesData) ? typesData : typesData?.data
     return Array.isArray(list) && list.length > 0 ? list : FALLBACK_TYPES
   }, [typesData])
 
-  // Cada vez que se abre el modal: fecha y hora actuales, campos limpios
+  // Cada vez que se abre el modal: si hay initialData (edición) precarga
+  // valores, si no, limpia. Fecha y hora siempre son las del momento.
   useEffect(() => {
     if (!open) return
     const now = getNowParts()
     setFecha(now.fecha)
     setHora(now.hora)
-    setTipo('')
-    setCantidad('')
-    setObservacion('')
+
+    if (initialData) {
+      setTipo(initialData.tipo)
+      setCantidad(String(initialData.cantidad ?? ''))
+      setObservacion(initialData.observacion || '')
+    } else {
+      setTipo('')
+      setCantidad('')
+      setObservacion('')
+    }
     setErrors({})
-  }, [open])
+  }, [open, initialData])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
