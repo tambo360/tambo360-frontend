@@ -16,7 +16,7 @@ const Register: React.FC = () => {
         className="cursor-pointer! absolute top-4 left-4 z-30! rounded-full"
         asChild
       >
-        <Link href="/">
+        <Link href="/iniciar-sesion">
           <ChevronLeft className="size-6" />
         </Link>
       </Button>

@@ -138,6 +138,11 @@ const RegisterForm = () => {
                 disabled={isPending || isResendingEmail}
                 data-testid="full-name-input"
               />
+              {!(submitCount > 0 && errors.nombre) && (
+                <p className="text-[10px] text-[#626059]">
+                  Requisitos: Debe ser minimo de 10 caracteres.
+                </p>
+              )}
               {submitCount > 0 && errors.nombre && (
                 <p className="text-xs font-medium text-[#B91C1C]">
                   {errors.nombre.message}
