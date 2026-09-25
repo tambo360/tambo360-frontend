@@ -74,6 +74,7 @@ export interface Establecimiento {
   loteProducciones?: Lote[]
   establecimientoOrganizacionUsuarios?: Establecimiento_OrganiacionUsuario[]
   configuracions?: Configuracion[]
+  cuestionarioCompletado?: boolean
   establecimientoRazas?: EstablecimientoRaza[]
 }
 

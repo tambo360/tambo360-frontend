@@ -16,10 +16,11 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useParams, usePathname } from 'next/navigation'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/context/AuthContext'
 
 interface AppSidebarProps {
   forcedCollapsed?: boolean
@@ -27,13 +28,20 @@ interface AppSidebarProps {
 
 export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   const pathname = usePathname()
+  const params = useParams()
+  const { logout } = useAuth()
   const { data: configData } = useConfiguration()
   const { data: noViewedAlerts } = useNoViewedAlerts({
     id: configData?.data.idEstablecimiento,
   })
   const isCollapsed = forcedCollapsed
 
-  const baseUrl = pathname.split('/').slice(0, 4).join('/')
+  const orgId = params?.orgId as string
+  const estId = params?.id as string
+  const baseUrl =
+    orgId && estId
+      ? `/organizaciones/${orgId}/${estId}`
+      : pathname.split('/').slice(0, 4).join('/')
 
   const mainMenuItems = [
     {
@@ -88,7 +96,6 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
                 alt="Tambo360"
                 className="h-6 w-auto"
               />
-              <span className="ml-2 text-sm font-bold tracking-tight">QA</span>
             </div>
           )}
         </div>
@@ -138,19 +145,20 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
         <SidebarMenu>
           <Button
             variant="ghost"
+            onClick={logout}
             className={`w-full ${isCollapsed ? 'justify-center' : ''}`}
           >
             {!isCollapsed ? (
               <Link
-                href="/organizaciones"
+                href="/iniciar-sesion"
                 className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
               >
                 <ArrowLeft className="h-5 w-5 shrink-0" />
-                Volver
+                Cerrar Sesion
               </Link>
             ) : (
               <Link
-                href="/organizaciones"
+                href="/iniciar-sesion"
                 className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
               >
                 <ArrowLeft className="h-5 w-5 shrink-0" />

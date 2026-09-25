@@ -21,6 +21,8 @@ interface AuthContextType extends AuthState {
   logout: () => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
+  cuestionarioCompletado: boolean
+  setCuestionarioCompletado: Dispatch<SetStateAction<boolean>>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -32,6 +34,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [cuestionarioCompletado, setCuestionarioCompletado] =
+    useState<boolean>(false)
   const pathname = usePathname()
   const { mutateAsync } = useLogout()
   const navigate = useRouter()
@@ -107,6 +111,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         logout,
         setLoading,
         setError,
+        cuestionarioCompletado,
+        setCuestionarioCompletado,
       }}
     >
       {loading ? <Loading /> : children}
