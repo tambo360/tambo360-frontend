@@ -148,3 +148,22 @@
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Oculta el ojo nativo de Edge en inputs password (se usa toggle custom) */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}
+
+/* Oculta la barra de scroll en el contenedor y en TODOS sus hijos.
+   Necesario porque el componente <Table> de shadcn envuelve la tabla
+   en su propio div con overflow-auto. */
+.hide-scrollbar,
+.hide-scrollbar * {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge legacy */
+}
+.hide-scrollbar::-webkit-scrollbar,
+.hide-scrollbar *::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
