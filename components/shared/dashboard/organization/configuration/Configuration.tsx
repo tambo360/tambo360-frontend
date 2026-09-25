@@ -15,25 +15,25 @@ import {
 } from '@/types/enums'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { FieldErrors, useForm } from 'react-hook-form'
-import { useEffect, useState } from 'react'
-import { cn } from '@/lib/utils'
+import { useEffect, useMemo, useState, useRef } from 'react'
+import {
+  cn,
+  limitDecimalDigitsKeyDown,
+  sanitizeDecimalChange,
+} from '@/lib/utils'
 import { useProvince } from '@/hooks/ubication/useProvince'
 import { useLocality } from '@/hooks/ubication/useLocality'
 import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
-import { useDebounce } from 'use-debounce'
 import { useUpdateConfiguration } from '@/hooks/establishment/useUpdateConfiguration'
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
-import { LogOut } from 'lucide-react'
-import { useAuth } from '@/context/AuthContext'
 import RodeoCategoriaCard, {
   RAZA_LABELS,
   blockNegativeKeys,
@@ -114,29 +114,14 @@ const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
 }
 
 const Configuration = () => {
-  const [searchProvince, setSearchProvince] = useState('')
-  const [idProvince, setIdProvince] = useState<string | undefined>('')
-  const [searchLocality, setSearchLocality] = useState('')
-  const [selectedLocalityName, setSelectedLocalityName] = useState('')
-  const [searchP] = useDebounce(searchProvince, 300)
-  const [searchL] = useDebounce(searchLocality, 300)
   const [registrarRodeo, setRegistrarRodeo] = useState<boolean | undefined>(
     undefined
   )
   const [step, setStep] = useState(1)
+  const [intentoFinalizar, setIntentoFinalizar] = useState(false)
   const pathname = usePathname()
   const params = useParams()
   const router = useRouter()
-  const { logout } = useAuth()
-
-  const { data: province } = useProvince({ name: searchP })
-  const { data: locality } = useLocality({ id: idProvince, search: searchL })
-
-  const {
-    mutateAsync: sendConfiguration,
-    isPending,
-    error,
-  } = useUpdateConfiguration()
 
   const {
     register,
@@ -151,6 +136,23 @@ const Configuration = () => {
       ubicacion: { provincia: '', localidad: '' },
     },
   })
+
+  const provinciaSeleccionada = watch('ubicacion.provincia')
+  const localidadSeleccionada = watch('ubicacion.localidad')
+
+  const { data: province } = useProvince({ name: '' })
+  const idProvince = useMemo(
+    () =>
+      province?.provincias.find((p) => p.nombre === provinciaSeleccionada)?.id,
+    [provinciaSeleccionada, province]
+  )
+  const { data: locality } = useLocality({ id: idProvince, search: '' })
+
+  const {
+    mutateAsync: sendConfiguration,
+    isPending,
+    error,
+  } = useUpdateConfiguration()
 
   const animales = watch('animales')
   const promLitros = watch('promLitros')
@@ -188,6 +190,16 @@ const Configuration = () => {
         (r?.costoRacion as number) > 0 &&
         !!r?.razas?.length &&
         r.razas.every((item) => Number(item?.cantVacas) > 0)
+    )
+
+  const isAnimalesLlenados =
+    !!animales?.length &&
+    animales.every(
+      (a: any) =>
+        (a?.codigo ?? '').toString().trim() !== '' &&
+        !!a?.raza &&
+        !!a?.categoria &&
+        !!a?.estado
     )
 
   useEffect(() => {
@@ -291,6 +303,12 @@ const Configuration = () => {
     })
   }
 
+  const refPromLitro = useRef(false)
+  const promLitrosField = register('promLitros', { valueAsNumber: true })
+
+  const refPrecioLitro = useRef(false)
+  const precioLitroField = register('precioLitro', { valueAsNumber: true })
+
   return (
     <div
       className={`flex flex-col gap-10 w-full ${pathname.includes('cuestionario') ? 'p-8' : ''}`}
@@ -300,11 +318,11 @@ const Configuration = () => {
       </div>
       <section className="flex flex-col gap-2">
         <div className="flex justify-between items-start">
-          <h1 className="text-4xl font-bold text-slate-900">
+          <h1 className="text-2xl sm:text-4xl font-bold text-slate-900">
             Configura tu Perfil
           </h1>
         </div>
-        <p className="text-slate-500 text-lg">
+        <p className="text-slate-500 text-base sm:text-lg">
           Ayudanos a personalizar la experiencia de Tambo360 con los datos
           actuales de tu establecimiento
         </p>
@@ -320,65 +338,46 @@ const Configuration = () => {
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Dónde está tu tambo?
               </p>
-              <div className="flex w-full max-w-4xl items-start gap-x-10">
+              <div className="flex flex-col sm:flex-row w-full max-w-4xl items-start gap-x-10">
                 <div className="relative min-w-0 w-full flex-1 space-y-2">
                   <p className="text-[15px] leading-6 text-slate-900">
                     Provincia*
                   </p>
-                  <Combobox
-                    onValueChange={(id: any) => {
-                      const selectedProv = province?.provincias.find(
-                        (p) => p.id === id
-                      )
-                      if (!selectedProv) return
-                      setIdProvince(id)
-                      setSearchProvince(selectedProv.nombre)
-                      setValue('ubicacion.provincia', selectedProv.nombre, {
+                  <Select
+                    value={provinciaSeleccionada ?? ''}
+                    onValueChange={(nombre) => {
+                      setValue('ubicacion.provincia', nombre, {
                         shouldValidate: true,
                       })
-                      setSelectedLocalityName('')
-                      setSearchLocality('')
+                      setValue('ubicacion.localidad', '', {
+                        shouldDirty: true,
+                      })
                     }}
                   >
-                    <ComboboxInput
-                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
-                      placeholder="Seleccione una provincia"
-                      value={searchProvince}
-                      onChange={(e) => {
-                        const val = e.target.value
-                        setSearchProvince(val)
-                        if (val === '') {
-                          setIdProvince('')
-                          setValue('ubicacion.provincia', '', {
-                            shouldValidate: true,
-                          })
-                        }
-                      }}
-                      data-testid="province-combobox-input"
-                    />
-                    <ComboboxContent
-                      className="bg-white border-[#D1CFCA] z-100"
-                      data-testid="province-combobox-content"
+                    <SelectTrigger
+                      className={`"w-full rounded-lg border border-slate-200 bg-white text-[13px] font-normal text-slate-900 shadow-none data-[size=default]:h-10 [&_span]:text-slate-900 [&_span[data-placeholder]]:text-slate-400 w-full max-w-2xl ${errors.ubicacion?.provincia ? 'border-red-400 focus:border-red-500' : 'border-slate-200'}`}
+                      data-testid="province-select-trigger"
                     >
+                      <SelectValue placeholder="Seleccione una provincia" />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200 bg-white">
                       {!province?.provincias.length && (
-                        <ComboboxEmpty>
+                        <SelectItem value="__empty" disabled>
                           No se encontraron provincias
-                        </ComboboxEmpty>
+                        </SelectItem>
                       )}
-                      <ComboboxList>
-                        {province?.provincias.map((item) => (
-                          <ComboboxItem
-                            key={item.id}
-                            value={item.id}
-                            className="hover:bg-[#0B1001]/5"
-                            data-testid={`province-option-${item.id}`}
-                          >
-                            {item.nombre}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                      {province?.provincias.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.nombre}
+                          className="text-[13px] text-slate-900 hover:bg-slate-50"
+                          data-testid={`province-option-${item.id}`}
+                        >
+                          {item.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.ubicacion?.provincia && (
                     <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.provincia.message}
@@ -390,64 +389,46 @@ const Configuration = () => {
                   <p className="text-[15px] leading-6 text-slate-900">
                     Localidad*
                   </p>
-                  <Combobox
+                  <Select
+                    value={localidadSeleccionada ?? ''}
                     disabled={!idProvince}
-                    onValueChange={(id: any) => {
-                      const selectedLoc = locality?.municipios.find(
-                        (l) => l.id === id
-                      )
-                      if (!selectedLoc) return
-                      setSelectedLocalityName(selectedLoc.nombre)
-                      setSearchLocality(selectedLoc.nombre)
-                      setValue('ubicacion.localidad', selectedLoc.nombre, {
+                    onValueChange={(nombre) => {
+                      setValue('ubicacion.localidad', nombre, {
                         shouldValidate: true,
                       })
                     }}
                   >
-                    <ComboboxInput
-                      className={`h-14 w-full max-w-2xl ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200 focus:border-[#29845A]'}`}
-                      placeholder={
-                        idProvince
-                          ? 'Seleccione una localidad'
-                          : 'Primero seleccione una provincia'
-                      }
-                      value={searchLocality}
-                      onChange={(e: { target: { value: any } }) => {
-                        const val = e.target.value
-                        setSearchLocality(val)
-                        if (val !== selectedLocalityName) {
-                          setSelectedLocalityName('')
-                          setValue('ubicacion.localidad', '', {
-                            shouldValidate: true,
-                          })
-                        }
-                      }}
+                    <SelectTrigger
+                      className={`w-full rounded-lg border border-slate-200 bg-white text-[13px] font-normal text-slate-900 shadow-none data-[size=default]:h-10 [&_span]:text-slate-900 [&_span[data-placeholder]]:text-slate-400 max-w-2xl ${errors.ubicacion?.localidad ? 'border-red-400 focus:border-red-500' : 'border-slate-200'}`}
                       disabled={!idProvince}
-                      data-testid="locality-combobox-input"
-                    />
-                    <ComboboxContent
-                      className="bg-white border-[#D1CFCA] z-100"
-                      data-testid="locality-combobox-content"
+                      data-testid="locality-select-trigger"
                     >
+                      <SelectValue
+                        placeholder={
+                          idProvince
+                            ? 'Seleccione una localidad'
+                            : 'Primero seleccione una provincia'
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent className="border-slate-200 bg-white">
                       {!locality?.municipios.length && (
-                        <ComboboxEmpty>
+                        <SelectItem value="__empty" disabled>
                           No se encontraron localidades
-                        </ComboboxEmpty>
+                        </SelectItem>
                       )}
-                      <ComboboxList>
-                        {locality?.municipios.map((item) => (
-                          <ComboboxItem
-                            key={item.id}
-                            value={item.id}
-                            className="hover:bg-[#0B1001]/5"
-                            data-testid={`locality-option-${item.id}`}
-                          >
-                            {item.nombre}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                      {locality?.municipios.map((item) => (
+                        <SelectItem
+                          key={item.id}
+                          value={item.nombre}
+                          className="text-[13px] text-slate-900 hover:bg-slate-50"
+                          data-testid={`locality-option-${item.id}`}
+                        >
+                          {item.nombre}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   {errors.ubicacion?.localidad && (
                     <p className="text-xs font-medium text-red-500">
                       {errors.ubicacion?.localidad.message}
@@ -523,11 +504,18 @@ const Configuration = () => {
               <div className="relative w-full max-w-4xl">
                 <Input
                   type="number"
-                  step="0.1"
-                  min={0}
-                  placeholder="000"
-                  {...register('promLitros', { valueAsNumber: true })}
-                  onKeyDown={blockNegativeKeys}
+                  step={0.1}
+                  min={1}
+                  placeholder="1"
+                  {...promLitrosField}
+                  onKeyDown={(e) => {
+                    blockNegativeKeys(e)
+                    limitDecimalDigitsKeyDown(e, refPromLitro, 4, 4)
+                  }}
+                  onChange={(e) => {
+                    sanitizeDecimalChange(e, refPromLitro)
+                    promLitrosField.onChange(e) // sin esto RHF no guarda el valor
+                  }}
                   className={cn(
                     'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.promLitros
@@ -587,16 +575,22 @@ const Configuration = () => {
                 <Input
                   type="number"
                   step={1}
-                  min={0}
+                  min={1}
+                  placeholder="1"
                   inputMode="numeric"
-                  placeholder="000"
                   {...register('promDEL', { valueAsNumber: true })}
                   onKeyDown={(e) => {
-                    if (e.key === '.' || e.key === ',') e.preventDefault()
+                    if (
+                      e.key === '.' ||
+                      e.key === ',' ||
+                      (e.currentTarget.value.length >= 4 &&
+                        !isNaN(Number(e.key)))
+                    )
+                      e.preventDefault()
                     blockNegativeKeys(e)
                   }}
                   className={cn(
-                    'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    'w-full max-w-4xl no-spinner pr-16! p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.promDEL
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-slate-200 focus:border-[#29845A]'
@@ -618,13 +612,20 @@ const Configuration = () => {
               <div className="relative w-full max-w-4xl">
                 <Input
                   type="number"
-                  step="0.1"
-                  min={0}
-                  placeholder="000"
-                  {...register('precioLitro', { valueAsNumber: true })}
-                  onKeyDown={blockNegativeKeys}
+                  step={0.1}
+                  min={1}
+                  placeholder="1"
+                  {...precioLitroField}
+                  onKeyDown={(e) => {
+                    blockNegativeKeys(e)
+                    limitDecimalDigitsKeyDown(e, refPrecioLitro, 4, 4)
+                  }}
+                  onChange={(e) => {
+                    sanitizeDecimalChange(e, refPrecioLitro)
+                    precioLitroField.onChange(e) // sin esto RHF no guarda el valor
+                  }}
                   className={cn(
-                    'w-full max-w-4xl no-spinner p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    'w-full max-w-4xl no-spinner pr-16! p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.precioLitro
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-slate-200 focus:border-[#29845A]'
@@ -675,12 +676,12 @@ const Configuration = () => {
               <p className="text-[15px] leading-6 text-slate-900">
                 ¿Cuántos animales tenés por categoría?
               </p>
-              {sugerirRodeoUnico && (
+              {sugerirRodeoUnico && intentoFinalizar && (
                 <p className="text-xs font-medium text-amber-600">
                   Con {totalVacasGeneral} vaca
-                  {totalVacasGeneral === 1 ? '' : 's'} deberías bajar tu
-                  promedio de leche a 2000 lts o menos para tratarlo como rodeo
-                  único.
+                  {totalVacasGeneral === 1 ? '' : 's'} deberías superar las 70
+                  para seguir con tu promedio de litros diarios normal, o bajar
+                  tu promedio a 2000 lts o menos para tratarlo como rodeo único.
                 </p>
               )}
               <div className="flex gap-8 flex-col lg:flex-row rounded-2xl bg-[#F1F5F9] p-6 w-full lg:w-fit">
@@ -724,112 +725,115 @@ const Configuration = () => {
                   Registro Individual de Animales
                 </h2>
                 <div className="bg-white p-4 rounded-lg shadow-sm">
-                  <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
-                    <div className="col-span-2">RP/N°</div>
-                    <div className="col-span-2">Nombre</div>
-                    <div className="col-span-2">Raza</div>
-                    <div className="col-span-2">Categoría</div>
-                    <div className="col-span-3">Estado</div>
-                    <div className="col-span-1" />
-                  </div>
-
-                  {(animales ?? []).map((a: any, idx: number) => {
-                    const categoriaField = register(
-                      `animales.${idx}.categoria` as const
-                    )
-                    const soloSano = a?.categoria === CategoriaAnimal.ORDENE
-                    return (
-                      <div
-                        key={idx}
-                        className="grid grid-cols-12 gap-4 items-center py-3 border-b"
-                      >
-                        <div className="col-span-2">
-                          <Input
-                            className="w-full border rounded px-2 h-9"
-                            {...register(`animales.${idx}.codigo` as const)}
-                            defaultValue={a.codigo}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <Input
-                            className="w-full border rounded px-2 h-9"
-                            {...register(`animales.${idx}.nombre` as const)}
-                            defaultValue={a.nombre}
-                          />
-                        </div>
-                        <div className="col-span-2">
-                          <select
-                            className="w-full border rounded px-2 h-9"
-                            {...register(`animales.${idx}.raza` as const)}
-                          >
-                            <option value="" disabled>
-                              Seleccioná
-                            </option>
-                            {Object.values(RazasVacas).map((v) => (
-                              <option key={v} value={v}>
-                                {RAZA_LABELS[v]}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-2">
-                          <select
-                            className="w-full border rounded px-2 h-9"
-                            {...categoriaField}
-                            onChange={(e) => {
-                              categoriaField.onChange(e)
-                              if (e.target.value === CategoriaAnimal.ORDENE) {
-                                setValue(
-                                  `animales.${idx}.estado` as const,
-                                  EstadoAnimal.SANO,
-                                  { shouldValidate: true }
-                                )
-                              }
-                            }}
-                          >
-                            {CATEGORIA_ANIMAL_OPTIONS.map(
-                              ({ value, label }) => (
-                                <option key={value} value={value}>
-                                  {label}
-                                </option>
-                              )
-                            )}
-                          </select>
-                        </div>
-                        <div className="col-span-3">
-                          <select
-                            className="w-full border rounded px-2 h-9"
-                            {...register(`animales.${idx}.estado` as const)}
-                          >
-                            {(soloSano
-                              ? ESTADO_ANIMAL_OPTIONS.filter(
-                                  ({ value }) => value === EstadoAnimal.SANO
-                                )
-                              : ESTADO_ANIMAL_OPTIONS
-                            ).map(({ value, label }) => (
-                              <option key={value} value={value}>
-                                {label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="col-span-1 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const current = animales ?? []
-                              const copy = [...current]
-                              copy.splice(idx, 1)
-                              setValue('animales', copy)
-                            }}
-                            className="text-red-500"
-                          >
-                            -
-                          </button>
-                        </div>
+                  <div className="overflow-x-auto">
+                    <div className="min-w-[768px]">
+                      <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
+                        <div className="col-span-2">RP/N°</div>
+                        <div className="col-span-2">Nombre</div>
+                        <div className="col-span-2">Raza</div>
+                        <div className="col-span-2">Categoría</div>
+                        <div className="col-span-3">Estado</div>
+                        <div className="col-span-1" />
                       </div>
-                    )
-                  })}
+
+                      {(animales ?? []).map((a: any, idx: number) => {
+                        const categoriaField = register(
+                          `animales.${idx}.categoria` as const
+                        )
+                        const soloSano = a?.categoria === CategoriaAnimal.ORDENE
+                        return (
+                          <div
+                            key={idx}
+                            className="grid grid-cols-12 gap-4 items-center py-3 border-b"
+                          >
+                            <div className="col-span-2">
+                              <Input
+                                className="w-full border rounded px-2 h-9"
+                                {...register(`animales.${idx}.codigo` as const)}
+                                defaultValue={a.codigo}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <Input
+                                className="w-full border rounded px-2 h-9"
+                                {...register(`animales.${idx}.nombre` as const)}
+                                defaultValue={a.nombre}
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <select
+                                className="w-full border rounded px-2 h-9"
+                                {...register(`animales.${idx}.raza` as const)}
+                              >
+                                <option value="" disabled>
+                                  Seleccioná
+                                </option>
+                                {Object.values(RazasVacas).map((v) => (
+                                  <option key={v} value={v}>
+                                    {RAZA_LABELS[v]}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="col-span-2">
+                              <select
+                                className="w-full border rounded px-2 h-9"
+                                {...categoriaField}
+                                onChange={(e) => {
+                                  categoriaField.onChange(e)
+                                }}
+                              >
+                                <option value="" disabled>
+                                  Seleccioná
+                                </option>
+                                {CATEGORIA_ANIMAL_OPTIONS.map(
+                                  ({ value, label }) => (
+                                    <option key={value} value={value}>
+                                      {label}
+                                    </option>
+                                  )
+                                )}
+                              </select>
+                            </div>
+                            <div className="col-span-3">
+                              <select
+                                className="w-full border rounded px-2 h-9"
+                                {...register(`animales.${idx}.estado` as const)}
+                              >
+                                <option value="" disabled>
+                                  Seleccioná
+                                </option>
+                                {(soloSano
+                                  ? ESTADO_ANIMAL_OPTIONS.filter(
+                                      ({ value }) => value === EstadoAnimal.SANO
+                                    )
+                                  : ESTADO_ANIMAL_OPTIONS
+                                ).map(({ value, label }) => (
+                                  <option key={value} value={value}>
+                                    {label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="col-span-1 flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = animales ?? []
+                                  const copy = [...current]
+                                  copy.splice(idx, 1)
+                                  setValue('animales', copy)
+                                }}
+                                className="text-red-500"
+                              >
+                                -
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
 
                   <div className="pt-4 flex justify-between items-center">
                     <span className="text-sm text-slate-500">
@@ -846,8 +850,8 @@ const Configuration = () => {
                               codigo: '',
                               nombre: '',
                               raza: '',
-                              categoria: CategoriaAnimal.ORDENE,
-                              estado: EstadoAnimal.SANO,
+                              categoria: '',
+                              estado: '',
                             },
                           ])
                         }}
@@ -872,16 +876,7 @@ const Configuration = () => {
         )}
 
         {/* Footer de Navegación */}
-        <footer className="flex flex-col sm:flex-row items-stretch justify-between sm:items-center gap-4 pt-8 border-t border-slate-100 max-w-393">
-          <button
-            type="button"
-            onClick={logout}
-            className="inline-flex items-center justify-center gap-2 px-8 py-3.5 border border-slate-300 text-slate-700 font-semibold rounded-lg hover:bg-slate-50 transition-all cursor-pointer w-full sm:w-auto"
-          >
-            <LogOut className="h-4 w-4" />
-            Cerrar sesión
-          </button>
-
+        <footer className="flex flex-col sm:flex-row items-stretch justify-end sm:items-center gap-4 pt-8 border-t border-slate-100 max-w-393">
           <div className="flex flex-col sm:flex-row gap-4 justify-end w-full sm:w-auto sm:items-center">
             {pathname.includes('cuestionario') && (
               <div
@@ -907,13 +902,14 @@ const Configuration = () => {
                 type="button"
                 disabled={
                   isPending ||
-                  sugerirRodeoUnico ||
                   bloqueadoPorFaltaDeRegistroDeRodeo ||
                   (mostrarBloqueRodeos && !isrodeosLlenados) ||
-                  (step === 2 && (animales ?? []).length === 0)
+                  (step === 2 && !isAnimalesLlenados)
                 }
                 className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
                 onClick={() => {
+                  setIntentoFinalizar(true)
+                  if (sugerirRodeoUnico) return
                   if (step !== lastStep) {
                     if (esRodeoUnico && registrarRodeo) {
                       setValue('rodeos', undefined as any, {

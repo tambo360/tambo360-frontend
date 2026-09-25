@@ -3,11 +3,12 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useAuth } from '@/context/AuthContext'
 import { useCreateOrganization } from '@/hooks/organization/useCreateOrganization'
 import { useInvitations } from '@/hooks/invitation/useInvitations'
 import { createOrganization } from '@/types/organization'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { ArrowRight, Plus, SendHorizonal } from 'lucide-react'
+import { ArrowRight, LogOut, Plus, SendHorizonal } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -117,6 +118,7 @@ function EstablishmentStep() {
 const OnboardingFlow = () => {
   const [step, setStep] = useState<Step>('welcome')
   const navigate = useRouter()
+  const { logout } = useAuth()
   const { data: invitations } = useInvitations()
 
   const hasInvitations =
@@ -129,7 +131,7 @@ const OnboardingFlow = () => {
       data-testid="verify-user-page"
     >
       <div className="absolute inset-0 bg-black/30 z-0" />
-      <div className="w-full flex items-center justify-center z-10">
+      <div className="relative w-full h-full p-4 flex flex-col items-center justify-center z-10">
         <Card className="w-full max-w-150 border-none shadow-2xl py-8 bg-white/95 backdrop-blur-md rounded-lg relative">
           <CardContent className="space-y-8">
             {/* ── WELCOME ── */}
@@ -186,6 +188,15 @@ const OnboardingFlow = () => {
           </CardContent>
         </Card>
       </div>
+      <Button
+        variant="landingSecondary"
+        onClick={logout}
+        className="cursor-pointer! absolute bottom-5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2"
+        data-testid="logout-button"
+      >
+        <LogOut className="size-4" />
+        Cerrar sesión
+      </Button>
     </div>
   )
 }
