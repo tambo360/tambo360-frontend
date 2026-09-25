@@ -37,7 +37,7 @@ import { Lote } from '@/types/batch'
 import { Merma, TIPO_MERMA_LABELS } from '@/types/decrease'
 import { api } from '@/services/api'
 import { queryKeys } from '@/utils/queryKeys'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
@@ -56,7 +56,10 @@ interface BatchDetailModalProps {
   onDeleted?: () => void
 }
 
-// Hook interno para actualizar observaciones del lote
+/* ──────────────────────────────────────────────────────────
+   Hooks internos
+   ────────────────────────────────────────────────────────── */
+
 function useUpdateObservations(idLote: string) {
   const queryClient = useQueryClient()
   return useMutation({
@@ -70,6 +73,24 @@ function useUpdateObservations(idLote: string) {
   })
 }
 
+// /mermas?id_lote=... trae `observacion` (a diferencia de /lote/buscar/:id)
+function useBatchMermas(idLote: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['mermas', 'lote', idLote],
+    queryFn: async () => {
+      const { data } = await api.get('/mermas', {
+        params: { id_lote: idLote },
+      })
+      return (Array.isArray(data?.data) ? data.data : []) as Merma[]
+    },
+    enabled: enabled && !!idLote,
+  })
+}
+
+/* ──────────────────────────────────────────────────────────
+   Componente
+   ────────────────────────────────────────────────────────── */
+
 const BatchDetailModal = ({
   open,
   onClose,
@@ -77,6 +98,8 @@ const BatchDetailModal = ({
   onEditRequest,
   onDeleted,
 }: BatchDetailModalProps) => {
+  const queryClient = useQueryClient()
+
   const { data: batchData, isLoading, error } = useBatch({ id: batchId })
   const { isLoading: configLoading } = useConfiguration()
 
@@ -93,20 +116,21 @@ const BatchDetailModal = ({
     isDeleting,
   } = useBatchDecrease({ batchId })
 
-  // ✅ Hook para actualizar merma
   const { mutateAsync: updateDecrease, isPending: isUpdatingDecrease } =
     useUpdateDecrease({ idLote: batchId })
 
-  // ── Observaciones del lote ──
+  const { data: mermasFull, isLoading: mermasLoading } = useBatchMermas(
+    batchId,
+    open
+  )
+
   const [isEditingObs, setIsEditingObs] = useState(false)
   const [obsDraft, setObsDraft] = useState('')
   const [isDeletingBatch, setIsDeletingBatch] = useState(false)
-
-  // ── Editar merma ──
-  const [mermaToEdit, setMermaToEdit] = useState<Merma | null>(null)
-
-  // ── Flujo de Completar Lote ──
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+
+  // ✅ Merma que se está editando (null = no hay edición)
+  const [mermaToEdit, setMermaToEdit] = useState<Merma | null>(null)
 
   const { mutateAsync: updateObservations, isPending: isSavingObs } =
     useUpdateObservations(batchId)
@@ -118,10 +142,19 @@ const BatchDetailModal = ({
     setMermaToEdit(null)
   }, [batchId, open])
 
-  const dialogClass =
-    'w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-3xl p-6 md:p-8 shadow-xl max-h-[95vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:hidden'
+  // Refresca mermas + detalle cada vez que cambia el estado de los modales
+  useEffect(() => {
+    if (!open || !batchId) return
+    queryClient.invalidateQueries({ queryKey: ['mermas', 'lote', batchId] })
+    queryClient.invalidateQueries({ queryKey: queryKeys.batch.detail(batchId) })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, batchId, isCreateOpen, mermaToEdit, decreaseToDelete])
 
-  // ── Eliminar lote ──
+  const dialogClass =
+    'w-[95vw] max-w-4xl md:max-w-5xl lg:max-w-6xl bg-white rounded-2xl md:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl max-h-[95vh] overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [&>button]:hidden'
+
+  /* ─── Acciones ─── */
+
   const handleConfirmDeleteBatch = async () => {
     try {
       await api.delete(`/lote/${batchId}`)
@@ -138,7 +171,7 @@ const BatchDetailModal = ({
     }
   }
 
-  // ── Guardar edición de merma ──
+  // ✅ Editar merma → PUT /mermas/:id con `observaciones` (plural)
   const handleUpdateMerma = async (data: {
     tipo?: string
     cantidad: number
@@ -147,8 +180,12 @@ const BatchDetailModal = ({
     if (!mermaToEdit) return
     try {
       await updateDecrease({
-        values: data as never,
         id: mermaToEdit.idMerma,
+        values: {
+          tipo: data.tipo,
+          cantidad: data.cantidad,
+          observacion: data.observacion,
+        } as never,
       })
       setMermaToEdit(null)
     } catch (err) {
@@ -159,6 +196,8 @@ const BatchDetailModal = ({
       )
     }
   }
+
+  /* ─── Guards de carga / error ─── */
 
   if (isLoading || configLoading) {
     return (
@@ -189,14 +228,21 @@ const BatchDetailModal = ({
     )
   }
 
+  /* ─── Datos ─── */
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = batchData.data as any
   const batch: LoteConDetalles = (raw?.lote ?? raw) as LoteConDetalles
 
-  const hasMermas = Array.isArray(batch.mermas) && batch.mermas.length > 0
-  const isComplete = hasMermas
-  const isIncomplete = !isComplete
   const isLocked = Boolean(batch.estado)
+  const isComplete = isLocked
+  const isIncomplete = !isLocked
+
+  const mermasList: Merma[] = mermasFull ?? batch.mermas ?? []
+  const hasMermas = mermasList.length > 0
+  const totalMerma = hasMermas
+    ? mermasList.reduce((acc, m) => acc + Number(m.cantidad || 0), 0)
+    : 0
 
   const rawLote = batch.lote ?? batch.numeroLote ?? batch.idLote
   const loteIdentificador =
@@ -227,6 +273,8 @@ const BatchDetailModal = ({
     }
   }
 
+  /* ─── Render ─── */
+
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -238,7 +286,7 @@ const BatchDetailModal = ({
             Información completa del lote de producción y sus mermas.
           </DialogDescription>
 
-          <div className="flex flex-col w-full gap-6">
+          <div className="flex flex-col w-full gap-4 sm:gap-6">
             {/* Barra superior */}
             <div className="flex items-center justify-between pb-2 border-b border-gray-100">
               <button
@@ -257,9 +305,9 @@ const BatchDetailModal = ({
             </div>
 
             {/* Cabecera */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+              <div className="space-y-1.5 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge
                     variant="outline"
                     className={`${
@@ -268,7 +316,7 @@ const BatchDetailModal = ({
                         : 'bg-green-50 text-green-700 border-green-200'
                     } text-xs px-2.5 py-0.5 font-semibold`}
                   >
-                    {isIncomplete ? 'Incompleto' : 'Completo'}
+                    {isIncomplete ? 'Incompleto' : 'Completado'}
                   </Badge>
                   <span className="text-xs text-gray-400 font-medium">
                     Inicio:{' '}
@@ -279,35 +327,35 @@ const BatchDetailModal = ({
                       : '—'}
                   </span>
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-gray-900">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 break-words">
                   Lote #{String(loteIdentificador)} —{' '}
                   {batch.producto?.nombre || 'Sin producto'}
                 </h2>
               </div>
 
-              <div className="flex items-center gap-2.5">
-                {!isLocked && (
-                  <Button
-                    onClick={() => setIsCompleteModalOpen(true)}
-                    className="bg-[#658a14] hover:bg-[#547310] text-white text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 shadow-sm"
-                  >
-                    <CheckCircle2 className="w-4 h-4" /> Completar lote
-                  </Button>
-                )}
+              {/* ✅ Botón "Completar lote" SIEMPRE visible, deshabilitado si ya está cerrado */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2.5 shrink-0">
+                <Button
+                  onClick={() => setIsCompleteModalOpen(true)}
+                  disabled={isLocked}
+                  className="bg-[#658a14] hover:bg-[#547310] text-white text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 shadow-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <CheckCircle2 className="w-4 h-4" /> Completar lote
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => onEditRequest?.(batch)}
                   disabled={isLocked}
-                  className="border-gray-200 text-gray-600 text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="border-gray-200 text-gray-600 text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
                   <Edit className="w-4 h-4 text-gray-500" /> Editar lote
                 </Button>
               </div>
             </div>
 
-            {/* Tarjetas de Resumen */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+            {/* Tarjetas de resumen */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 bg-green-50 rounded-xl">
                     <svg
@@ -328,7 +376,7 @@ const BatchDetailModal = ({
                     Cantidad Producida
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
                   {batch.cantidad
                     ? Number(batch.cantidad).toLocaleString('es-AR')
                     : 0}{' '}
@@ -338,7 +386,7 @@ const BatchDetailModal = ({
                 </p>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
+              <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col justify-between">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="p-2 bg-orange-50 rounded-xl">
                     <svg
@@ -359,19 +407,15 @@ const BatchDetailModal = ({
                     Merma Registrada
                   </span>
                 </div>
-                <p className="text-2xl font-bold text-gray-900">
-                  {batch.mermas && batch.mermas.length > 0
-                    ? batch.mermas
-                        .reduce((acc, m) => acc + Number(m.cantidad || 0), 0)
-                        .toLocaleString('es-AR')
-                    : 0}{' '}
+                <p className="text-xl sm:text-2xl font-bold text-gray-900">
+                  {totalMerma.toLocaleString('es-AR')}{' '}
                   <span className="text-sm font-normal text-gray-500">L</span>
                 </p>
               </div>
             </div>
 
             {/* Observaciones del lote */}
-            <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
                   Observaciones
@@ -426,38 +470,39 @@ const BatchDetailModal = ({
                   </div>
                 </div>
               ) : (
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <p className="text-xs text-gray-500 leading-relaxed break-words">
                   {batch.observaciones ||
                     'Sin observaciones registradas para este lote.'}
                 </p>
               )}
             </div>
 
-            {/* Historial de Mermas */}
+            {/* Historial de mermas */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <div className="flex items-center justify-between p-5 border-b border-gray-100">
-                <h3 className="text-base font-bold text-gray-900">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5 border-b border-gray-100">
+                <h3 className="text-sm sm:text-base font-bold text-gray-900">
                   Historial de Mermas
                 </h3>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50"
+                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 shrink-0"
                   >
                     <Filter className="w-4 h-4" />
                   </Button>
                   <Button
                     onClick={openCreate}
                     disabled={isLocked}
-                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-3.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-3.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial"
                   >
                     <Plus className="w-4 h-4" /> Agregar Merma
                   </Button>
                 </div>
               </div>
 
-              <div className="overflow-x-auto hide-scrollbar">
+              {/* Vista desktop (tabla) */}
+              <div className="hidden md:block">
                 <Table>
                   <TableHeader className="bg-gray-50/50">
                     <TableRow>
@@ -479,13 +524,23 @@ const BatchDetailModal = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {batch.mermas && batch.mermas.length > 0 ? (
-                      batch.mermas.map((merma) => (
+                    {mermasLoading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={5}
+                          className="text-center py-8 text-gray-400 text-xs"
+                        >
+                          <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                          Cargando mermas...
+                        </TableCell>
+                      </TableRow>
+                    ) : hasMermas ? (
+                      mermasList.map((merma) => (
                         <TableRow
                           key={merma.idMerma}
                           className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
                         >
-                          <TableCell className="text-xs text-gray-600 font-medium pl-6 py-4">
+                          <TableCell className="text-xs text-gray-600 font-medium pl-6 py-4 whitespace-nowrap">
                             {new Date(merma.fechaCreacion).toLocaleDateString(
                               'es-AR'
                             )}
@@ -493,18 +548,20 @@ const BatchDetailModal = ({
                           <TableCell className="text-xs text-gray-600 font-medium">
                             {TIPO_MERMA_LABELS[merma.tipo] ?? merma.tipo ?? '—'}
                           </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium">
+                          <TableCell className="text-xs text-gray-600 font-medium whitespace-nowrap">
                             {Number(merma.cantidad) || 0} L
                           </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium max-w-xs truncate">
-                            {merma.observacion || '—'}
+                          <TableCell className="text-xs text-gray-600 font-medium max-w-[280px]">
+                            <span className="line-clamp-2 break-words">
+                              {merma.observacion?.trim() || '—'}
+                            </span>
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             <div className="flex items-center justify-end gap-1">
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+                                className="h-8 w-8 text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => setMermaToEdit(merma)}
                                 disabled={isLocked}
                                 aria-label="Editar merma"
@@ -514,8 +571,9 @@ const BatchDetailModal = ({
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 onClick={() => requestDelete(merma)}
+                                disabled={isLocked}
                                 aria-label="Eliminar merma"
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -537,9 +595,66 @@ const BatchDetailModal = ({
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Vista mobile (cards) */}
+              <div className="md:hidden divide-y divide-gray-100">
+                {mermasLoading ? (
+                  <div className="p-4 text-center text-gray-400 text-xs">
+                    <Loader2 className="h-4 w-4 animate-spin inline mr-2" />
+                    Cargando mermas...
+                  </div>
+                ) : hasMermas ? (
+                  mermasList.map((merma) => (
+                    <div key={merma.idMerma} className="p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-gray-900">
+                          {TIPO_MERMA_LABELS[merma.tipo] ?? merma.tipo ?? '—'}
+                        </span>
+                        <span className="text-xs font-semibold text-gray-700">
+                          {Number(merma.cantidad) || 0} L
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-gray-400">
+                        {new Date(merma.fechaCreacion).toLocaleDateString(
+                          'es-AR'
+                        )}
+                      </div>
+                      {merma.observacion?.trim() && (
+                        <p className="text-xs text-gray-600 leading-relaxed break-words">
+                          {merma.observacion}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-end gap-2 pt-1">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 rounded-lg px-3 border-gray-200 text-gray-600 text-xs font-semibold gap-1.5 disabled:opacity-50"
+                          onClick={() => setMermaToEdit(merma)}
+                          disabled={isLocked}
+                        >
+                          <Pencil className="w-3.5 h-3.5" /> Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 rounded-lg px-3 border-red-100 text-red-600 hover:bg-red-50 text-xs font-semibold gap-1.5 disabled:opacity-50"
+                          onClick={() => requestDelete(merma)}
+                          disabled={isLocked}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Eliminar
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="p-6 text-center text-gray-400 text-xs">
+                    No hay mermas registradas para este lote.
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Eliminar Lote */}
+            {/* Eliminar lote */}
             {!isLocked && (
               <div className="pt-2 pb-2">
                 <button
@@ -555,16 +670,25 @@ const BatchDetailModal = ({
         </DialogContent>
       </Dialog>
 
-      {/* Registrar merma (crear) */}
+      {/* ═══════════════════════════════════════════════════════
+          Merma: crear
+          key fuerza remount limpio cada vez que se abre
+         ═══════════════════════════════════════════════════════ */}
       <RegisterMermaModal
+        key={isCreateOpen ? 'create-open' : 'create-closed'}
         open={isCreateOpen}
         onClose={closeCreate}
         onSave={handleCreate}
         isLoading={isCreating}
       />
 
-      {/* Editar merma */}
+      {/* ═══════════════════════════════════════════════════════
+          Merma: editar
+          key incluye el idMerma → remount garantizado al cambiar
+          de merma o entre crear ↔ editar
+         ═══════════════════════════════════════════════════════ */}
       <RegisterMermaModal
+        key={mermaToEdit ? `edit-${mermaToEdit.idMerma}` : 'edit-closed'}
         open={!!mermaToEdit}
         onClose={() => setMermaToEdit(null)}
         onSave={handleUpdateMerma}

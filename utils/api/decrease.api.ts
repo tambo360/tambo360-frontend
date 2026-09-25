@@ -4,24 +4,24 @@ import { DecreaseData, DecreaseWithLote } from '@/types/decrease'
 export const getDecreaseTypes = () => api.get('/mermas/tipos')
 
 // POST /mermas
-// El backend espera: { tipoMerma, cantidad, observacion?, id_lote }
+// El backend espera: { id_lote, tipoMerma, cantidad, observaciones? }
 export const createDecrease = (dto: DecreaseWithLote) =>
   api.post('/mermas', {
+    id_lote: dto.idLote,
     tipoMerma: dto.tipo,
     cantidad: dto.cantidad,
-    observacion: dto.observacion,
-    id_lote: dto.idLote,
+    observaciones: dto.observacion, // ✅ PLURAL
   })
 
 export const getDecreases = () => api.get('/mermas')
 export const getDecrease = (id: string) => api.get(`/mermas/${id}`)
 
-// PUT /mermas/:id — mismo body, sin id_lote (va en la URL)
+// PUT /mermas/:id — mismo body, sin id_lote (el doc lo prohíbe explícitamente)
 export const updateDecrease = (dto: DecreaseData, id: string) =>
   api.put(`/mermas/${id}`, {
     tipoMerma: dto.tipo,
     cantidad: dto.cantidad,
-    observacion: dto.observacion,
+    observaciones: dto.observacion, // ✅ PLURAL
   })
 
 export const deleteDecrease = (id: string) => api.delete(`/mermas/${id}`)

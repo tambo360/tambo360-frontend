@@ -57,12 +57,15 @@ import DeleteBatch from '@/components/shared/dashboard/batch/DeleteBatch'
 import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 
 const Produccion: React.FC = () => {
+  const queryClient = useQueryClient()
+
   // Estados de modales
   const [isChangeBatchOpen, setIsChangeBatchOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
@@ -127,6 +130,10 @@ const Produccion: React.FC = () => {
     try {
       await createDecrease({ ...data, idLote: selectedBatch.idLote })
       setIsRegisterMermaOpen(false)
+      // ✅ Invalidar las mermas del lote para que el próximo fetch las traiga
+      queryClient.invalidateQueries({
+        queryKey: ['mermas', 'lote', selectedBatch.idLote],
+      })
       setSelectedBatch(null)
       refetch()
     } catch (err) {
@@ -149,13 +156,9 @@ const Produccion: React.FC = () => {
     )
   }
 
-  // Estado visible: si tiene al menos una merma
-  const hasMermas = (batch: Lote) => {
-    const mermas = (batch as any).mermas
-    return Array.isArray(mermas) && mermas.length > 0
-  }
-
-  // Estado real del backend: si el usuario ya cerró el lote
+  // ✅ El estado de completado viene SOLO del backend (`estado`).
+  // Tener mermas NO completa el lote — solo la acción "Completar lote" lo hace.
+  const isCompleted = (batch: Lote) => Boolean((batch as any).estado)
   const isLocked = (batch: Lote) => Boolean((batch as any).estado)
 
   const getRodeoDisplay = (batch: Lote) => {
@@ -323,7 +326,8 @@ const Produccion: React.FC = () => {
 
                         const totalMerma = calcularMerma(batch)
                         const tipoRodeo = getRodeoDisplay(batch)
-                        const isComplete = hasMermas(batch)
+                        // ✅ El estado viene del backend, NO de tener mermas
+                        const isComplete = isCompleted(batch)
                         const locked = isLocked(batch)
 
                         return (
@@ -385,7 +389,7 @@ const Produccion: React.FC = () => {
                                 <TooltipContent>
                                   <p>
                                     {isComplete
-                                      ? 'Lote con mermas registradas'
+                                      ? 'Lote cerrado. No se puede editar.'
                                       : 'Click para ver detalles y completar'}
                                   </p>
                                 </TooltipContent>
@@ -477,7 +481,8 @@ const Produccion: React.FC = () => {
 
                     const totalMerma = calcularMerma(batch)
                     const tipoRodeo = getRodeoDisplay(batch)
-                    const isComplete = hasMermas(batch)
+                    // ✅ El estado viene del backend, NO de tener mermas
+                    const isComplete = isCompleted(batch)
                     const locked = isLocked(batch)
 
                     return (
