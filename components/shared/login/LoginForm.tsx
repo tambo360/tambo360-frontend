@@ -17,11 +17,12 @@ const LoginForm: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false)
   const { mutateAsync, isPending, error: apiError } = useLogin()
   const { showErrorMessage } = useErrorMessage()
-  const { login, setCuestionarioCompletado } = useAuth()
+  const { login, setCuestionarioCompletado, error: sessionError } = useAuth()
 
   const {
     register,
     handleSubmit,
+    trigger,
     formState: { errors, submitCount, isValid },
   } = useForm({
     defaultValues: {
@@ -31,6 +32,12 @@ const LoginForm: React.FC = () => {
     resolver: zodResolver(LoginSchema),
     mode: 'onChange',
   })
+
+  // iOS (autofill de iCloud) a veces no dispara onChange y el botón queda
+  // deshabilitado sin mensaje. Revalida al enfocar para sincronizar isValid.
+  const handleAutofillCheck = () => {
+    void trigger()
+  }
 
   useEffect(() => {
     if (submitCount > 0 && Object.keys(errors).length > 0) {
@@ -46,6 +53,12 @@ const LoginForm: React.FC = () => {
       showErrorMessage(message)
     }
   }, [apiError, showErrorMessage])
+
+  useEffect(() => {
+    if (sessionError) {
+      showErrorMessage(sessionError)
+    }
+  }, [sessionError, showErrorMessage])
 
   const onSubmit = handleSubmit(async (data) => {
     try {
@@ -70,6 +83,7 @@ const LoginForm: React.FC = () => {
         onSubmit={onSubmit}
         className="flex flex-col h-full justify-between gap-4 py-5"
         noValidate
+        autoComplete="on"
         data-testid="login-form"
       >
         <div className="space-y-4">
@@ -99,8 +113,15 @@ const LoginForm: React.FC = () => {
             </Label>
             <Input
               type="email"
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              inputMode="email"
+              enterKeyHint="next"
               placeholder="Ingresa tu correo electrónico"
-              {...register('correo')}
+              {...register('correo', {
+                onBlur: handleAutofillCheck,
+              })}
               className={`h-14 ${submitCount > 0 && errors.correo ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
               disabled={isPending}
               data-testid="email-input"
@@ -121,8 +142,14 @@ const LoginForm: React.FC = () => {
             <div className="relative">
               <Input
                 type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                autoCapitalize="none"
+                autoCorrect="off"
+                enterKeyHint="go"
                 placeholder="••••••••••••"
-                {...register('contraseña')}
+                {...register('contraseña', {
+                  onBlur: handleAutofillCheck,
+                })}
                 className={`h-14 ${submitCount > 0 && errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                 disabled={isPending}
                 data-testid="password-input"
