@@ -3,6 +3,7 @@ import {
   configurationSchema,
   ConfigurationData,
   ConfigurationFormInput,
+  esRodeoCompleto,
 } from '@/types/establishment/configuration'
 import {
   CategoriaAnimal,
@@ -182,15 +183,8 @@ const Configuration = () => {
 
   const lastStep = esRodeoUnico && registrarRodeo ? 2 : 1
 
-  const isrodeosLlenados =
-    !!rodeos?.length &&
-    rodeos.every(
-      (r) =>
-        Number.isFinite(r?.costoRacion) &&
-        (r?.costoRacion as number) > 0 &&
-        !!r?.razas?.length &&
-        r.razas.every((item) => Number(item?.cantVacas) > 0)
-    )
+  const isAlMenosUnRodeoCompleto =
+    !!rodeos?.length && rodeos.some((r) => esRodeoCompleto(r))
 
   const isAnimalesLlenados =
     !!animales?.length &&
@@ -258,7 +252,7 @@ const Configuration = () => {
       }
     } else {
       const rodeos = (data.rodeos ?? [])
-        .filter((r) => Number.isFinite(r.costoRacion))
+        .filter((r) => esRodeoCompleto(r))
         .map((r) => ({
           tipoRodeo: r.tipoRodeo,
           costoRacion: r.costoRacion as number,
@@ -726,7 +720,7 @@ const Configuration = () => {
                 </h2>
                 <div className="bg-white p-4 rounded-lg shadow-sm">
                   <div className="overflow-x-auto">
-                    <div className="min-w-[768px]">
+                    <div className="min-w-3xl">
                       <div className="grid grid-cols-12 gap-4 items-center font-semibold text-sm py-2 border-b">
                         <div className="col-span-2">RP/N°</div>
                         <div className="col-span-2">Nombre</div>
@@ -903,7 +897,7 @@ const Configuration = () => {
                 disabled={
                   isPending ||
                   bloqueadoPorFaltaDeRegistroDeRodeo ||
-                  (mostrarBloqueRodeos && !isrodeosLlenados) ||
+                  (mostrarBloqueRodeos && !isAlMenosUnRodeoCompleto) ||
                   (step === 2 && !isAnimalesLlenados)
                 }
                 className="px-8 py-3.5 bg-emerald-700 text-white font-semibold rounded-lg hover:bg-emerald-800 flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer w-full sm:w-auto"
