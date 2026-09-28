@@ -78,11 +78,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async ({ user, token }: { user: User; token: string }) => {
     setLoading(true)
-    setUser(user)
-    setToken(token)
     setError(null)
-    navigate.replace('/bienvenida')
-    setLoading(false)
+    try {
+      // Estado optimista para no cambiar el flujo actual…
+      setUser(user)
+      setToken(token)
+      // …pero verifica que la cookie de sesión quedó persistida antes de
+      // navegar. En iOS con ITP el POST puede dar 200 y la cookie rechazarse;
+      // sin este check se navega a /bienvenida y rebota a /iniciar-sesion.
+      await api.get('/auth/me')
+      navigate.replace('/bienvenida')
+    } catch {
+      // Sesión no persistida (cookie bloqueada): no navegar, informar.
+      setUser(null)
+      setToken(null)
+      setError(
+        'No se pudo guardar la sesión en este navegador. Verifica tu conexión e inténtalo de nuevo.'
+      )
+    } finally {
+      setLoading(false)
+    }
   }
 
   const logout = async () => {

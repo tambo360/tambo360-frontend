@@ -1,10 +1,13 @@
 import axios from 'axios'
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  // Same-site via proxy Next (/backend -> BACKEND_URL en next.config rewrites).
+  // El browser ve cookie first-party y Safari iOS la acepta; los paths no cambian.
+  baseURL: '/backend',
   withCredentials: true,
+  // Render free se duerme: evita cuelgues eternos en 4G / iOS.
+  timeout: 30000,
 })
-
 // ✅ 1. INTERCEPTOR DE PETICIONES (Aquí inyectamos los headers que faltan)
 api.interceptors.request.use(
   (config) => {
