@@ -7,23 +7,69 @@ import {
 } from '@/types/enums'
 import z from 'zod'
 
-const rodeoSchema = z.object({
-  tipoRodeo: z.nativeEnum(TipoRodeo),
-  costoRacion: z
-    .number('El costo de la ración debe ser un número')
-    .positive('El costo de la ración debe ser un número positivo'),
-  razas: z
-    .array(
-      z.object({
-        raza: z.nativeEnum(RazasVacas, { error: 'Seleccioná una raza válida' }),
-        cantVacas: z
-          .number('La cantidad debe ser un número')
-          .int('La cantidad debe ser un número entero')
-          .positive('La cantidad debe ser mayor que 0'),
+type RodeoCompletoInput = {
+  costoRacion?: unknown
+  razas?: Array<{ cantVacas?: unknown }> | undefined
+}
+
+export const esRodeoCompleto = (rodeo?: RodeoCompletoInput | null) => {
+  const costoOk =
+    typeof rodeo?.costoRacion === 'number' &&
+    Number.isFinite(rodeo.costoRacion) &&
+    rodeo.costoRacion > 0
+  const razasOk =
+    !!rodeo?.razas?.length &&
+    rodeo.razas.every((item) => Number(item?.cantVacas) > 0)
+  return costoOk && razasOk
+}
+
+const rodeoSchema = z
+  .object({
+    tipoRodeo: z.nativeEnum(TipoRodeo),
+    costoRacion: z.preprocess(
+      (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+      z
+        .number('El costo de la ración debe ser un número')
+        .positive('El costo de la ración debe ser un número positivo')
+        .optional()
+    ),
+    razas: z
+      .array(
+        z.object({
+          raza: z.nativeEnum(RazasVacas, {
+            error: 'Seleccioná una raza válida',
+          }),
+          cantVacas: z
+            .number('La cantidad debe ser un número')
+            .int('La cantidad debe ser un número entero')
+            .positive('La cantidad debe ser mayor que 0'),
+        })
+      )
+      .optional(),
+  })
+  .superRefine((rodeo, ctx) => {
+    const costoPresente = rodeo.costoRacion !== undefined
+    const tieneRazas = !!rodeo.razas?.length
+    // Vacío: válido, se ignora al enviar
+    if (!costoPresente && !tieneRazas) return
+    // Completo: válido
+    if (esRodeoCompleto(rodeo)) return
+    // Parcial: exigir completar el grupo con errores inline
+    if (!costoPresente) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['costoRacion'],
+        message: 'Completá el costo de la ración con un valor mayor que 0',
       })
-    )
-    .optional(),
-})
+    }
+    if (!tieneRazas) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['razas'],
+        message: 'Agregá al menos una raza con cantidad mayor que 0',
+      })
+    }
+  })
 
 const baseSchema = z.object({
   cantOrdenie: z.coerce
@@ -75,7 +121,13 @@ export const TIPOS_SEGUIMIENTO_RODEO = Object.values(TipoRodeo).filter(
 )
 
 export const configurationSchema = baseSchema.extend({
-  rodeos: z.array(rodeoSchema).optional(),
+  rodeos: z
+    .array(rodeoSchema)
+    .refine((rodeos) => rodeos.some((r) => esRodeoCompleto(r)), {
+      error:
+        'Completá al menos un rodeo con costo de ración y una raza para finalizar',
+    })
+    .optional(),
   animales: z.array(animalSchema).optional(),
 })
 
