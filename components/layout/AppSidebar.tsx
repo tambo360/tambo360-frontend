@@ -112,7 +112,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
                   asChild
                   className={`py-4 transition-all duration-200 rounded-lg shadow-none! flex items-center ${
                     isCollapsed ? 'justify-center' : 'justify-start'
-                  } ${isActive ? 'bg-[#D7ECAF] hover:bg-[#D7ECAF]/60 hover:text-[#669213]/60 border-l-6 border-l-black' : 'bg-transparent text-gray-400 hover:bg-gray-100'}`}
+                  } ${isActive ? 'bg-[#D7ECAF] hover:bg-[#D7ECAF]/60 hover:text-[#669213]/60' : 'bg-transparent text-gray-400 hover:bg-gray-100'}`}
                 >
                   <Link
                     href={item.url}

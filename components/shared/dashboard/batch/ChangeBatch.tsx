@@ -27,13 +27,13 @@ import {
   LayoutDashboard,
   Loader2,
   Calendar,
-  Clock,
 } from 'lucide-react'
 import { Lote } from '@/types/batch'
 import { TipoDestino, TipoSeguimiento } from '@/types/enums'
 import { useChangeBatchForm } from '@/hooks/batch/useChangeBatchForm'
 import { ConnectionErrorModal } from '@/components/ConnectionErrorModal'
 import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { blockNegativeKeys } from '../organization/configuration/RodeoCategoriaCard'
 
 const ESTADO_LABELS: Record<string, string> = {
   SANO: 'Sana',
@@ -106,7 +106,7 @@ const ChangeBatch = ({
               <div className="relative">
                 <div className="absolute -inset-1 bg-green-200 rounded-full blur-sm opacity-70"></div>
                 <div className="relative w-20 h-20 bg-[#2E7D53] rounded-full flex items-center justify-center shadow-md">
-                  <Check className="w-10 h-10 text-white stroke-[3]" />
+                  <Check className="w-10 h-10 text-white stroke-3" />
                 </div>
               </div>
             </div>
@@ -163,7 +163,7 @@ const ChangeBatch = ({
         // ==========================================
         // FORMULARIO
         // ==========================================
-        <DialogContent className="w-[95vw] sm:max-w-2xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <DialogContent className="w-[95vw] sm:max-w-2xl bg-white rounded-3xl p-6 shadow-xl max-h-[90vh] overflow-y-auto overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&>button]:border-0 [&>button]:cursor-pointer [&>button]:shadow-none">
           <DialogHeader className="border-b pb-4">
             <DialogTitle className="text-2xl font-bold text-gray-900">
               {batch ? 'Editar lote' : 'Crear nuevo lote'}
@@ -199,14 +199,11 @@ const ChangeBatch = ({
 
               <div className="space-y-2">
                 <Label className="font-bold text-xs">Hora</Label>
-                <div className="relative">
-                  <Input
-                    type="time"
-                    className="rounded-xl border-gray-200 bg-gray-50/50 pr-10"
-                    {...register('horaProduccion')}
-                  />
-                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                </div>
+                <Input
+                  type="time"
+                  className="rounded-xl border-gray-200 bg-gray-50/50 [&::-webkit-calendar-picker-indicator]:size-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-40"
+                  {...register('horaProduccion')}
+                />
               </div>
             </div>
 
@@ -423,10 +420,20 @@ const ChangeBatch = ({
                                 <div className="flex-1">
                                   <Input
                                     type="number"
+                                    step={0.1}
                                     inputMode="decimal"
-                                    placeholder="0.00"
-                                    className="h-8 text-xs rounded-lg"
+                                    placeholder="1"
+                                    min={1}
+                                    className="h-8 text-xs rounded-lg no-spinner"
                                     value={field?.litros ?? ''}
+                                    onKeyDown={(e) => {
+                                      if (
+                                        e.currentTarget.value.length >= 3 &&
+                                        !isNaN(Number(e.key))
+                                      )
+                                        e.preventDefault()
+                                      blockNegativeKeys(e)
+                                    }}
                                     onChange={(e) =>
                                       individualLote.updateLitros(
                                         animal.idAnimal,
@@ -462,8 +469,9 @@ const ChangeBatch = ({
                       type="text"
                       inputMode="decimal"
                       placeholder="0.00"
-                      className="rounded-xl border-gray-200 bg-gray-50/50"
+                      className="rounded-xl border-gray-200 bg-gray-50/50 select-none no-spinner"
                       {...register('cantidad')}
+                      readOnly
                     />
                     {errors.cantidad && (
                       <span className="text-xs text-red-600">
@@ -488,9 +496,19 @@ const ChangeBatch = ({
                     <Input
                       type="number"
                       min="1"
-                      max="100"
+                      max="999"
+                      onKeyDown={(e) => {
+                        if (
+                          e.key === '.' ||
+                          e.key === ',' ||
+                          (e.currentTarget.value.length >= 3 &&
+                            !isNaN(Number(e.key)))
+                        )
+                          e.preventDefault()
+                        blockNegativeKeys(e)
+                      }}
                       placeholder="Ej: 4"
-                      className="rounded-xl border-gray-200 bg-gray-50/50"
+                      className="rounded-xl border-gray-200 bg-gray-50/50 no-spinner"
                       {...register('cantBajadas')}
                     />
                     {errors.cantBajadas && (
@@ -542,7 +560,17 @@ const ChangeBatch = ({
                         inputMode="decimal"
                         step="0.1"
                         placeholder="Ej: 4.5"
-                        className="rounded-xl border-gray-200 bg-gray-50/50"
+                        onKeyDown={(e) => {
+                          if (
+                            e.key === '.' ||
+                            e.key === ',' ||
+                            (e.currentTarget.value.length >= 3 &&
+                              !isNaN(Number(e.key)))
+                          )
+                            e.preventDefault()
+                          blockNegativeKeys(e)
+                        }}
+                        className="rounded-xl border-gray-200 bg-gray-50/50 no-spinner"
                         {...register('tempTanque')}
                       />
                       {errors.tempTanque && (

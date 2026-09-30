@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
       <div className="flex items-center gap-4">
         <button
           onClick={onMenuClick}
-          className="p-2 rounded-lg transition-colors duration-200 hover:bg-[#4A4A4A] hover:text-white text-[#4A4A4A]"
+          className="p-2 cursor-pointer text-[#4A4A4A]"
         >
           <Menu className="h-6 w-6" />
         </button>
@@ -51,27 +51,27 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 sm:gap-4">
+      <div className="flex items-center gap-2">
         {configData?.data.provincia && configData?.data.localidad && (
-          <div className="flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5">
+          <div className="flex items-center gap-2 px-3 sm:px-6 py-2.5 rounded-[7px] border border-gray-300">
             <MapPin className="h-4 w-4 text-black" />
-            <span className="text-xs font-semibold text-gray-700">
+            <span className="text-xs font-semibold text-slate-700">
               {configData.data.provincia + ', ' + configData.data.localidad}
             </span>
           </div>
         )}
-        <div className="items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 flex">
+        <div className="flex items-center gap-2 px-3 sm:px-6 py-2.5 rounded-[7px] border border-gray-300">
           {isOnline ? (
             <>
               <div className="size-4 bg-green-500 rounded-full animate-pulse" />
-              <span className="text-xs font-semibold text-gray-700">
+              <span className="text-xs font-semibold text-slate-700">
                 Conectado
               </span>
             </>
           ) : (
             <>
               <div className="size-4 bg-red-500 rounded-full animate-pulse" />
-              <span className="text-xs font-semibold text-gray-700">
+              <span className="text-xs font-semibold text-slate-700">
                 Sin conexión
               </span>
             </>

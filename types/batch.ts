@@ -28,7 +28,7 @@ const baseFields = {
 
   destino: z.enum(
     [TipoDestino.TANQUE_FRIO, TipoDestino.VENTA, TipoDestino.FABRICA_QUESOS],
-    'Destino inválido'
+    'Debes seleccionar un destino'
   ),
 
   cantidad: z.preprocess(

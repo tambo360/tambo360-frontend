@@ -42,11 +42,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import ChangeBatch from '@/components/shared/dashboard/batch/ChangeBatch'
 import { Lote } from '@/types/batch'
 import { DecreaseData } from '@/types/decrease'
@@ -136,7 +132,7 @@ const Produccion: React.FC = () => {
       })
       setSelectedBatch(null)
       refetch()
-    } catch (err) {
+    } catch {
       showErrorMessage(
         'No se pudo registrar la merma. Verifica los datos e intenta de nuevo.'
       )
@@ -190,7 +186,7 @@ const Produccion: React.FC = () => {
           {ubicacionEstablecimiento && (
             <div className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
               <MapPin className="w-4 h-4 text-gray-500 shrink-0" />
-              <span className="max-w-[120px] sm:max-w-xs truncate">
+              <span className="max-w-30 sm:max-w-xs truncate">
                 {ubicacionEstablecimiento}
               </span>
             </div>
@@ -202,7 +198,7 @@ const Produccion: React.FC = () => {
       {/* Botón Registrar */}
       <div className="flex justify-end">
         <Button
-          className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
+          className="flex items-center gap-2 h-12 px-10 bg-green-main hover:bg-[#309c6a] rounded-[7px] font-semibold shadow-sm"
           onClick={() => setIsChangeBatchOpen(true)}
         >
           Registrar lote <Plus className="w-5 h-5" />
@@ -262,9 +258,9 @@ const Produccion: React.FC = () => {
         </CardHeader>
 
         <CardContent className="p-0">
-          {/* ============ VISTA TABLA ============ */}
-          <div className="hidden sm:block hide-scrollbar">
-            <Table className="w-full">
+          {/* ============ VISTA TABLA (única, con scroll horizontal en mobile) ============ */}
+          <div className="block overflow-x-auto thin-scroll">
+            <Table className="w-full min-w-190">
               <TableHeader className="bg-slate-100/60">
                 <TableRow className="border-b border-slate-200/70 hover:bg-slate-100/60">
                   <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider pl-6">
@@ -285,7 +281,7 @@ const Produccion: React.FC = () => {
                   <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
                     Estado
                   </TableHead>
-                  <TableHead className="pr-20 text-right font-bold text-gray-500 uppercase text-xs tracking-wider">
+                  <TableHead className="text-right font-bold text-gray-500 uppercase text-xs tracking-wider pr-6">
                     Acciones
                   </TableHead>
                 </TableRow>
@@ -296,25 +292,25 @@ const Produccion: React.FC = () => {
                   ? Array.from({ length: 6 }).map((_, i) => (
                       <TableRow key={i} className="animate-pulse">
                         <TableCell className="pl-6">
-                          <div className="h-4 w-12 bg-gray-200 rounded" />
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
                         </TableCell>
                         <TableCell>
                           <div className="h-4 w-20 bg-gray-200 rounded" />
                         </TableCell>
                         <TableCell>
-                          <div className="h-4 w-14 bg-gray-200 rounded" />
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
                         </TableCell>
                         <TableCell>
-                          <div className="h-4 w-14 bg-gray-200 rounded" />
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
                         </TableCell>
                         <TableCell>
-                          <div className="h-4 w-14 bg-gray-200 rounded" />
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
                         </TableCell>
                         <TableCell>
-                          <div className="h-6 w-20 bg-gray-200 rounded-full" />
+                          <div className="h-4 w-20 bg-gray-200 rounded-full" />
                         </TableCell>
-                        <TableCell className="pr-20 text-right">
-                          <div className="h-8 w-8 bg-gray-200 rounded ml-auto" />
+                        <TableCell className="pr-6">
+                          <div className="h-4 w-8 bg-gray-200 rounded" />
                         </TableCell>
                       </TableRow>
                     ))
@@ -361,8 +357,8 @@ const Produccion: React.FC = () => {
                             </TableCell>
                             <TableCell className="text-gray-600 text-sm">
                               <button
-                                onClick={() => handleOpenDetail(batch.idLote)}
-                                className="hover:underline text-left"
+                                //onClick={() => handleOpenDetail(batch.idLote)}
+                                className="text-left"
                               >
                                 {totalMerma > 0
                                   ? `${totalMerma.toLocaleString('es-AR')} L`
@@ -374,28 +370,28 @@ const Produccion: React.FC = () => {
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      handleOpenDetail(batch.idLote)
-                                    }
-                                    className={`text-sm font-semibold hover:underline cursor-pointer ${
+                                    // onClick={() =>
+                                    //   handleOpenDetail(batch.idLote)
+                                    // }
+                                    className={`text-sm font-semibold ${
                                       isComplete
                                         ? 'text-emerald-600'
-                                        : 'text-rose-500'
+                                        : 'text-red-600'
                                     }`}
                                   >
                                     {isComplete ? 'Completado' : 'Incompleto'}
                                   </button>
                                 </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>
-                                    {isComplete
-                                      ? 'Lote cerrado. No se puede editar.'
-                                      : 'Click para ver detalles y completar'}
-                                  </p>
-                                </TooltipContent>
+                                {/* <TooltipContent>
+                                <p>
+                                  {isComplete
+                                    ? 'Lote cerrado. No se puede editar.'
+                                    : 'Click para ver detalles y completar'}
+                                </p>
+                              </TooltipContent> */}
                               </Tooltip>
                             </TableCell>
-                            <TableCell className="text-right pr-20">
+                            <TableCell className="text-right pr-10">
                               <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                   <Button
@@ -457,163 +453,6 @@ const Produccion: React.FC = () => {
                     : null}
               </TableBody>
             </Table>
-          </div>
-
-          {/* ============ VISTA CARDS (Mobile) ============ */}
-          <div className="block sm:hidden divide-y divide-gray-100">
-            {isPending
-              ? Array.from({ length: 4 }).map((_, i) => (
-                  <div key={i} className="p-4 space-y-3 animate-pulse">
-                    <div className="h-4 w-20 bg-gray-200 rounded" />
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="h-3 w-24 bg-gray-200 rounded" />
-                      <div className="h-3 w-24 bg-gray-200 rounded" />
-                      <div className="h-3 w-24 bg-gray-200 rounded" />
-                      <div className="h-3 w-24 bg-gray-200 rounded" />
-                    </div>
-                  </div>
-                ))
-              : lotes.length > 0 && !error
-                ? lotes.map((batch: Lote, index: number) => {
-                    const loteDisplay = batch.numeroLote
-                      ? `L-${String(batch.numeroLote).padStart(4, '0')}`
-                      : `L-${String(index + 1).padStart(4, '0')}`
-
-                    const totalMerma = calcularMerma(batch)
-                    const tipoRodeo = getRodeoDisplay(batch)
-                    // ✅ El estado viene del backend, NO de tener mermas
-                    const isComplete = isCompleted(batch)
-                    const locked = isLocked(batch)
-
-                    return (
-                      <div
-                        key={batch.idLote || index}
-                        className="p-4 hover:bg-gray-50/50 transition-colors"
-                      >
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-sm font-bold text-gray-900">
-                            <HighlightMatch
-                              text={loteDisplay}
-                              query={highlightQuery}
-                            />
-                          </span>
-                          <button
-                            onClick={() => handleOpenDetail(batch.idLote)}
-                            className={`text-xs font-semibold px-2 py-1 rounded-md cursor-pointer ${
-                              isComplete
-                                ? 'text-emerald-600 bg-emerald-50'
-                                : 'text-rose-500 bg-rose-50'
-                            }`}
-                          >
-                            {isComplete ? 'Completado' : 'Incompleto'}
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-y-3 gap-x-3 text-xs">
-                          <div>
-                            <p className="text-gray-400 uppercase text-[10px] font-bold mb-1">
-                              Fecha
-                            </p>
-                            <p
-                              className="text-gray-700 font-medium"
-                              suppressHydrationWarning
-                            >
-                              {batch.fechaProduccion
-                                ? new Date(
-                                    batch.fechaProduccion
-                                  ).toLocaleDateString('es-AR')
-                                : '-'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400 uppercase text-[10px] font-bold mb-1">
-                              Rodeo
-                            </p>
-                            <p className="text-gray-700 font-medium">
-                              {tipoRodeo}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400 uppercase text-[10px] font-bold mb-1">
-                              Cantidad
-                            </p>
-                            <p className="text-gray-700 font-medium">
-                              {batch.cantidad
-                                ? `${Number(batch.cantidad).toLocaleString('es-AR')} L`
-                                : '0 L'}
-                            </p>
-                          </div>
-                          <div>
-                            <p className="text-gray-400 uppercase text-[10px] font-bold mb-1">
-                              Merma
-                            </p>
-                            <button
-                              onClick={() => handleOpenDetail(batch.idLote)}
-                              className="text-gray-700 font-medium hover:underline"
-                            >
-                              {totalMerma > 0
-                                ? `${totalMerma.toLocaleString('es-AR')} L`
-                                : '-'}
-                            </button>
-                          </div>
-                          <div className="col-span-2 flex items-end justify-end">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-gray-400"
-                                >
-                                  <Ellipsis className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuGroup>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleOpenDetail(batch.idLote)
-                                    }
-                                    className="flex items-center gap-2 cursor-pointer"
-                                  >
-                                    <Eye className="w-4 h-4" /> Ver Detalles
-                                  </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsChangeBatchOpen(true)
-                                    }}
-                                    disabled={locked}
-                                    className="cursor-pointer"
-                                  >
-                                    <Pencil className="w-4 h-4 mr-2" /> Editar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsRegisterMermaOpen(true)
-                                    }}
-                                    disabled={locked}
-                                    className="cursor-pointer"
-                                  >
-                                    <DropletOff className="w-4 h-4 mr-2" />{' '}
-                                    Registrar merma
-                                  </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                  <DeleteBatch batch={batch} />
-                                </DropdownMenuGroup>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })
-                : null}
           </div>
 
           {/* Estado Vacío */}

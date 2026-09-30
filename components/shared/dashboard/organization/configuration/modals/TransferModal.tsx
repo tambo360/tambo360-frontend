@@ -62,7 +62,6 @@ interface TransferFormData {
 interface TransferModalProps {
   open: boolean
   onClose: () => void
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   animales?: any[]
   preselectedIds?: string[]
   // ✅ NUEVO: acepta la prop que pasa ChangeBatch (no se usa dentro del modal,
@@ -155,7 +154,6 @@ const RodeoTransferModal = ({
 }: RodeoTransferModalProps) => {
   const rodeos = formData.rodeos ?? []
   const motivos = formData.motivos ?? []
-  const causasPorMotivo = formData.causas ?? {}
   const tipoSeguimiento = formData.tipoSeguimiento
 
   const [origenId, setOrigenId] = useState('')
@@ -173,6 +171,10 @@ const RodeoTransferModal = ({
   const rodeoOrigen = rodeos.find((r) => r.idRodeo === origenId)
   const razas = rodeoOrigen?.razas ?? []
 
+  const causasPorMotivo = useMemo(
+    () => formData.causas ?? {},
+    [formData.causas]
+  )
   const causas = useMemo(
     () => causasPorMotivo[motivo] ?? [],
     [causasPorMotivo, motivo]
@@ -232,7 +234,6 @@ const RodeoTransferModal = ({
     try {
       await mutateAsync({
         tipo: 'TRANSFERENCIA',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         motivo: motivo as any,
         causa,
         tipoSeguimiento: tipoSeguimiento as 'RODEO' | 'RODEO_UNICO',
@@ -243,12 +244,10 @@ const RodeoTransferModal = ({
         // Cuando lo arreglen, agregar:
         // retorno: dias > 0 ? new Date(Date.now() + dias*864e5).toISOString() : null,
         observacion: observacion || undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any)
       onSuccess?.()
       onClose()
     } catch (e) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = e as any
       setError(
         err?.response?.data?.message ?? err?.message ?? 'Error al transferir'
@@ -366,7 +365,7 @@ const RodeoTransferModal = ({
                         checked={selected}
                         onChange={() => setRazaId(r.idRaza)}
                         disabled={blocked}
-                        className="shrink-0 accent-[#29845a] disabled:cursor-not-allowed"
+                        className="shrink-0 accent-green-main disabled:cursor-not-allowed"
                       />
                       <span className="text-xs text-gray-800 truncate">
                         {String(i + 1).padStart(3, '0')} - {r.nombre.label}
@@ -490,7 +489,7 @@ const RodeoTransferModal = ({
             disabled={isPending}
             className="
               w-full h-11 text-sm font-bold rounded-2xl
-              bg-[#29845a] hover:bg-[#236342]
+              bg-green-main hover:bg-[#236342]
               text-white shadow-sm
             "
             onClick={handleTransfer}
@@ -521,7 +520,6 @@ const IndividualTransferModal = ({
 }: IndividualTransferModalProps) => {
   const animales = formData.animales ?? []
   const motivos = formData.motivos ?? []
-  const causasPorMotivo = formData.causas ?? {}
 
   const [animalId, setAnimalId] = useState('')
   const [origen, setOrigen] = useState('')
@@ -533,6 +531,10 @@ const IndividualTransferModal = ({
 
   const { mutateAsync, isPending } = useTransferRodeo()
 
+  const causasPorMotivo = useMemo(
+    () => formData.causas ?? {},
+    [formData.causas]
+  )
   const causas = useMemo(
     () => causasPorMotivo[motivo] ?? [],
     [causasPorMotivo, motivo]
@@ -543,20 +545,16 @@ const IndividualTransferModal = ({
     { value: 'SECAS', label: 'Secas' },
   ]
 
-  useEffect(() => {
-    if (!open) {
-      setAnimalId('')
-      setOrigen('')
-      setDestino('')
-      setMotivo('')
-      setCausa('')
-      setObservacion('')
-      setError(null)
-    }
-  }, [open])
-
   const handleClose = () => {
     if (isPending) return
+    setAnimalId('')
+    setOrigen('')
+    setDestino('')
+    setMotivo('')
+    setCausa('')
+    setObservacion('')
+    setError(null)
+
     onClose()
   }
 
@@ -571,22 +569,21 @@ const IndividualTransferModal = ({
     if (!causa) return setError('Elegí una causa')
 
     try {
-      await mutateAsync({
+      const payload = {
         tipo: 'TRANSFERENCIA',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         motivo: motivo as any,
         causa,
         tipoSeguimiento: 'INDIVIDUAL',
         origen,
         destino,
         animal: { id: animalId, categoria: origen },
+        retorno: null,
         observacion: observacion || undefined,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } as any)
+      }
+      await mutateAsync(payload as any)
       onSuccess?.()
       onClose()
     } catch (e) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const err = e as any
       setError(
         err?.response?.data?.message ?? err?.message ?? 'Error al transferir'
@@ -622,10 +619,16 @@ const IndividualTransferModal = ({
               Animal
             </Label>
             <Select value={animalId} onValueChange={setAnimalId}>
-              <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
+              <SelectTrigger className="w-full data-[size=default]:h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                className="w-(--radix-select-trigger-width) rounded-xl"
+              >
                 {animales.map((a) => (
                   <SelectItem key={a.idAnimal} value={a.idAnimal}>
                     {a.codigo ? `${a.codigo} · ` : ''}
@@ -641,10 +644,16 @@ const IndividualTransferModal = ({
               Estado Origen
             </Label>
             <Select value={origen} onValueChange={setOrigen}>
-              <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
+              <SelectTrigger className="w-full data-[size=default]:h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                className="w-(--radix-select-trigger-width) rounded-xl"
+              >
                 {CATEGORIAS.map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
@@ -659,10 +668,16 @@ const IndividualTransferModal = ({
               Estado Destino
             </Label>
             <Select value={destino} onValueChange={setDestino}>
-              <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
+              <SelectTrigger className="w-full data-[size=default]:h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                className="w-(--radix-select-trigger-width) rounded-xl"
+              >
                 {CATEGORIAS.filter((c) => c.value !== origen).map((c) => (
                   <SelectItem key={c.value} value={c.value}>
                     {c.label}
@@ -683,10 +698,16 @@ const IndividualTransferModal = ({
                 setCausa('')
               }}
             >
-              <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
+              <SelectTrigger className="w-full data-[size=default]:h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                className="w-(--radix-select-trigger-width) rounded-xl"
+              >
                 {motivos.map((m) => (
                   <SelectItem key={m.value} value={m.value}>
                     {m.label}
@@ -699,12 +720,18 @@ const IndividualTransferModal = ({
           <div className="space-y-1.5">
             <Label className="font-bold text-[11px] text-gray-700">Causa</Label>
             <Select value={causa} onValueChange={setCausa} disabled={!motivo}>
-              <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
+              <SelectTrigger className="w-full data-[size=default]:h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue
                   placeholder={motivo ? 'Seleccionar' : 'Elegí motivo primero'}
                 />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent
+                position="popper"
+                side="bottom"
+                align="start"
+                sideOffset={4}
+                className="w-(--radix-select-trigger-width) rounded-xl"
+              >
                 {causas.map((c) => (
                   <SelectItem key={c} value={c}>
                     {formatLabel(c)}
@@ -738,7 +765,7 @@ const IndividualTransferModal = ({
             disabled={isPending}
             className="
               w-full h-11 text-sm font-bold rounded-2xl
-              bg-[#29845a] hover:bg-[#236342]
+              bg-green-main hover:bg-[#236342]
               text-white shadow-sm
             "
             onClick={handleTransfer}
