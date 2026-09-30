@@ -155,6 +155,12 @@ input[type='password']::-ms-clear {
   display: none;
 }
 
+/* Atenúa el icono nativo del input time para igualar el tono gray-400 */
+input[type='time']::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.4;
+}
+
 /* Oculta la barra de scroll en el contenedor y en TODOS sus hijos.
    Necesario porque el componente <Table> de shadcn envuelve la tabla
    en su propio div con overflow-auto. */
@@ -166,4 +172,27 @@ input[type='password']::-ms-clear {
 .hide-scrollbar::-webkit-scrollbar,
 .hide-scrollbar *::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
+}
+
+/* Scroll horizontal fino y discreto para tablas.
+   Aplica al contenedor y a sus hijos porque <Table> de shadcn
+   envuelve la tabla en su propio div con overflow-auto. */
+.thin-scroll,
+.thin-scroll * {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(209 213 219) transparent;
+}
+.thin-scroll::-webkit-scrollbar,
+.thin-scroll *::-webkit-scrollbar {
+  height: 6px;
+  width: 6px;
+}
+.thin-scroll::-webkit-scrollbar-track,
+.thin-scroll *::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb,
+.thin-scroll *::-webkit-scrollbar-thumb {
+  background: rgb(209 213 219);
+  border-radius: 9999px;
 }

@@ -50,7 +50,7 @@ const toTipoSeguimiento = (value: unknown): TipoSeguimiento | undefined => {
 }
 
 // El lote de este modal es de leche: se busca el producto "leche"
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const pickMilkProduct = (products: any[] | undefined) => {
   if (!products?.length) return undefined
   const esLeche = (p: { categoria?: string; nombre?: string }) =>
@@ -124,7 +124,6 @@ export function useChangeBatchForm({
   // La respuesta real trae `tipo_seguimiento` (snake_case). Nunca se deduce
   // por cantidad de rodeos ni se asume un valor por defecto.
   const tipoSeguimiento = useMemo(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const config = configData?.data as any
     return (
       toTipoSeguimiento(config?.tipo_seguimiento) ??
@@ -148,7 +147,7 @@ export function useChangeBatchForm({
     }
 
     // Respaldo: rodeos del cuestionario (solo los que producen leche)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     const configRodeos = (configData?.data?.rodeos ?? []) as any[]
     return configRodeos
       .filter((r) => r.idRodeo && !RODEOS_SIN_PRODUCCION.includes(r.tipoRodeo))
@@ -167,7 +166,7 @@ export function useChangeBatchForm({
   )
 
   // ─── Formulario ────────────────────────────────────────────────────
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const form = useForm<any>({
     resolver: zodResolver(BatchSchema),
     defaultValues: {
@@ -259,6 +258,27 @@ export function useChangeBatchForm({
     })
   }, [open, batch, tipoSeguimiento, reset])
 
+  useEffect(() => {
+    if (tipoSeguimiento !== TipoSeguimiento.INDIVIDUAL) return
+    if (individualLote.fields.length === 0) {
+      if (!batch && watch('cantidad') !== '') {
+        setValue('cantidad', '', { shouldValidate: true })
+      }
+      return
+    }
+
+    const total = Number(individualLote.totalLitros.toFixed(2))
+    if (watch('cantidad') !== String(total)) {
+      setValue('cantidad', String(total), { shouldValidate: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    tipoSeguimiento,
+    individualLote.totalLitros,
+    individualLote.fields.length,
+    batch,
+  ])
+
   // ─── Acciones ──────────────────────────────────────────────────────
   const resetToDefaults = useCallback(() => {
     if (!tipoSeguimiento) return
@@ -280,7 +300,7 @@ export function useChangeBatchForm({
   const handleConnectionCancel = () => dismiss(() => resetToDefaults())
 
   // Pendiente de conectar con el backend
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const handleSaveTransfer = (data: any) => {
     console.log('🔄 Datos de transferencia (pendiente conectar backend):', data)
     setIsTransferModalOpen(false)
@@ -329,12 +349,10 @@ export function useChangeBatchForm({
       }
 
       // RODEO y RODEO_UNICO llevan el mismo payload; INDIVIDUAL solo animales
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any =
         tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
           ? {
               ...base,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               animales: data.animales.map((a: any) => ({
                 ...a,
                 litros: Number(a.litros),

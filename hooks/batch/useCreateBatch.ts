@@ -6,7 +6,6 @@ import { AxiosError } from 'axios'
 
 export function useCreateBatch() {
   const queryClient = useQueryClient()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return useMutation<any, AxiosError<{ message: string }>, BatchData>({
     mutationFn: async (values: BatchData) => {
       const { data } = await createBatch(values)
