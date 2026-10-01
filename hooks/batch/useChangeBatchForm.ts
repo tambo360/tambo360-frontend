@@ -244,6 +244,20 @@ export function useChangeBatchForm({
       fechaFormateada = `${day}/${month}/${year}`
     }
 
+    const estadosValidos = ['SANO', 'MASTITIS', 'TRATAMIENTO', 'PREPARTO']
+    const animalesEdit = (batch.produccionesIndividuales ?? [])
+      .filter((p) => !!p?.idAnimal)
+      .map((p) => {
+        const litrosNum =
+          p.litros != null && p.litros !== '' ? Number(p.litros) : undefined
+        return {
+          idAnimal: p.idAnimal,
+          litros: litrosNum,
+          estado: estadosValidos.includes(p.estado) ? p.estado : 'SANO',
+          destino: 'TANQUE',
+        }
+      })
+
     reset({
       tipoSeguimiento,
       idProducto: batch.idProducto ?? '',
@@ -255,6 +269,7 @@ export function useChangeBatchForm({
       idRodeo: batch.rodeo?.idRodeo ?? '',
       tempTanque: batch.tempTanque?.toString() ?? '',
       destino: batch.destino ?? '',
+      animales: animalesEdit,
     })
   }, [open, batch, tipoSeguimiento, reset])
 
@@ -298,13 +313,6 @@ export function useChangeBatchForm({
   }
 
   const handleConnectionCancel = () => dismiss(() => resetToDefaults())
-
-  // Pendiente de conectar con el backend
-
-  const handleSaveTransfer = (data: any) => {
-    console.log('🔄 Datos de transferencia (pendiente conectar backend):', data)
-    setIsTransferModalOpen(false)
-  }
 
   const onSubmit = handleSubmit(
     handleSubmitWithConnectionCheck(async (data) => {
@@ -416,7 +424,6 @@ export function useChangeBatchForm({
     // transferencia
     isTransferModalOpen,
     setIsTransferModalOpen,
-    handleSaveTransfer,
     // error de conexión
     showConnectionError,
     retry,

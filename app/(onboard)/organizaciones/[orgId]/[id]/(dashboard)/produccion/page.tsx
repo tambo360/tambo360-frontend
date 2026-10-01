@@ -72,18 +72,20 @@ const Produccion: React.FC = () => {
   const [selectedBatchId, setSelectedBatchId] = useState('')
 
   // Estados de filtros y paginación
-  const [nombre, setNombre] = useState('')
+  const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden] = useState<'asc' | 'desc'>('desc')
   const [pagina, setPagina] = useState(1)
 
-  const [nameDebounced] = useDebounce(nombre, 300)
-  const searchFilter = nameDebounced?.replace(/^0+/, '')
-  const highlightQuery = nombre.replace(/^0+/, '')
+  const [busquedaDebounced] = useDebounce(busqueda, 300)
+  const digitos = busquedaDebounced.replace(/\D/g, '').slice(0, 4)
+  const esSoloCeros = digitos.length > 0 && /^0+$/.test(digitos)
+  const searchFilter = !digitos || esSoloCeros ? '' : String(Number(digitos))
+  const highlightQuery = busqueda.trim()
 
   // Hook de datos
   const { data, isPending, error, refetch } = useBatches({
     filters: {
-      nombre: searchFilter || undefined,
+      numeroLote: searchFilter || undefined,
       orden,
       page: String(pagina),
     },
@@ -105,8 +107,8 @@ const Produccion: React.FC = () => {
     data?.data?.establecimiento?.ubicacion ||
     data?.data?.ubicacion
 
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNombre(e.target.value)
+  const handleBusquedaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBusqueda(e.target.value)
     setPagina(1)
   }
 
@@ -226,13 +228,13 @@ const Produccion: React.FC = () => {
                 <Input
                   className="pl-10 w-full md:w-60 bg-gray-50 border-gray-200 rounded-lg"
                   placeholder="Buscar lote..."
-                  value={nombre}
-                  onChange={handleNombreChange}
+                  value={busqueda}
+                  onChange={handleBusquedaChange}
                 />
-                {nombre && (
+                {busqueda && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-black transition-colors"
-                    onClick={() => setNombre('')}
+                    onClick={() => setBusqueda('')}
                   >
                     <X className="size-4" />
                   </button>
@@ -257,7 +259,7 @@ const Produccion: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 px-5">
           {/* ============ VISTA TABLA (única, con scroll horizontal en mobile) ============ */}
           <div className="block overflow-x-auto thin-scroll">
             <Table className="w-full min-w-190">
@@ -322,7 +324,6 @@ const Produccion: React.FC = () => {
 
                         const totalMerma = calcularMerma(batch)
                         const tipoRodeo = getRodeoDisplay(batch)
-                        // ✅ El estado viene del backend, NO de tener mermas
                         const isComplete = isCompleted(batch)
                         const locked = isLocked(batch)
 
@@ -356,10 +357,7 @@ const Produccion: React.FC = () => {
                                 : '0 L'}
                             </TableCell>
                             <TableCell className="text-gray-600 text-sm">
-                              <button
-                                //onClick={() => handleOpenDetail(batch.idLote)}
-                                className="text-left"
-                              >
+                              <button className="text-left">
                                 {totalMerma > 0
                                   ? `${totalMerma.toLocaleString('es-AR')} L`
                                   : '-'}
@@ -370,9 +368,6 @@ const Produccion: React.FC = () => {
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    // onClick={() =>
-                                    //   handleOpenDetail(batch.idLote)
-                                    // }
                                     className={`text-sm font-semibold ${
                                       isComplete
                                         ? 'text-emerald-600'
@@ -382,13 +377,6 @@ const Produccion: React.FC = () => {
                                     {isComplete ? 'Completado' : 'Incompleto'}
                                   </button>
                                 </TooltipTrigger>
-                                {/* <TooltipContent>
-                                <p>
-                                  {isComplete
-                                    ? 'Lote cerrado. No se puede editar.'
-                                    : 'Click para ver detalles y completar'}
-                                </p>
-                              </TooltipContent> */}
                               </Tooltip>
                             </TableCell>
                             <TableCell className="text-right pr-10">
