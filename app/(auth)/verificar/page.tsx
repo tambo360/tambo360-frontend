@@ -37,27 +37,26 @@ const VerifyUser = () => {
       <Button
         variant="secondary"
         size="icon"
-        className="absolute top-4 left-4 z-10 rounded-full"
+        className="cursor-pointer! absolute top-4 left-4 z-30! rounded-full"
+        asChild
       >
         <Link href="/">
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
-      <div className="absolute inset-0 bg-black/10 z-0" />
-      <div className="hidden md:flex md:w-1/3 xl:w-1/2" />
-      <div className="w-full md:w-2/3 xl:w-1/2 flex items-center justify-center md:justify-end p-4 md:p-8 z-10">
-        <Card className="w-full max-w-125 border-none shadow-2xl py-8 bg-white/95 backdrop-blur-md rounded-xl relative">
-          <CardContent className="space-y-8">
-            <div className="flex flex-col items-center text-center space-y-4 h-full">
-              <div className="h-12 lg:h-20 w-auto flex items-start gap-2">
+      <div className="absolute inset-0 bg-black/30 z-0" />
+      <div className="w-full h-screen flex items-center justify-center sm:items-start sm:justify-end p-4 z-10">
+        <Card className="w-full sm:h-full sm:max-w-125 border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative">
+          <CardContent className="px-0 flex-1">
+            <div className="relative flex flex-col h-full justify-between gap-4 py-5">
+              <div className="absolute left-1/2 top-7 -translate-x-1/2">
                 <img
-                  src="/logos/isotipo_tambo 1.png"
+                  src="/logos/tambo-logo-360.png"
                   alt="logo"
-                  className="h-12"
+                  className="h-10.75"
                 />
-                <img src="/logotipo 1.png" alt="tambo" className="h-6" />
               </div>
-              <section className="min-h-[40vh] flex flex-col items-center justify-center gap-6">
+              <section className=" pt-20 sm:pt-0 w-full flex-1 flex flex-col items-center justify-center gap-6">
                 {isPending ? (
                   <div className="space-y-4" data-testid="verifying-loader">
                     <Loader2 className="w-12 h-12 text-[#0B1001] animate-spin mx-auto" />
@@ -67,10 +66,10 @@ const VerifyUser = () => {
                   </div>
                 ) : error ? (
                   <div
-                    className="space-y-4"
+                    className="flex flex-col items-center justify-center gap-6 w-full"
                     data-testid="verification-failed-container"
                   >
-                    <h2 className="text-4xl font-bold tracking-tight text-[#B91C1C]">
+                    <h2 className="text-3xl font-bold tracking-tight text-[#B91C1C]">
                       Verificación fallida
                     </h2>
                     <p className="text-sm text-body-text text-center">
@@ -79,8 +78,7 @@ const VerifyUser = () => {
                     </p>
                     <Button
                       onClick={() => navigate.push('/iniciar-sesion')}
-                      variant="outline"
-                      className="border-[#D1CFCA] text-[#0B1001]"
+                      className="w-full h-14 bg-[#0B1001] text-white rounded-lg flex items-center justify-center gap-2"
                       data-testid="back-to-login-button"
                     >
                       Volver al login
@@ -88,7 +86,7 @@ const VerifyUser = () => {
                   </div>
                 ) : (
                   <div
-                    className="flex flex-col items-center justify-center gap-6"
+                    className="flex flex-col items-center justify-center gap-6 w-full"
                     data-testid="verification-success-container"
                   >
                     <img
@@ -96,7 +94,7 @@ const VerifyUser = () => {
                       alt="success"
                       className="w-20 h-20"
                     />
-                    <h2 className="text-4xl font-bold tracking-tight text-[#0B1001]">
+                    <h2 className="text-3xl font-bold tracking-tight text-[#0B1001]">
                       ¡Usuario validado!
                     </h2>
                     <p className="text-sm text-body-text text-center">

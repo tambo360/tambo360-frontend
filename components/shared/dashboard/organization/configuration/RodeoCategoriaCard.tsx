@@ -3,17 +3,17 @@ import { ConfigurationFormInput } from '@/types/establishment/configuration'
 import { RazasVacas, TipoRodeo } from '@/types/enums'
 import { X } from 'lucide-react'
 import { type UseFormRegister, type UseFormSetValue } from 'react-hook-form'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useRef } from 'react'
 import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
+import { limitDecimalDigitsKeyDown, sanitizeDecimalChange } from '@/lib/utils'
 
 export const RAZA_LABELS: Record<RazasVacas, string> = {
   [RazasVacas.HOLANDO_ARGENTINO]: 'Raza Holando Argentino.',
@@ -67,7 +67,6 @@ export default function RodeoCategoriaCard({
   razasError,
 }: RodeoCategoriaCardProps) {
   const [raza, setRaza] = useState('')
-  const [searchRaza, setSearchRaza] = useState('')
   const [cantidad, setCantidad] = useState('')
   const [cantidadError, setCantidadError] = useState('')
   const [razas, setRazas] = useState<{ raza: string; cantidad: string }[]>([])
@@ -79,14 +78,6 @@ export default function RodeoCategoriaCard({
   const totalAnimales = useMemo(
     () => razas.reduce((acc, item) => acc + Number(item.cantidad), 0),
     [razas]
-  )
-
-  const filteredRazas = useMemo(
-    () =>
-      RAZAS_OPTIONS.filter((o) =>
-        o.label.toLowerCase().includes(searchRaza.trim().toLowerCase())
-      ),
-    [searchRaza]
   )
 
   const puedeAgregar = !!raza && cantidad !== '' && Number(cantidad) > 0
@@ -115,7 +106,6 @@ export default function RodeoCategoriaCard({
     setRazas(next)
     syncRazasToForm(next)
     setRaza('')
-    setSearchRaza('')
     setCantidad('')
     setCantidadError('')
   }
@@ -126,16 +116,18 @@ export default function RodeoCategoriaCard({
     syncRazasToForm(next)
   }
 
+  const conPunto = useRef(false)
+
   return (
     <div className="flex flex-col gap-4 w-full lg:w-fit">
       <h3 className="text-[15px] font-semibold text-slate-900">{titulo}</h3>
 
-      <div className="grid grid-cols-2 items-start gap-3">
+      <div className="grid sm:grid-cols-2 items-start">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label className="flex min-h-8 items-end text-xs leading-tight font-normal wrap-break-words text-slate-900">
             Cantidad de animales
           </Label>
-          <p className="flex h-10 w-full min-w-0 items-center px-3 text-sm font-semibold text-slate-900">
+          <p className="flex w-full min-w-0 items-center px-3 font-semibold text-slate-900">
             {totalAnimales}
           </p>
         </div>
@@ -146,18 +138,19 @@ export default function RodeoCategoriaCard({
           <div className="relative w-full min-w-0">
             <Input
               type="number"
-              min={0}
-              step="0"
-              placeholder="000"
+              step={0.1}
+              min={1}
+              placeholder="1"
               {...costoRacionField}
-              onKeyDown={blockNegativeKeys}
+              onKeyDown={(e) => {
+                blockNegativeKeys(e)
+                limitDecimalDigitsKeyDown(e, conPunto, 4, 4)
+              }}
               onChange={(e) => {
-                if (e.target.value !== '' && Number(e.target.value) < 0) {
-                  e.target.value = ''
-                }
+                sanitizeDecimalChange(e, conPunto)
                 costoRacionField?.onChange?.(e)
               }}
-              className={`h-10 w-full min-w-0 rounded-lg border bg-white px-3 pr-8 text-sm font-normal shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0 ${costoRacionError ? 'border-red-400' : 'border-slate-200'}`}
+              className={`no-spinner h-10 w-full min-w-0 rounded-lg border bg-white px-3 pr-8 text-sm font-normal shadow-none placeholder:text-slate-300 ${costoRacionError ? 'border-red-400' : 'border-slate-200'}`}
             />
             <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-sm font-semibold text-slate-400">
               $
@@ -175,45 +168,27 @@ export default function RodeoCategoriaCard({
         ¿Qué razas hay en este rodeo?
       </p>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_64px_auto] items-end gap-2">
+      <div className="grid sm:grid-cols-[minmax(0,1fr)_64px_auto] items-end gap-2">
         <div className="flex min-w-0 flex-col gap-1.5">
           <Label className="text-[13px] font-semibold text-slate-900">
             Raza
           </Label>
-          <Combobox
-            onValueChange={(value: string | null) => {
-              const selected = value ?? ''
-              setRaza(selected)
-              setSearchRaza(selected ? formatRazaLabel(selected) : '')
-            }}
-          >
-            <ComboboxInput
-              placeholder="Seleccioná una raza"
-              value={searchRaza}
-              onChange={(e) => {
-                const val = e.target.value
-                setSearchRaza(val)
-                if (val === '' || val !== formatRazaLabel(raza)) setRaza('')
-              }}
-              className="h-10 w-full rounded-lg border border-slate-200 bg-white text-[13px] shadow-none focus-within:border-[#29845A] focus-within:ring-0 [&_input]:bg-transparent [&_input]:text-[13px] [&_input]:text-slate-900 [&_input]:placeholder:text-slate-400"
-            />
-            <ComboboxContent className="border-slate-200 bg-white">
-              {filteredRazas.length === 0 && (
-                <ComboboxEmpty>No se encontraron razas</ComboboxEmpty>
-              )}
-              <ComboboxList>
-                {filteredRazas.map((o) => (
-                  <ComboboxItem
-                    key={o.value}
-                    value={o.value}
-                    className="text-[13px] text-slate-900 hover:bg-slate-50"
-                  >
-                    {o.label}
-                  </ComboboxItem>
-                ))}
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
+          <Select value={raza} onValueChange={setRaza}>
+            <SelectTrigger className="w-full rounded-lg border border-slate-200 bg-white text-[13px] font-normal text-slate-900 shadow-none data-[size=default]:h-10 [&_span]:text-slate-900 [&_span[data-placeholder]]:text-slate-400">
+              <SelectValue placeholder="Seleccioná una raza" />
+            </SelectTrigger>
+            <SelectContent className="border-slate-200 bg-white">
+              {RAZAS_OPTIONS.map((o) => (
+                <SelectItem
+                  key={o.value}
+                  value={o.value}
+                  className="text-[13px] text-slate-900 hover:bg-slate-50"
+                >
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label className="text-[13px] font-semibold text-slate-900">
@@ -221,11 +196,17 @@ export default function RodeoCategoriaCard({
           </Label>
           <Input
             type="number"
-            min={0}
-            placeholder="000"
+            min={1}
+            step={1}
+            placeholder="1"
             value={cantidad}
             onKeyDown={(e) => {
-              if (e.key === '.' || e.key === ',') e.preventDefault()
+              if (
+                e.key === '.' ||
+                e.key === ',' ||
+                (e.currentTarget.value.length >= 3 && !isNaN(Number(e.key)))
+              )
+                e.preventDefault()
               blockNegativeKeys(e)
             }}
             onChange={(e) => {
@@ -234,7 +215,7 @@ export default function RodeoCategoriaCard({
               setCantidad(val)
               if (cantidadError) setCantidadError('')
             }}
-            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] shadow-none placeholder:text-slate-300 focus-visible:border-[#29845A] focus-visible:ring-0"
+            className="no-spinner h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] shadow-none placeholder:text-slate-300"
           />
         </div>
         <button

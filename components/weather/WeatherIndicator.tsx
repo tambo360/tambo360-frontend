@@ -68,16 +68,14 @@ export function WeatherIndicator() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-200">
+    <div className="flex items-center gap-2 px-3 sm:px-6 py-2.5 rounded-[7px] border border-gray-300">
       {getWeatherIcon(weather.description)}
-      <div className="flex flex-col">
-        <span className="text-xs font-semibold text-gray-700">
-          {weather.temperature}°C
-        </span>
-        <span className="text-[10px] text-gray-500 leading-none capitalize">
-          {weather.description}
-        </span>
-      </div>
+      <span className="text-xs font-bold text-slate-700">
+        {weather.temperature}°C
+      </span>
+      <span className="text-xs text-slate-700 leading-none capitalize">
+        {weather.description}
+      </span>
     </div>
   )
 }

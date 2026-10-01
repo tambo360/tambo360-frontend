@@ -1,60 +1,65 @@
 'use client'
-import { useState } from 'react'
-import { cn } from '@/lib/utils'
+import { useOpcionesSeguimiento } from '@/hooks/establishment/useOpcionesSeguimiento'
 import InventarioRodeosTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/InventarioRodeostab'
-// Importa tus nuevas vistas aquí (ajusta la ruta según dónde las hayas guardado)
-import HerdInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HerdInventoryPage' // La vista de Rodeo Único / Tarjetas
-import AnimalInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/AnimalInventoryPage' // La vista de Inventario por Animal (Tabla)
+import HerdInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HerdInventoryPage'
+import AnimalInventoryPage from '@/components/shared/dashboard/organization/configuration/tabs/catalog/AnimalInventoryPage'
 
-// Importaciones comentadas por si tienes más pendientes
-// import HistMovimientoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/HistMovimientoTab'
-// import ParametrosTamboTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ParametrosTamboTab'
-// import ControlLecheroTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ControlLecheroTab'
-// import ProductosDestinoTab from '@/components/shared/dashboard/organization/configuration/tabs/catalog/ProductosDestinoTab'
-
-const CATALOG_SUBTABS = [
-  { id: 'inventario', label: 'Inventario de Rodeos' },
-  { id: 'rodeos-cards', label: 'Rodeo Único' },
-  { id: 'animales-tabla', label: 'Inventario por Animal' },
-  // { id: 'movimientos', label: 'Hist. Movimientos' },
-  // { id: 'parametros', label: 'Parámetros de Tambo' },
-  // { id: 'control', label: 'Control Lechero Mensual' },
-  // { id: 'productos', label: 'Productos Destino' },
-]
+type TipoSeg = 'RODEO' | 'RODEO_UNICO' | 'INDIVIDUAL'
 
 export default function CatalogTab() {
-  const [activeSubTab, setActiveSubTab] = useState('inventario')
+  const { data, isLoading, isError, error } = useOpcionesSeguimiento()
 
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Subtabs navegación */}
-      <nav className="flex gap-1 border-b border-[#E5E7EB] overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {CATALOG_SUBTABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveSubTab(tab.id)}
-            className={cn(
-              'px-4 py-2.5 text-sm font-medium transition-colors border-b-2 whitespace-nowrap -mb-px',
-              activeSubTab === tab.id
-                ? 'border-[#29845A] text-[#29845A]'
-                : 'border-transparent text-[#6B7280] hover:text-[#374151]'
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+  // DEBUG: mirá la consola del navegador
+  //if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  //  console.log('[CatalogTab] opciones-seguimiento:', {
+  //   data,
+  // isLoading,
+  //isError,
+  //error,
+  //})
+  //}
 
-      {/* Contenido dinámico según la pestaña activa */}
-      <div className="w-full">
-        {activeSubTab === 'inventario' && <InventarioRodeosTab />}
-        {activeSubTab === 'rodeos-cards' && <HerdInventoryPage />}
-        {activeSubTab === 'animales-tabla' && <AnimalInventoryPage />}
-        {/* {activeSubTab === 'movimientos' && <HistMovimientoTab />} */}
-        {/* {activeSubTab === 'parametros' && <ParametrosTamboTab />} */}
-        {/* {activeSubTab === 'control' && <ControlLecheroTab />} */}
-        {/* {activeSubTab === 'productos' && <ProductosDestinoTab />} */}
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="h-6 w-48 bg-gray-100 rounded animate-pulse" />
+        <div className="h-40 w-full bg-gray-50 rounded-2xl animate-pulse" />
       </div>
-    </div>
-  )
+    )
+  }
+
+  // El hook getOpcionesSeguimiento devuelve el objeto plano
+  // { tipoSeguimiento, rodeos, animales }, no hay `.data` adentro.
+  const tipo: TipoSeg | undefined = data?.tipoSeguimiento
+
+  if (isError || !tipo) {
+    return (
+      <div className="rounded-2xl border border-red-100 bg-red-50 p-6 text-sm text-red-700 space-y-3">
+        <p className="font-bold">
+          No se pudo cargar la configuración del establecimiento.
+        </p>
+        {isError && <p>Error: {(error as Error)?.message ?? 'desconocido'}</p>}
+        <details>
+          <summary className="cursor-pointer font-semibold">
+            Ver respuesta cruda del backend
+          </summary>
+          <pre className="mt-2 text-xs bg-white border border-red-200 rounded p-3 overflow-auto max-h-80">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        </details>
+      </div>
+    )
+  }
+
+  switch (tipo) {
+    case 'RODEO':
+      return <InventarioRodeosTab />
+    case 'RODEO_UNICO':
+      return <HerdInventoryPage />
+    case 'INDIVIDUAL':
+      return <AnimalInventoryPage />
+    default:
+      return null
+  }
 }

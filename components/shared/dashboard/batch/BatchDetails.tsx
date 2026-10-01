@@ -17,7 +17,7 @@ import { useDeleteBatch } from '@/hooks/batch/useDeleteBatch'
 import { Alert } from '@/types/alerts'
 import { Droplet, Factory, TrendingDown, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 interface BatchDetailsProps {
@@ -34,9 +34,13 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
   const { data: batch, isPending, refetch } = useBatch({ id: id })
   const { mutateAsync, isPending: isPendingDelete, error } = useDeleteBatch()
   const navigate = useRouter()
-  const pathname = usePathname()
-  // Quita "/lote/[loteId]" del final para volver al listado de producción
-  const produccionUrl = pathname.split('/').slice(0, -2).join('/')
+  const params = useParams()
+  const orgId = params?.orgId as string
+  const estId = params?.id as string
+  const produccionUrl =
+    orgId && estId
+      ? `/organizaciones/${orgId}/${estId}/produccion`
+      : '/produccion'
 
   useEffect(() => {
     const hash = window.location.hash

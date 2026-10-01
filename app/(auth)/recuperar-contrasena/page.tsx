@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { ArrowRight, Eye, EyeOff, ChevronLeft } from 'lucide-react'
+import { ArrowRight, EyeOff, ChevronLeft, EyeIcon } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -31,6 +31,28 @@ const PasswordsSchema = z
     path: ['confirmarContraseña'],
   })
 
+const RecoverAccountHeader: React.FC<{
+  title: string
+  description: string
+}> = ({ title, description }) => {
+  return (
+    <>
+      <div className="flex items-center justify-center md:py-7 sm:py-4 py-2">
+        <img src="/logos/tambo-logo-360.png" alt="logo" className="h-10.75" />
+      </div>
+      <div className="space-y-2 text-center">
+        <h1
+          className="text-3xl font-bold tracking-tight text-[#0B1001]"
+          data-testid="register-title"
+        >
+          {title}
+        </h1>
+        <p className="text-sm text-[#626059]">{description}</p>
+      </div>
+    </>
+  )
+}
+
 const ResetPassword: React.FC = () => {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
@@ -38,8 +60,8 @@ const ResetPassword: React.FC = () => {
   const { showErrorMessage } = useErrorMessage()
 
   const [step, setStep] = useState(token ? 3 : 1)
-  const [userEmail, setUserEmail] = useState('')
   const [showPass, setShowPass] = useState(false)
+  const [showConfirmPass, setShowConfirmPass] = useState(false)
 
   const { mutateAsync: sendEmail, isPending: isSendingEmail } =
     useForgotPassword()
@@ -48,10 +70,13 @@ const ResetPassword: React.FC = () => {
   const emailForm = useForm({
     resolver: zodResolver(EmailSchema),
     defaultValues: { email: '' },
+    mode: 'onChange',
   })
 
   const passForm = useForm({
     resolver: zodResolver(PasswordsSchema),
+    defaultValues: { contraseña: '', confirmarContraseña: '' },
+    mode: 'onChange',
   })
 
   useEffect(() => {
@@ -83,7 +108,6 @@ const ResetPassword: React.FC = () => {
   const handleRequestReset = emailForm.handleSubmit(async (data) => {
     try {
       await sendEmail(data.email)
-      setUserEmail(data.email)
       setStep(2)
       toast.success('Correo enviado con éxito')
     } catch (err) {
@@ -118,80 +142,71 @@ const ResetPassword: React.FC = () => {
       <Button
         variant="secondary"
         size="icon"
-        className="absolute top-4 left-4 z-10 rounded-full"
+        className="cursor-pointer! absolute top-4 left-4 z-30! rounded-full"
+        asChild
       >
         <Link href="/">
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
-      <div className="absolute inset-0 bg-black/10 z-0" />
-      <div className="hidden md:flex md:w-1/3 xl:w-1/2" />
-
-      <div className="w-full md:w-2/3 xl:w-1/2 flex items-center justify-center md:justify-end p-4 md:p-8 z-10">
-        <Card className="w-full max-w-md border-none shadow-2xl py-8 bg-white/95 backdrop-blur-md rounded-xl">
-          <CardContent className="space-y-8">
-            <div className="text-center space-y-2">
-              <h1
-                className="text-3xl font-bold text-[#0B1001]"
-                data-testid="reset-title"
-              >
-                {step === 1 && 'Recuperar cuenta'}
-                {step === 2 && 'Revisa tu mail'}
-                {step === 3 && 'Nueva contraseña'}
-                {step === 4 && '¡Todo listo!'}
-              </h1>
-              <p className="text-sm text-[#626059]">
-                {step === 1 &&
-                  'Te enviaremos un enlace para restablecer tu contraseña.'}
-                {step === 2 && `Hemos enviado instrucciones a ${userEmail}`}
-                {step === 3 && 'Ingresa tu nueva clave de acceso.'}
-                {step === 4 && 'Tu contraseña ha sido actualizada con éxito.'}
-              </p>
-            </div>
-
+      <div className="absolute inset-0 bg-black/30 z-0" />
+      <div className="w-full h-screen flex items-center justify-center sm:items-start sm:justify-end p-4 z-10">
+        <Card className="w-full sm:h-full sm:max-w-125 border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative">
+          <CardContent className="px-0 flex-1">
             {step === 1 && (
               <form
                 onSubmit={handleRequestReset}
-                className="space-y-6"
+                className="flex flex-col h-full justify-between gap-4 py-5"
                 noValidate
                 data-testid="forgot-password-form"
               >
-                <div className="space-y-2 text-left">
-                  <Label
-                    className={`font-bold ${emailForm.formState.errors.email ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
-                  >
-                    Correo electrónico
-                  </Label>
-                  <Input
-                    type="email"
-                    placeholder="ejemplo@correo.com"
-                    {...emailForm.register('email')}
-                    className={`h-14 ${emailForm.formState.errors.email ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
-                    disabled={isSendingEmail}
-                    data-testid="email-input"
+                <div className="space-y-4">
+                  <RecoverAccountHeader
+                    title={'Recuperar cuenta'}
+                    description={
+                      'Te enviaremos un enlace para restablecer tu contraseña.'
+                    }
                   />
-                  {emailForm.formState.errors.email && (
-                    <p className="text-xs font-medium text-[#B91C1C]">
-                      {emailForm.formState.errors.email.message}
-                    </p>
-                  )}
+                  <div className="space-y-2 text-left">
+                    <Label
+                      className={`font-bold ${emailForm.formState.submitCount > 0 && emailForm.formState.errors.email ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                    >
+                      Correo electrónico
+                    </Label>
+                    <Input
+                      type="email"
+                      placeholder="ejemplo@correo.com"
+                      {...emailForm.register('email')}
+                      className={`h-14 ${emailForm.formState.submitCount > 0 && emailForm.formState.errors.email ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                      disabled={isSendingEmail}
+                      data-testid="email-input"
+                    />
+                    {emailForm.formState.submitCount > 0 &&
+                      emailForm.formState.errors.email && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {emailForm.formState.errors.email.message}
+                        </p>
+                      )}
+                  </div>
                 </div>
-                <Button
-                  disabled={isSendingEmail}
-                  className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
-                  data-testid="send-reset-link-button"
-                >
-                  {isSendingEmail ? 'Enviando...' : 'Enviar enlace'}{' '}
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-                <div className="text-center">
-                  <Link
-                    href="/iniciar-sesion"
-                    data-testid="back-to-login"
-                    className="text-sm font-bold text-[#0B1001] hover:underline"
+                <div>
+                  <Button
+                    disabled={isSendingEmail || !emailForm.formState.isValid}
+                    className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
+                    data-testid="send-reset-link-button"
                   >
-                    Volver al inicio
-                  </Link>
+                    {isSendingEmail ? 'Enviando...' : 'Enviar enlace'}{' '}
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                  <div className="text-center pt-2 border-t border-[#F2F1EC]">
+                    <Link
+                      href="/iniciar-sesion"
+                      data-testid="back-to-login"
+                      className="text-sm font-bold text-[#0B1001] hover:underline"
+                    >
+                      Volver al inicio
+                    </Link>
+                  </div>
                 </div>
               </form>
             )}
@@ -199,14 +214,18 @@ const ResetPassword: React.FC = () => {
             {step === 3 && (
               <form
                 onSubmit={onResetSubmit}
-                className="space-y-6"
+                className="flex flex-col h-full justify-between gap-4 py-5"
                 noValidate
                 data-testid="reset-password-form"
               >
-                <div className="space-y-4 text-left">
+                <div className="space-y-4">
+                  <RecoverAccountHeader
+                    title={'Nueva contraseña'}
+                    description={'Ingresa tu nueva clave de acceso.'}
+                  />
                   <div className="space-y-2">
                     <Label
-                      className={`font-bold ${passForm.formState.errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                      className={`font-bold ${passForm.formState.submitCount > 0 && passForm.formState.errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
                     >
                       Nueva contraseña*
                     </Label>
@@ -214,7 +233,7 @@ const ResetPassword: React.FC = () => {
                       <Input
                         type={showPass ? 'text' : 'password'}
                         {...passForm.register('contraseña')}
-                        className={`h-14 ${passForm.formState.errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                        className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                         disabled={isResetting}
                         data-testid="new-password-input"
                       />
@@ -225,73 +244,116 @@ const ResetPassword: React.FC = () => {
                         data-testid="toggle-password-visibility"
                       >
                         {showPass ? (
-                          <EyeOff className="w-5 h-5" />
+                          <EyeIcon className="size-5" />
                         ) : (
-                          <Eye className="w-5 h-5" />
+                          <EyeOff className="size-5" />
                         )}
                       </button>
                     </div>
-                    {passForm.formState.errors.contraseña && (
-                      <p className="text-xs font-medium text-[#B91C1C]">
-                        {passForm.formState.errors.contraseña.message as string}
-                      </p>
-                    )}
+                    {passForm.formState.submitCount > 0 &&
+                      passForm.formState.errors.contraseña && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {
+                            passForm.formState.errors.contraseña
+                              .message as string
+                          }
+                        </p>
+                      )}
                   </div>
-
                   <div className="space-y-2">
                     <Label
-                      className={`font-bold ${passForm.formState.errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                      className={`font-bold ${passForm.formState.submitCount > 0 && passForm.formState.errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
                     >
                       Confirmar contraseña*
                     </Label>
-                    <Input
-                      type="password"
-                      {...passForm.register('confirmarContraseña')}
-                      className={`h-14 ${passForm.formState.errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
-                      disabled={isResetting}
-                      data-testid="confirm-password-input"
-                    />
-                    {passForm.formState.errors.confirmarContraseña && (
-                      <p className="text-xs font-medium text-[#B91C1C]">
-                        {
-                          passForm.formState.errors.confirmarContraseña
-                            .message as string
-                        }
-                      </p>
-                    )}
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPass ? 'text' : 'password'}
+                        {...passForm.register('confirmarContraseña')}
+                        className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                        disabled={isResetting}
+                        data-testid="confirm-password-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPass(!showConfirmPass)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-[#626059]"
+                        data-testid="toggle-confirm-password-visibility"
+                      >
+                        {showConfirmPass ? (
+                          <EyeIcon className="size-5" />
+                        ) : (
+                          <EyeOff className="size-5" />
+                        )}
+                      </button>
+                    </div>
+                    {passForm.formState.submitCount > 0 &&
+                      passForm.formState.errors.confirmarContraseña && (
+                        <p className="text-xs font-medium text-[#B91C1C]">
+                          {
+                            passForm.formState.errors.confirmarContraseña
+                              .message as string
+                          }
+                        </p>
+                      )}
                   </div>
                 </div>
-
-                <Button
-                  type="submit"
-                  disabled={isResetting}
-                  className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
-                  data-testid="update-password-button"
-                >
-                  {isResetting ? 'Guardando...' : 'Restablecer contraseña'}{' '}
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setStep(1)}
-                    className="text-sm font-bold text-[#0B1001] hover:underline"
-                    data-testid="request-new-link-button"
+                <div>
+                  <Button
+                    type="submit"
+                    disabled={isResetting || !passForm.formState.isValid}
+                    className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
+                    data-testid="update-password-button"
                   >
-                    ¿El enlace venció? Solicita uno nuevo
-                  </button>
+                    {isResetting ? 'Guardando...' : 'Restablecer contraseña'}{' '}
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                  <div className="text-center pt-2 border-t border-[#F2F1EC]">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="text-sm font-bold text-[#0B1001] hover:underline"
+                      data-testid="request-new-link-button"
+                    >
+                      ¿El enlace venció? Solicita uno nuevo
+                    </button>
+                  </div>
                 </div>
               </form>
             )}
 
             {step === 4 && (
-              <Button
-                onClick={() => navigate.push('/iniciar-sesion')}
-                className="w-full h-14 bg-[#0B1001] text-white rounded-lg font-bold"
-                data-testid="go-to-login-after-reset"
-              >
-                Ir al inicio de sesión
-              </Button>
+              <div className="relative flex flex-col h-full justify-between gap-4 py-5">
+                <div className="absolute left-1/2 top-7 -translate-x-1/2">
+                  <img
+                    src="/logos/tambo-logo-360.png"
+                    alt="logo"
+                    className="h-10.75"
+                  />
+                </div>
+                <div className="flex-1 grid place-items-center pt-20 sm:pt-0">
+                  <div className="w-full flex flex-col gap-4">
+                    <div className="space-y-2 text-center">
+                      <h1
+                        className="text-3xl font-bold tracking-tight text-[#0B1001]"
+                        data-testid="register-title"
+                      >
+                        ¡Todo listo!
+                      </h1>
+                      <p className="text-sm text-[#626059]">
+                        Tu contraseña ha sido actualizada con éxito.
+                      </p>
+                    </div>
+                    <Button
+                      onClick={() => navigate.push('/iniciar-sesion')}
+                      className="w-full h-14 bg-[#0B1001] text-white rounded-lg font-bold"
+                      data-testid="go-to-login-after-reset"
+                    >
+                      Ir al inicio de sesión
+                    </Button>
+                  </div>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

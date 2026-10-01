@@ -15,7 +15,6 @@ import {
   ArrowDown,
   X,
   CloudOff,
-  PackageCheck,
   MapPin,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -43,30 +42,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipTrigger } from '@/components/ui/tooltip'
 import ChangeBatch from '@/components/shared/dashboard/batch/ChangeBatch'
-import { Badge } from '@/components/ui/badge'
 import { Lote } from '@/types/batch'
+import { DecreaseData } from '@/types/decrease'
 import { useBatches } from '@/hooks/batch/useBatches'
+import { useCreateDecrease } from '@/hooks/decrease/useCreateDecrease'
+import { useErrorMessage } from '@/hooks/useErrorMessage'
 import DeleteBatch from '@/components/shared/dashboard/batch/DeleteBatch'
 import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
-import CompleteBatch from '@/components/shared/dashboard/batch/CompleteBatch'
-import { getClosingStatus } from '@/utils/getClosingStatus'
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
+import { useQueryClient } from '@tanstack/react-query'
 
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 
 const Produccion: React.FC = () => {
+  const queryClient = useQueryClient()
+
   // Estados de modales
   const [isChangeBatchOpen, setIsChangeBatchOpen] = useState(false)
-  const [isCompleteBatchOpen, setIsCompleteBatchOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isRegisterMermaOpen, setIsRegisterMermaOpen] = useState(false)
 
@@ -91,6 +88,11 @@ const Produccion: React.FC = () => {
       page: String(pagina),
     },
   })
+
+  // Hook de merma (crear desde la lista)
+  const { mutateAsync: createDecrease, isPending: isCreatingMerma } =
+    useCreateDecrease()
+  const { showErrorMessage } = useErrorMessage()
 
   // Transformación de datos
   const lotes = (data?.data?.lotes?.map((item: any) => item.lote) ||
@@ -118,12 +120,61 @@ const Produccion: React.FC = () => {
     setIsDetailModalOpen(true)
   }
 
+  // Registrar merma desde la lista
+  const handleSaveMermaFromList = async (data: DecreaseData) => {
+    if (!selectedBatch?.idLote) return
+    try {
+      await createDecrease({ ...data, idLote: selectedBatch.idLote })
+      setIsRegisterMermaOpen(false)
+      // ✅ Invalidar las mermas del lote para que el próximo fetch las traiga
+      queryClient.invalidateQueries({
+        queryKey: ['mermas', 'lote', selectedBatch.idLote],
+      })
+      setSelectedBatch(null)
+      refetch()
+    } catch {
+      showErrorMessage(
+        'No se pudo registrar la merma. Verifica los datos e intenta de nuevo.'
+      )
+    }
+  }
+
+  // Helper para calcular la merma total
+  const calcularMerma = (batch: Lote) => {
+    return (
+      (batch as any).mermas?.reduce((total: number, m: any) => {
+        const qty =
+          typeof m.cantidad === 'string'
+            ? parseFloat(m.cantidad)
+            : (m.cantidad ?? 0)
+        return total + qty
+      }, 0) || 0
+    )
+  }
+
+  // ✅ El estado de completado viene SOLO del backend (`estado`).
+  // Tener mermas NO completa el lote — solo la acción "Completar lote" lo hace.
+  const isCompleted = (batch: Lote) => Boolean((batch as any).estado)
+  const isLocked = (batch: Lote) => Boolean((batch as any).estado)
+
+  const getRodeoDisplay = (batch: Lote) => {
+    const b = batch as any
+    const directo = b.rodeo?.tipoRodeo || b.rodeo?.nombre
+    if (directo) return directo
+
+    if (b.cantAnimales && Number(b.cantAnimales) > 0) {
+      return 'Rodeo único'
+    }
+
+    return '—'
+  }
+
   return (
     <div
       className="flex flex-col w-full gap-8 animate-in fade-in duration-500"
       id="top"
     >
-      {/* HEADER PRINCIPAL: Título a la izquierda, Ubicación + Clima siempre alineados a la derecha */}
+      {/* HEADER PRINCIPAL */}
       <div className="flex items-center justify-between gap-2 w-full">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900">
@@ -131,12 +182,11 @@ const Produccion: React.FC = () => {
           </h1>
         </div>
 
-        {/* Contenedor fijo que agrupa Ubicación y Clima en línea sin romperse en mobile/tablet/desktop */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 flex-nowrap">
           {ubicacionEstablecimiento && (
             <div className="flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-white border border-gray-200 rounded-xl shadow-sm text-xs sm:text-sm font-medium text-gray-700 whitespace-nowrap">
               <MapPin className="w-4 h-4 text-gray-500 shrink-0" />
-              <span className="max-w-[120px] sm:max-w-xs truncate">
+              <span className="max-w-30 sm:max-w-xs truncate">
                 {ubicacionEstablecimiento}
               </span>
             </div>
@@ -145,18 +195,18 @@ const Produccion: React.FC = () => {
         </div>
       </div>
 
-      {/* Botón Registrar (Independiente abajo del header para conservar el espacio) */}
+      {/* Botón Registrar */}
       <div className="flex justify-end">
         <Button
-          className="flex items-center gap-2 h-12 px-5 bg-[#2E7D53] hover:bg-[#236342] text-white rounded-xl font-semibold shadow-sm"
+          className="flex items-center gap-2 h-12 px-10 bg-green-main hover:bg-[#309c6a] rounded-[7px] font-semibold shadow-sm"
           onClick={() => setIsChangeBatchOpen(true)}
         >
           Registrar lote <Plus className="w-5 h-5" />
         </Button>
       </div>
 
-      <Card className="border-gray-200 shadow-sm overflow-hidden rounded-2xl bg-white gap-0 py-0">
-        <CardHeader className="border-b border-gray-100 bg-white p-6">
+      <Card className="border-gray-200 shadow-sm rounded-2xl bg-white gap-0 py-0 overflow-hidden">
+        <CardHeader className="border-b border-gray-100 bg-white p-4 sm:p-6">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex flex-col gap-1">
               <CardTitle className="text-lg font-bold text-gray-900">
@@ -171,7 +221,7 @@ const Produccion: React.FC = () => {
             </div>
 
             <div className="flex items-center gap-3">
-              <div className="relative group">
+              <div className="relative group flex-1 md:flex-none">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-black transition-colors" />
                 <Input
                   className="pl-10 w-full md:w-60 bg-gray-50 border-gray-200 rounded-lg"
@@ -207,282 +257,203 @@ const Produccion: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0 overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gray-50/60">
-              <TableRow>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider pl-6">
-                  Lote
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Fecha
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Turno
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Producto
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Cantidad (L)
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Temperatura (°C)
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Tipo de Rodeo
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Merma (L)
-                </TableHead>
-                <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Estado
-                </TableHead>
-                <TableHead className="pr-6 text-right font-bold text-gray-400 uppercase text-xs tracking-wider">
-                  Acciones
-                </TableHead>
-              </TableRow>
-            </TableHeader>
+        <CardContent className="p-0">
+          {/* ============ VISTA TABLA (única, con scroll horizontal en mobile) ============ */}
+          <div className="block overflow-x-auto thin-scroll">
+            <Table className="w-full min-w-190">
+              <TableHeader className="bg-slate-100/60">
+                <TableRow className="border-b border-slate-200/70 hover:bg-slate-100/60">
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider pl-6">
+                    Lote
+                  </TableHead>
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
+                    Fecha
+                  </TableHead>
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
+                    Rodeo
+                  </TableHead>
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
+                    Cantidad
+                  </TableHead>
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
+                    Merma
+                  </TableHead>
+                  <TableHead className="text-left font-bold text-gray-500 uppercase text-xs tracking-wider">
+                    Estado
+                  </TableHead>
+                  <TableHead className="text-right font-bold text-gray-500 uppercase text-xs tracking-wider pr-6">
+                    Acciones
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
 
-            <TableBody>
-              {isPending
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <TableRow key={i} className="animate-pulse">
-                      <TableCell>
-                        <div className="h-4 w-12 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-20 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-5 w-16 bg-gray-200 rounded-md" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-28 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-14 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-12 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-20 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-4 w-14 bg-gray-200 rounded" />
-                      </TableCell>
-                      <TableCell>
-                        <div className="h-6 w-20 bg-gray-200 rounded-full" />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="h-8 w-8 bg-gray-200 rounded ml-auto" />
-                      </TableCell>
-                    </TableRow>
-                  ))
-                : lotes.length > 0 && !error
-                  ? lotes.map((batch: Lote, index: number) => {
-                      const loteDisplay = batch.numeroLote
-                        ? `L-${String(batch.numeroLote).padStart(4, '0')}`
-                        : `L-${String(index + 1).padStart(4, '0')}`
+              <TableBody>
+                {isPending
+                  ? Array.from({ length: 6 }).map((_, i) => (
+                      <TableRow key={i} className="animate-pulse">
+                        <TableCell className="pl-6">
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-4 w-20 bg-gray-200 rounded" />
+                        </TableCell>
+                        <TableCell>
+                          <div className="h-4 w-20 bg-gray-200 rounded-full" />
+                        </TableCell>
+                        <TableCell className="pr-6">
+                          <div className="h-4 w-8 bg-gray-200 rounded" />
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  : lotes.length > 0 && !error
+                    ? lotes.map((batch: Lote, index: number) => {
+                        const loteDisplay = batch.numeroLote
+                          ? `L-${String(batch.numeroLote).padStart(4, '0')}`
+                          : `L-${String(index + 1).padStart(4, '0')}`
 
-                      const closingStatus = getClosingStatus(
-                        batch.fechaProduccion
-                      )
-                      const turnoText = (batch as any).turno || 'Mañana'
-                      const rodeoText =
-                        (batch as any).rodeo?.label ||
-                        (batch as any).tipoRodeo ||
-                        'Rodeo Alto'
+                        const totalMerma = calcularMerma(batch)
+                        const tipoRodeo = getRodeoDisplay(batch)
+                        // ✅ El estado viene del backend, NO de tener mermas
+                        const isComplete = isCompleted(batch)
+                        const locked = isLocked(batch)
 
-                      const totalMerma =
-                        (batch as any).mermas?.reduce(
-                          (total: number, m: any) => {
-                            const qty =
-                              typeof m.cantidad === 'string'
-                                ? parseFloat(m.cantidad)
-                                : (m.cantidad ?? 0)
-                            return total + qty
-                          },
-                          0
-                        ) || 0
-
-                      return (
-                        <TableRow
-                          key={batch.idLote || index}
-                          className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
-                        >
-                          <TableCell className="text-left pl-6 font-medium text-gray-900">
-                            <HighlightMatch
-                              text={loteDisplay}
-                              query={highlightQuery}
-                            />
-                          </TableCell>
-
-                          <TableCell
-                            className="text-gray-600 text-sm whitespace-nowrap"
-                            suppressHydrationWarning
+                        return (
+                          <TableRow
+                            key={batch.idLote || index}
+                            className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors"
                           >
-                            {batch.fechaProduccion
-                              ? new Date(
-                                  batch.fechaProduccion
-                                ).toLocaleDateString('es-AR')
-                              : '-'}
-                          </TableCell>
-
-                          <TableCell>
-                            <Badge
-                              variant="outline"
-                              className={`border-0 text-white font-medium text-xs px-2.5 py-1 rounded-md ${
-                                turnoText.toLowerCase() === 'noche'
-                                  ? 'bg-[#535C68]'
-                                  : 'bg-[#6AB04C]'
-                              }`}
-                            >
-                              {turnoText}
-                            </Badge>
-                          </TableCell>
-
-                          <TableCell className="font-medium">
-                            <button
-                              onClick={() => handleOpenDetail(batch.idLote)}
-                              className="hover:underline text-gray-900 text-left"
-                            >
+                            <TableCell className="text-left pl-6 font-medium text-gray-900">
                               <HighlightMatch
-                                text={
-                                  (batch as any).producto?.nombre ||
-                                  'Producto desconocido'
-                                }
+                                text={loteDisplay}
                                 query={highlightQuery}
                               />
-                            </button>
-                          </TableCell>
-
-                          <TableCell className="text-gray-600">
-                            {batch.cantidad
-                              ? Number(batch.cantidad).toLocaleString('es-AR')
-                              : '0'}
-                          </TableCell>
-
-                          <TableCell className="text-gray-600">
-                            {(batch as any).tempTanque ?? 'N/A'}
-                          </TableCell>
-
-                          <TableCell className="text-gray-600 font-medium">
-                            {rodeoText}
-                          </TableCell>
-
-                          <TableCell className="text-gray-600">
-                            <button
-                              onClick={() => handleOpenDetail(batch.idLote)}
-                              className="hover:underline text-left"
+                            </TableCell>
+                            <TableCell
+                              className="text-gray-600 text-sm whitespace-nowrap"
+                              suppressHydrationWarning
                             >
-                              {totalMerma.toLocaleString('es-AR')}
-                            </button>
-                          </TableCell>
-
-                          <TableCell>
-                            <Tooltip open={batch.estado ? false : undefined}>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  className="p-0 h-auto hover:bg-transparent"
-                                  onClick={() => {
-                                    if (batch.estado) return
-                                    setSelectedBatch(batch)
-                                    setIsCompleteBatchOpen(true)
-                                  }}
-                                  disabled={batch.estado}
-                                  asChild
+                              {batch.fechaProduccion
+                                ? new Date(
+                                    batch.fechaProduccion
+                                  ).toLocaleDateString('es-AR')
+                                : '-'}
+                            </TableCell>
+                            <TableCell className="text-gray-600 text-sm">
+                              {tipoRodeo}
+                            </TableCell>
+                            <TableCell className="text-gray-600 text-sm">
+                              {batch.cantidad
+                                ? `${Number(batch.cantidad).toLocaleString('es-AR')} L`
+                                : '0 L'}
+                            </TableCell>
+                            <TableCell className="text-gray-600 text-sm">
+                              <button
+                                //onClick={() => handleOpenDetail(batch.idLote)}
+                                className="text-left"
+                              >
+                                {totalMerma > 0
+                                  ? `${totalMerma.toLocaleString('es-AR')} L`
+                                  : '-'}
+                              </button>
+                            </TableCell>
+                            <TableCell>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    type="button"
+                                    // onClick={() =>
+                                    //   handleOpenDetail(batch.idLote)
+                                    // }
+                                    className={`text-sm font-semibold ${
+                                      isComplete
+                                        ? 'text-emerald-600'
+                                        : 'text-red-600'
+                                    }`}
+                                  >
+                                    {isComplete ? 'Completado' : 'Incompleto'}
+                                  </button>
+                                </TooltipTrigger>
+                                {/* <TooltipContent>
+                                <p>
+                                  {isComplete
+                                    ? 'Lote cerrado. No se puede editar.'
+                                    : 'Click para ver detalles y completar'}
+                                </p>
+                              </TooltipContent> */}
+                              </Tooltip>
+                            </TableCell>
+                            <TableCell className="text-right pr-10">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 text-gray-400 hover:text-gray-600"
+                                  >
+                                    <Ellipsis className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent
+                                  align="end"
+                                  className="w-48"
                                 >
-                                  <div className="inline-flex items-center gap-1.5 cursor-pointer">
-                                    <span
-                                      className={`size-2.5 rounded-full ${batch.estado ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                                    />
-                                    <span className="text-xs font-semibold text-gray-700">
-                                      {batch.estado
-                                        ? 'Completado'
-                                        : 'Incompleto'}
-                                    </span>
-                                  </div>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{closingStatus.text}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TableCell>
-
-                          <TableCell className="text-right pr-6">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 text-gray-400 hover:text-gray-600"
-                                >
-                                  <Ellipsis className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end" className="w-48">
-                                <DropdownMenuGroup>
-                                  <DropdownMenuItem
-                                    onClick={() =>
-                                      handleOpenDetail(batch.idLote)
-                                    }
-                                    className="flex items-center gap-2 cursor-pointer w-full"
-                                  >
-                                    <Eye className="w-4 h-4" /> Ver Detalles
-                                  </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsCompleteBatchOpen(true)
-                                    }}
-                                    disabled={batch.estado}
-                                    className="cursor-pointer"
-                                  >
-                                    <PackageCheck className="w-4 h-4 mr-2" />{' '}
-                                    Completar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsChangeBatchOpen(true)
-                                    }}
-                                    disabled={batch.estado}
-                                    className="cursor-pointer"
-                                  >
-                                    <Pencil className="w-4 h-4 mr-2" /> Editar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setSelectedBatch(batch)
-                                      setIsRegisterMermaOpen(true)
-                                    }}
-                                    disabled={batch.estado}
-                                    className="cursor-pointer"
-                                  >
-                                    <DropletOff className="w-4 h-4 mr-2" />{' '}
-                                    Registrar merma
-                                  </DropdownMenuItem>
-                                </DropdownMenuGroup>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuGroup>
-                                  <DeleteBatch batch={batch} />
-                                </DropdownMenuGroup>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </TableCell>
-                        </TableRow>
-                      )
-                    })
-                  : null}
-            </TableBody>
-          </Table>
+                                  <DropdownMenuGroup>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        handleOpenDetail(batch.idLote)
+                                      }
+                                      className="flex items-center gap-2 cursor-pointer"
+                                    >
+                                      <Eye className="w-4 h-4" /> Ver Detalles
+                                    </DropdownMenuItem>
+                                  </DropdownMenuGroup>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuGroup>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedBatch(batch)
+                                        setIsChangeBatchOpen(true)
+                                      }}
+                                      disabled={locked}
+                                      className="cursor-pointer"
+                                    >
+                                      <Pencil className="w-4 h-4 mr-2" /> Editar
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => {
+                                        setSelectedBatch(batch)
+                                        setIsRegisterMermaOpen(true)
+                                      }}
+                                      disabled={locked}
+                                      className="cursor-pointer"
+                                    >
+                                      <DropletOff className="w-4 h-4 mr-2" />{' '}
+                                      Registrar merma
+                                    </DropdownMenuItem>
+                                  </DropdownMenuGroup>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuGroup>
+                                    <DeleteBatch batch={batch} />
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })
+                    : null}
+              </TableBody>
+            </Table>
+          </div>
 
           {/* Estado Vacío */}
           {lotes.length === 0 && !isPending && !error && (
@@ -518,8 +489,8 @@ const Produccion: React.FC = () => {
 
           {/* Paginación */}
           {!isPending && lotes.length > 0 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
-              <span className="text-xs text-gray-500">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-t border-gray-100 bg-white">
+              <span className="text-[11px] sm:text-xs text-gray-500">
                 Página {pagina} de {totalPaginas} · {data?.data.totalLotes ?? 0}{' '}
                 lotes
               </span>
@@ -566,41 +537,33 @@ const Produccion: React.FC = () => {
           setSelectedBatch(null)
         }}
         onOpen={() => setIsChangeBatchOpen(true)}
+        onViewDetail={handleOpenDetail}
         batch={selectedBatch ? selectedBatch : undefined}
-      />
-
-      <CompleteBatch
-        open={isCompleteBatchOpen}
-        onClose={() => {
-          setIsCompleteBatchOpen(false)
-          setSelectedBatch(null)
-        }}
-        batchId={selectedBatch?.idLote}
-        batch={selectedBatch ?? undefined}
-        refetch={refetch}
       />
 
       <BatchDetailModal
         open={isDetailModalOpen}
         onClose={() => setIsDetailModalOpen(false)}
         batchId={selectedBatchId}
+        onEditRequest={(batch) => {
+          setIsDetailModalOpen(false)
+          setSelectedBatch(batch)
+          setIsChangeBatchOpen(true)
+        }}
+        onDeleted={() => {
+          refetch()
+        }}
       />
 
+      {/* Registrar merma desde la lista */}
       <RegisterMermaModal
         open={isRegisterMermaOpen}
         onClose={() => {
           setIsRegisterMermaOpen(false)
           setSelectedBatch(null)
         }}
-        onSave={async (formData) => {
-          console.log('📦 Guardando merma desde lista:', {
-            idLote: selectedBatch?.idLote,
-            ...formData,
-          })
-          setIsRegisterMermaOpen(false)
-          setSelectedBatch(null)
-          refetch()
-        }}
+        onSave={handleSaveMermaFromList}
+        isLoading={isCreatingMerma}
       />
     </div>
   )

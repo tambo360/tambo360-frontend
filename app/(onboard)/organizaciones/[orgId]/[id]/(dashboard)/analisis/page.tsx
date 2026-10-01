@@ -6,13 +6,14 @@ import { useCurrentMonth } from '@/hooks/dashboard/useCurrentMonth'
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser'
 import { StatCard } from '@/components/shared/StatCard'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
-import { usePathname } from 'next/navigation'
+import { useParams } from 'next/navigation'
 
 const Dashboard = () => {
   const { data, isPending } = useCurrentMonth()
-  const pathname = usePathname()
+  const params = useParams()
+  const estId = params?.id as string
   const { data: establishment } = useEstablishment({
-    id: pathname.split('/')[3],
+    id: estId,
   })
   const { data: currentUser } = useCurrentUser()
   const primerNombre = currentUser?.data?.nombre?.split(' ')[0]
@@ -38,23 +39,8 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
-        <StatCard
-          title="Sólidos"
-          value={data?.data.actual.quesos}
-          unit=" Kg"
-          trend={
-            data?.data.variaciones.quesos != null
-              ? {
-                  value: data.data.variaciones.quesos,
-                  isPositive: data.data.variaciones.quesos >= 0,
-                }
-              : null
-          }
-          description={'vs ' + data?.data.mesPrevio}
-          isPending={isPending}
-        />
-
+      {/* Grid de 5 columnas (se quitó la card "Sólidos") */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           title="Líquidos"
           value={data?.data.actual.leches}

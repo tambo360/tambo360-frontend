@@ -10,7 +10,7 @@ export default function PublicLayout({
 }: {
   children: React.ReactNode
 }) {
-  const { user, loading } = useAuth()
+  const { user, loading, cuestionarioCompletado } = useAuth()
   const router = useRouter()
   const pathname = usePathname()
 
@@ -19,12 +19,29 @@ export default function PublicLayout({
 
     if (user && !pathname.includes('/verificar')) {
       if (user.organizaciones != undefined && user.organizaciones?.length > 0) {
-        router.replace('/organizaciones')
+        const orgUsuario = user.organizaciones[0]
+        const orgId =
+          orgUsuario?.organizacion?.idOrganizacion ?? orgUsuario?.idOrganizacion
+        const estId =
+          orgUsuario?.establecimientoOrganizacionUsuarios?.[0]
+            ?.idEstablecimiento ??
+          orgUsuario?.organizacion?.establecimientos?.[0]?.idEstablecimiento
+
+        if (!orgId || !estId) {
+          router.replace('/bienvenida')
+          return
+        }
+
+        if (cuestionarioCompletado) {
+          router.replace(`/organizaciones/${orgId}/${estId}/analisis`)
+        } else {
+          router.replace(`/organizaciones/${orgId}/${estId}/cuestionario`)
+        }
         return
       }
       router.replace('/bienvenida')
     }
-  }, [user, loading, router, pathname])
+  }, [user, loading, router, pathname, cuestionarioCompletado])
 
   if (loading) return <Loading />
 
