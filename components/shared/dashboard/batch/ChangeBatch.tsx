@@ -81,12 +81,10 @@ const ChangeBatch = ({
     createdBatchId,
     isTransferModalOpen,
     setIsTransferModalOpen,
-    handleSaveTransfer,
     showConnectionError,
     retry,
     handleConnectionCancel,
   } = useChangeBatchForm({ open, onClose, onOpen, batch })
-
   const isRodeoMode =
     tipoSeguimiento === TipoSeguimiento.RODEO ||
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
@@ -358,7 +356,7 @@ const ChangeBatch = ({
                       type="button"
                       variant="default"
                       size="sm"
-                      className="h-7 text-xs bg-[#2E7D53] hover:bg-[#236342] text-white rounded-lg px-3 shrink-0 w-full sm:w-auto"
+                      className="h-7 text-xs bg-green-main hover:bg-[#309c6a] rounded-[7px] px-3 shrink-0 w-full sm:w-auto"
                       onClick={() => setIsTransferModalOpen(true)}
                     >
                       Cambiar estado

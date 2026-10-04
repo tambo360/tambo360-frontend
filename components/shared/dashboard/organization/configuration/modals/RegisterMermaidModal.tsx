@@ -20,6 +20,7 @@ import {
 import { Info, Calendar, Clock } from 'lucide-react'
 import { DecreaseData } from '@/types/decrease'
 import { useDecreaseForm } from '@/hooks/decrease/useDecreaseForm'
+import { blockNegativeKeys } from '../RodeoCategoriaCard'
 
 interface InitialDecreaseData {
   tipo: string
@@ -64,13 +65,13 @@ const RegisterMermaModal = ({
     setObservacion,
     errors,
     handleSubmit,
-  } = useDecreaseForm({ open, onSave, initialData })
+  } = useDecreaseForm({ onSave, initialData })
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         onOpenAutoFocus={(e) => e.preventDefault()}
-        className="w-[95%] sm:max-w-[560px] max-h-[95dvh] p-0 gap-0 overflow-hidden flex flex-col bg-white rounded-3xl border-0 shadow-2xl [&>button]:focus:outline-none [&>button]:focus:ring-0 [&>button]:focus-visible:ring-0"
+        className="w-[95%] sm:max-w-140 max-h-[95dvh] p-0 gap-0 overflow-hidden flex flex-col bg-white rounded-3xl border-0 shadow-2xl [&>button]:focus:outline-none [&>button]:focus:ring-0 [&>button]:focus-visible:ring-0"
       >
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {/* Header (fijo) */}
@@ -178,7 +179,7 @@ const RegisterMermaModal = ({
                 htmlFor="cantidad"
                 className="text-sm font-semibold text-gray-700"
               >
-                Merma (Litros)
+                Merma (Litros) <span className="text-red-500">*</span>
               </Label>
               <Input
                 id="cantidad"
@@ -189,7 +190,15 @@ const RegisterMermaModal = ({
                 placeholder="Ej: 2450"
                 value={cantidad}
                 onChange={(e) => setCantidad(e.target.value)}
-                className={`h-11 ${short}:h-10 w-full bg-gray-50 border-gray-200 rounded-xl placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#2E7D53] focus-visible:ring-offset-0`}
+                onKeyDown={(e) => {
+                  if (
+                    e.currentTarget.value.length >= 4 &&
+                    !isNaN(Number(e.key))
+                  )
+                    e.preventDefault()
+                  blockNegativeKeys(e)
+                }}
+                className={`h-11 ${short}:h-10 w-full bg-gray-50 border-gray-200 rounded-xl placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-[#2E7D53] focus-visible:ring-offset-0 no-spinner`}
               />
               {errors.cantidad && (
                 <span className="text-xs text-red-600">{errors.cantidad}</span>

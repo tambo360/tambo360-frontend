@@ -169,6 +169,12 @@ export interface Lote {
   alertas?: Alert[]
   cantBajadas: number
   tipoSeguimiento?: TipoSeguimiento
+  produccionesIndividuales?: {
+    estado: string
+    idAnimal: string
+    idProduccionAnimal: string
+    litros: string
+  }[]
 }
 
 export interface BatchFilters {

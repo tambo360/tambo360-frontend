@@ -31,12 +31,6 @@ const DeleteBatch = ({ batch, onSuccess }: DeleteBatchProps) => {
       console.warn('Error al eliminar:', error)
     }
   }
-  console.log(
-    isPending,
-    batch.costosDirectos != undefined,
-    batch.mermas != undefined,
-    batch.estado
-  )
   return (
     <>
       <DropdownMenuItem

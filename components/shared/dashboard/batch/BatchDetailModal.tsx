@@ -37,14 +37,12 @@ import { Lote } from '@/types/batch'
 import { Merma, TIPO_MERMA_LABELS } from '@/types/decrease'
 import { api } from '@/services/api'
 import { queryKeys } from '@/utils/queryKeys'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
 
 interface LoteConDetalles extends Lote {
   observaciones?: string
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   lote?: any
 }
 
@@ -57,22 +55,8 @@ interface BatchDetailModalProps {
 }
 
 /* ──────────────────────────────────────────────────────────
-   Hooks internos
-   ────────────────────────────────────────────────────────── */
-
-function useUpdateObservations(idLote: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (observaciones: string) =>
-      api.patch(`/lote/${idLote}`, { observaciones }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batch.detail(idLote),
-      })
-    },
-  })
-}
-
+  Hooks internos
+  ────────────────────────────────────────────────────────── */
 // /mermas?id_lote=... trae `observacion` (a diferencia de /lote/buscar/:id)
 function useBatchMermas(idLote: string, enabled: boolean) {
   return useQuery({
@@ -88,8 +72,8 @@ function useBatchMermas(idLote: string, enabled: boolean) {
 }
 
 /* ──────────────────────────────────────────────────────────
-   Componente
-   ────────────────────────────────────────────────────────── */
+  Componente
+  ────────────────────────────────────────────────────────── */
 
 const BatchDetailModal = ({
   open,
@@ -124,21 +108,14 @@ const BatchDetailModal = ({
     open
   )
 
-  const [isEditingObs, setIsEditingObs] = useState(false)
-  const [obsDraft, setObsDraft] = useState('')
   const [isDeletingBatch, setIsDeletingBatch] = useState(false)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
 
   // ✅ Merma que se está editando (null = no hay edición)
   const [mermaToEdit, setMermaToEdit] = useState<Merma | null>(null)
-
-  const { mutateAsync: updateObservations, isPending: isSavingObs } =
-    useUpdateObservations(batchId)
   const { showErrorMessage } = useErrorMessage()
 
   useEffect(() => {
-    setIsEditingObs(false)
-    setObsDraft('')
     setMermaToEdit(null)
   }, [batchId, open])
 
@@ -229,13 +206,10 @@ const BatchDetailModal = ({
   }
 
   /* ─── Datos ─── */
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const raw = batchData.data as any
   const batch: LoteConDetalles = (raw?.lote ?? raw) as LoteConDetalles
 
   const isLocked = Boolean(batch.estado)
-  const isComplete = isLocked
   const isIncomplete = !isLocked
 
   const mermasList: Merma[] = mermasFull ?? batch.mermas ?? []
@@ -249,29 +223,6 @@ const BatchDetailModal = ({
     typeof rawLote === 'object' && rawLote !== null
       ? rawLote.numeroLote || rawLote.idLote || '1'
       : rawLote || '1'
-
-  const startEditObs = () => {
-    setObsDraft(batch.observaciones || '')
-    setIsEditingObs(true)
-  }
-
-  const cancelEditObs = () => {
-    setIsEditingObs(false)
-    setObsDraft('')
-  }
-
-  const saveObs = async () => {
-    try {
-      await updateObservations(obsDraft.trim())
-      setIsEditingObs(false)
-    } catch (err) {
-      const e = err as { response?: { data?: { message?: string } } }
-      showErrorMessage(
-        e?.response?.data?.message ||
-          'No se pudieron guardar las observaciones.'
-      )
-    }
-  }
 
   /* ─── Render ─── */
 
@@ -312,9 +263,9 @@ const BatchDetailModal = ({
                     variant="outline"
                     className={`${
                       isIncomplete
-                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                        : 'bg-green-50 text-green-700 border-green-200'
-                    } text-xs px-2.5 py-0.5 font-semibold`}
+                        ? 'bg-red-50 text-[#D3A430] border-[#D3A430]/70'
+                        : 'bg-green-50 text-green-main border-green-main/70'
+                    } text-xs px-2.5 py-0.5 rounded-[7px] font-semibold`}
                   >
                     {isIncomplete ? 'Incompleto' : 'Completado'}
                   </Badge>
@@ -327,7 +278,7 @@ const BatchDetailModal = ({
                       : '—'}
                   </span>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 break-words">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-gray-900 wrap-break-words">
                   Lote #{String(loteIdentificador)} —{' '}
                   {batch.producto?.nombre || 'Sin producto'}
                 </h2>
@@ -338,7 +289,7 @@ const BatchDetailModal = ({
                 <Button
                   onClick={() => setIsCompleteModalOpen(true)}
                   disabled={isLocked}
-                  className="bg-[#658a14] hover:bg-[#547310] text-white text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 shadow-sm w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-[#D3A430] hover:bg-[#D3A430]/90 text-xs font-semibold h-10 rounded-[7px] gap-1.5 px-5 w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle2 className="w-4 h-4" /> Completar lote
                 </Button>
@@ -346,7 +297,7 @@ const BatchDetailModal = ({
                   variant="outline"
                   onClick={() => onEditRequest?.(batch)}
                   disabled={isLocked}
-                  className="border-gray-200 text-gray-600 text-xs font-semibold h-10 rounded-xl gap-1.5 px-5 hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
+                  className="border-gray-300 text-gray-600 text-xs font-semibold h-10 rounded-[7px] gap-1.5 px-5 hover:bg-gray-50 bg-white disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
                 >
                   <Edit className="w-4 h-4 text-gray-500" /> Editar lote
                 </Button>
@@ -414,69 +365,6 @@ const BatchDetailModal = ({
               </div>
             </div>
 
-            {/* Observaciones del lote */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-gray-900 uppercase tracking-wide">
-                  Observaciones
-                </h3>
-                {!isEditingObs && (
-                  <button
-                    type="button"
-                    onClick={startEditObs}
-                    className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                    aria-label="Editar observaciones"
-                  >
-                    <Pencil className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {isEditingObs ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={obsDraft}
-                    onChange={(e) => setObsDraft(e.target.value)}
-                    maxLength={300}
-                    rows={3}
-                    placeholder="Escribe una observación sobre este lote..."
-                    className="w-full text-xs text-gray-700 leading-relaxed p-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-1 focus:ring-[#2E7D53] resize-none"
-                  />
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-gray-400">
-                      {obsDraft.length}/300
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={cancelEditObs}
-                        disabled={isSavingObs}
-                        className="h-8 rounded-lg px-3 border-gray-200 text-gray-600 text-xs font-semibold"
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        onClick={saveObs}
-                        disabled={isSavingObs}
-                        className="h-8 rounded-lg px-3 bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold"
-                      >
-                        {isSavingObs ? 'Guardando...' : 'Guardar'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 leading-relaxed break-words">
-                  {batch.observaciones ||
-                    'Sin observaciones registradas para este lote.'}
-                </p>
-              )}
-            </div>
-
             {/* Historial de mermas */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 sm:p-5 border-b border-gray-100">
@@ -487,14 +375,14 @@ const BatchDetailModal = ({
                   <Button
                     variant="outline"
                     size="icon"
-                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-xl hover:bg-gray-50 shrink-0"
+                    className="h-9 w-9 border-gray-200 text-gray-600 rounded-[7px] hover:bg-gray-50 shrink-0"
                   >
                     <Filter className="w-4 h-4" />
                   </Button>
                   <Button
                     onClick={openCreate}
                     disabled={isLocked}
-                    className="bg-[#2E7D53] hover:bg-[#236342] text-white text-xs font-semibold h-9 rounded-xl gap-1.5 px-3.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial"
+                    className="bg-green-main hover:bg-[#236342] text-white text-xs font-semibold h-10 rounded-[7px] gap-1.5 px-3.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex-1 sm:flex-initial"
                   >
                     <Plus className="w-4 h-4" /> Agregar Merma
                   </Button>
@@ -551,8 +439,8 @@ const BatchDetailModal = ({
                           <TableCell className="text-xs text-gray-600 font-medium whitespace-nowrap">
                             {Number(merma.cantidad) || 0} L
                           </TableCell>
-                          <TableCell className="text-xs text-gray-600 font-medium max-w-[280px]">
-                            <span className="line-clamp-2 break-words">
+                          <TableCell className="text-xs text-gray-600 font-medium max-w-70">
+                            <span className="line-clamp-2 wrap-break-words">
                               {merma.observacion?.trim() || '—'}
                             </span>
                           </TableCell>
@@ -620,7 +508,7 @@ const BatchDetailModal = ({
                         )}
                       </div>
                       {merma.observacion?.trim() && (
-                        <p className="text-xs text-gray-600 leading-relaxed break-words">
+                        <p className="text-xs text-gray-600 leading-relaxed wrap-break-words">
                           {merma.observacion}
                         </p>
                       )}
@@ -660,7 +548,7 @@ const BatchDetailModal = ({
                 <button
                   type="button"
                   onClick={() => setIsDeletingBatch(true)}
-                  className="w-full py-3.5 px-4 rounded-2xl border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 hover:text-red-500 text-gray-400 text-xs font-semibold tracking-wide transition-colors flex items-center justify-center shadow-sm"
+                  className="cursor-pointer w-full py-3.5 px-4 rounded-[7px] border bg-red-50 border-red-200 text-red-500 text-xs font-semibold tracking-wide transition-colors flex items-center justify-center shadow-sm"
                 >
                   Eliminar lote
                 </button>
