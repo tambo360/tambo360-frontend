@@ -132,7 +132,7 @@ const RegisterForm = () => {
               <Input
                 placeholder="Ingresa tu nombre y apellido"
                 {...register('nombre')}
-                maxLength={20}
+                maxLength={50}
                 onKeyDown={allowOnlyLettersKeyDown}
                 className={`h-14 ${submitCount > 0 && errors.nombre ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                 disabled={isPending || isResendingEmail}
@@ -181,6 +181,7 @@ const RegisterForm = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   {...register('contraseña')}
+                  maxLength={50}
                   className={`h-14 ${submitCount > 0 && errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                   disabled={isPending || isResendingEmail}
                   data-testid="password-input"
@@ -223,6 +224,7 @@ const RegisterForm = () => {
                   type={showConfirmPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   {...register('confirmarContraseña')}
+                  maxLength={50}
                   className={`h-14 ${submitCount > 0 && errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                   disabled={isPending || isResendingEmail}
                   data-testid="confirm-password-input"
@@ -286,8 +288,7 @@ const RegisterForm = () => {
           </p>
           <div className="w-full max-w-sm">
             <Button
-              variant="outline"
-              className="w-full h-14 border-[#D1CFCA] text-[#0B1001] hover:bg-[#F2F1EC]"
+              className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1]"
               onClick={handleResend}
               disabled={
                 secondsLeft > 0 || isResending || isPending || isResendingEmail
