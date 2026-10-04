@@ -227,7 +227,7 @@ const Produccion: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-black transition-colors" />
                 <Input
                   className="pl-10 w-full md:w-60 bg-gray-50 border-gray-200 rounded-lg"
-                  placeholder="Buscar lote..."
+                  placeholder="Buscar por lote..."
                   value={busqueda}
                   onChange={handleBusquedaChange}
                 />
@@ -371,7 +371,7 @@ const Produccion: React.FC = () => {
                                     className={`text-sm font-semibold ${
                                       isComplete
                                         ? 'text-emerald-600'
-                                        : 'text-red-600'
+                                        : 'text-[#D3A430]'
                                     }`}
                                   >
                                     {isComplete ? 'Completado' : 'Incompleto'}
@@ -545,6 +545,7 @@ const Produccion: React.FC = () => {
 
       {/* Registrar merma desde la lista */}
       <RegisterMermaModal
+        key={isRegisterMermaOpen ? 'merma-open' : 'merma-closed'}
         open={isRegisterMermaOpen}
         onClose={() => {
           setIsRegisterMermaOpen(false)
