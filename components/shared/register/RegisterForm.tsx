@@ -12,7 +12,7 @@ import { useErrorMessage } from '@/hooks/useErrorMessage'
 import { CardContent } from '@/components/ui/card'
 import { useResendEmail } from '@/hooks/auth/useResendEmail'
 import Link from 'next/link'
-import { allowOnlyLettersKeyDown } from '@/lib/utils'
+import { allowOnlyLettersKeyDown, sanitizeLettersOnly } from '@/lib/utils'
 
 const RegisterForm = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -58,6 +58,7 @@ const RegisterForm = () => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, submitCount, isValid },
   } = useForm({
     defaultValues: {
@@ -93,6 +94,8 @@ const RegisterForm = () => {
       console.warn('Error al registrarse:', err)
     }
   })
+
+  const nombreField = register('nombre')
 
   return (
     <CardContent className="px-0 flex-1">
@@ -131,9 +134,25 @@ const RegisterForm = () => {
               </Label>
               <Input
                 placeholder="Ingresa tu nombre y apellido"
-                {...register('nombre')}
+                {...nombreField}
                 maxLength={50}
+                inputMode="text"
+                autoComplete="name"
                 onKeyDown={allowOnlyLettersKeyDown}
+                onChange={(e) => {
+                  e.target.value = sanitizeLettersOnly(e.target.value)
+                  nombreField.onChange(e)
+                }}
+                onPaste={(e) => {
+                  e.preventDefault()
+                  const clean = sanitizeLettersOnly(
+                    e.clipboardData.getData('text')
+                  )
+                  setValue('nombre', clean.slice(0, 50), {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
+                }}
                 className={`h-14 ${submitCount > 0 && errors.nombre ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                 disabled={isPending || isResendingEmail}
                 data-testid="full-name-input"
