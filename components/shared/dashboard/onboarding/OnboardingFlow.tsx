@@ -151,7 +151,7 @@ const OnboardingFlow = () => {
                 </div>
                 <section className="max-w-103 flex flex-col items-center justify-center gap-6 mt-4 text-[15px]">
                   <p>
-                    Para comenzar, necesitas crear tu primarea organización o
+                    Para comenzar, necesitas crear tu primera organización o
                     esperar a ser invitado por alguien más
                   </p>
                 </section>
