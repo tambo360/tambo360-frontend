@@ -13,6 +13,15 @@ import { useLogout } from '@/hooks/auth/useLogout'
 import { AuthState, User } from '@/types/types'
 import Loading from '@/components/layout/Loading'
 import { usePathname, useRouter } from 'next/navigation'
+import {
+  clearCuestionarioCompletado,
+  clearLastUser,
+  deriveCuestionarioCompletado,
+  getCuestionarioCompletado,
+  getLastUser,
+  saveCuestionarioCompletado,
+  saveLastUser,
+} from '@/lib/offlineUser'
 
 interface AuthContextType extends AuthState {
   setToken: (token: string | null) => void
@@ -34,8 +43,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [token, setToken] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [cuestionarioCompletado, setCuestionarioCompletado] =
-    useState<boolean>(false)
+  const [cuestionarioCompletado, setCuestionarioCompletado] = useState<boolean>(
+    () =>
+      typeof window !== 'undefined'
+        ? (getCuestionarioCompletado() ?? false)
+        : false
+  )
+
+  // Persiste el flag ante el reload en offline.
+  useEffect(() => {
+    saveCuestionarioCompletado(cuestionarioCompletado)
+  }, [cuestionarioCompletado])
+
   const pathname = usePathname()
   const { mutateAsync } = useLogout()
   const navigate = useRouter()
@@ -63,10 +82,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const res = await api.get('/auth/me')
       if (res?.data.data) {
         setUser(res.data.data)
+        saveLastUser(res.data.data)
+        const guardSesion = deriveCuestionarioCompletado(res.data.data)
+        if (guardSesion) setCuestionarioCompletado(true)
       } else {
         setUser(null)
       }
     } catch {
+      // Sin red: conserva la última sesión conocida para no expulsar al login.
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        const snapshot = getLastUser()
+        if (snapshot) {
+          setUser(snapshot)
+          if (deriveCuestionarioCompletado(snapshot)) {
+            setCuestionarioCompletado(true)
+          }
+          return
+        }
+      }
       setUser(null)
     } finally {
       setLoading(false)
@@ -87,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       // navegar. En iOS con ITP el POST puede dar 200 y la cookie rechazarse;
       // sin este check se navega a /bienvenida y rebota a /iniciar-sesion.
       await api.get('/auth/me')
+      saveLastUser(user)
       navigate.replace('/bienvenida')
     } catch {
       // Sesión no persistida (cookie bloqueada): no navegar, informar.
@@ -105,6 +139,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null)
       setToken(null)
       setError(null)
+      clearLastUser()
+      clearCuestionarioCompletado()
       await mutateAsync()
       Cookies.remove('token')
     } catch (error) {

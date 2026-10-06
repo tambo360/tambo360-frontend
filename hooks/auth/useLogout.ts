@@ -1,6 +1,10 @@
 import { logOut } from '@/utils/api/auth.api'
 import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { del } from 'idb-keyval'
+import { useBatchOutbox } from '@/stores/useBatchOutbox'
+import { clearCuestionarioCompletado } from '@/lib/offlineUser'
+import { OFFLINE_QUERY_CACHE_KEY } from '@/utils/QueryProvider'
 
 export function useLogout() {
   const queryClient = useQueryClient()
@@ -11,6 +15,10 @@ export function useLogout() {
     },
 
     onSuccess: () => {
+      queryClient.clear()
+      useBatchOutbox.getState().clear()
+      clearCuestionarioCompletado()
+      del(OFFLINE_QUERY_CACHE_KEY).catch(() => undefined)
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser })
       queryClient.invalidateQueries({
         queryKey: [...baseKeys.alert, 'filters'],
