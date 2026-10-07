@@ -89,6 +89,17 @@ const ChangeBatch = ({
     tipoSeguimiento === TipoSeguimiento.RODEO ||
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
 
+  // Vacas seleccionables: solo las que NO están secas. Las ya seleccionadas
+  // se conservan visibles (si no, su input de litros desaparecería pero el
+  // dato seguiría en el form). Refleja las transferencias encoladas porque
+  // `animals` sale del caché optimista.
+  const selectedIds = new Set(individualLote.fields.map((f) => f.idAnimal))
+  const visibleAnimals = individualLote.animals.filter(
+    (a) =>
+      (a.categoria ?? '').toUpperCase() !== 'SECAS' ||
+      selectedIds.has(a.idAnimal)
+  )
+
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
       {finished ? (
@@ -370,13 +381,13 @@ const ChangeBatch = ({
                         Cargando animales...
                       </span>
                     </div>
-                  ) : individualLote.animals.length === 0 ? (
+                  ) : visibleAnimals.length === 0 ? (
                     <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded-xl">
                       No se encontraron animales reales en el sistema.
                     </div>
                   ) : (
                     <div className="border border-gray-200 rounded-xl divide-y max-h-64 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                      {individualLote.animals.map((animal) => {
+                      {visibleAnimals.map((animal) => {
                         const selected = individualLote.isAnimalSelected(
                           animal.idAnimal
                         )
@@ -404,6 +415,23 @@ const ChangeBatch = ({
                                       {animal.raza
                                         .replace(/_/g, ' ')
                                         .toLowerCase()}
+                                    </span>
+                                  )}
+                                  {animal.categoria && (
+                                    <span
+                                      className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shrink-0 ${
+                                        animal.categoria === 'ORDENE'
+                                          ? 'bg-[#E8F5E9] text-[#2E7D53]'
+                                          : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                    >
+                                      {animal.categoria === 'ORDENE'
+                                        ? 'Ordeñe'
+                                        : animal.categoria === 'SECAS'
+                                          ? 'Secas'
+                                          : animal.categoria
+                                              .replace(/_/g, ' ')
+                                              .toLowerCase()}
                                     </span>
                                   )}
                                 </span>

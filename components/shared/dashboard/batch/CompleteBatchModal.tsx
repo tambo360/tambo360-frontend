@@ -8,9 +8,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AlertTriangle, Loader2 } from 'lucide-react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { api } from '@/services/api'
-import { queryKeys } from '@/utils/queryKeys'
+import { useCompleteBatch } from '@/hooks/batch/useCompleteBatch'
 import { useState } from 'react'
 
 interface CompleteBatchModalProps {
@@ -26,28 +24,24 @@ export const CompleteBatchModal = ({
   batchId,
   onSuccess,
 }: CompleteBatchModalProps) => {
-  const queryClient = useQueryClient()
   const [showError, setShowError] = useState(false)
+  const { mutateAsync: completeBatch, isPending } = useCompleteBatch()
 
-  const { mutate: completeBatch, isPending } = useMutation({
-    mutationFn: () => api.post(`/lote/completar/${batchId}`),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batch.lists(),
-      })
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.batch.detail(batchId),
-      })
+  const handleConfirm = async () => {
+    try {
+      // Offline resuelve optimista (encola) → se cierra con normalidad.
+      await completeBatch(batchId)
       onClose()
       onSuccess?.()
-    },
-    onError: () => {
+    } catch {
+      // Sin red el hook nunca rechaza; este modal queda solo para errores reales.
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        onClose()
+        onSuccess?.()
+        return
+      }
       setShowError(true)
-    },
-  })
-
-  const handleConfirm = () => {
-    completeBatch()
+    }
   }
 
   const handleCloseError = () => {

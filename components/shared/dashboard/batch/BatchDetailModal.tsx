@@ -32,12 +32,19 @@ import { useBatch } from '@/hooks/batch/useBatch'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useBatchDecrease } from '@/hooks/decrease/useBatchDecrease'
 import { useUpdateDecrease } from '@/hooks/decrease/useUpdateDecrease'
+import { useDeleteBatch } from '@/hooks/batch/useDeleteBatch'
+import { useOnlineStatus } from '@/hooks/connection/useOnlineStatus'
+import { findCachedLote } from '@/hooks/batch/offlineBatchCache'
 import { useErrorMessage } from '@/hooks/useErrorMessage'
 import { Lote } from '@/types/batch'
 import { Merma, TIPO_MERMA_LABELS } from '@/types/decrease'
 import { api } from '@/services/api'
 import { queryKeys } from '@/utils/queryKeys'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  keepPreviousData,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
 
@@ -59,6 +66,7 @@ interface BatchDetailModalProps {
   ────────────────────────────────────────────────────────── */
 // /mermas?id_lote=... trae `observacion` (a diferencia de /lote/buscar/:id)
 function useBatchMermas(idLote: string, enabled: boolean) {
+  const isOnline = useOnlineStatus()
   return useQuery({
     queryKey: ['mermas', 'lote', idLote],
     queryFn: async () => {
@@ -68,6 +76,11 @@ function useBatchMermas(idLote: string, enabled: boolean) {
       return (Array.isArray(data?.data) ? data.data : []) as Merma[]
     },
     enabled: enabled && !!idLote,
+    // Offline: sirve las mermas visitadas sin reintentos ni errores.
+    networkMode: 'offlineFirst',
+    placeholderData: keepPreviousData,
+    retry: isOnline ? 3 : false,
+    refetchOnReconnect: true,
   })
 }
 
@@ -83,6 +96,7 @@ const BatchDetailModal = ({
   onDeleted,
 }: BatchDetailModalProps) => {
   const queryClient = useQueryClient()
+  const isOnline = useOnlineStatus()
 
   const { data: batchData, isLoading, error } = useBatch({ id: batchId })
   const { isLoading: configLoading } = useConfiguration()
@@ -110,6 +124,7 @@ const BatchDetailModal = ({
 
   const [isDeletingBatch, setIsDeletingBatch] = useState(false)
   const [isCompleteModalOpen, setIsCompleteModalOpen] = useState(false)
+  const { mutateAsync: deleteBatch } = useDeleteBatch()
 
   // ✅ Merma que se está editando (null = no hay edición)
   const [mermaToEdit, setMermaToEdit] = useState<Merma | null>(null)
@@ -119,9 +134,10 @@ const BatchDetailModal = ({
     setMermaToEdit(null)
   }, [batchId, open])
 
-  // Refresca mermas + detalle cada vez que cambia el estado de los modales
+  // Refresca mermas + detalle cada vez que cambia el estado de los modales.
+  // Sin red se omite: el dato cacheado ya está y se evita una tormenta de refetch.
   useEffect(() => {
-    if (!open || !batchId) return
+    if (!open || !batchId || !isOnline) return
     queryClient.invalidateQueries({ queryKey: ['mermas', 'lote', batchId] })
     queryClient.invalidateQueries({ queryKey: queryKeys.batch.detail(batchId) })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -134,7 +150,8 @@ const BatchDetailModal = ({
 
   const handleConfirmDeleteBatch = async () => {
     try {
-      await api.delete(`/lote/${batchId}`)
+      // Pasa por el hook con cola offline: sin red se encola y cierra igual.
+      await deleteBatch({ id: batchId })
       setIsDeletingBatch(false)
       onDeleted?.()
       onClose()
@@ -176,6 +193,15 @@ const BatchDetailModal = ({
 
   /* ─── Guards de carga / error ─── */
 
+  // Fallback offline: si el `detail` nunca se visitó pero el lote está en las
+  // listas cacheadas, se muestra igual (misma forma `{ data: lote }`).
+  const fallbackLote =
+    !batchData?.data && batchId
+      ? findCachedLote(queryClient, batchId)
+      : undefined
+  const effectiveData =
+    batchData ?? (fallbackLote ? { data: fallbackLote } : undefined)
+
   if (isLoading || configLoading) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
@@ -191,7 +217,9 @@ const BatchDetailModal = ({
     )
   }
 
-  if (error || !batchData?.data) {
+  // Solo pantalla de error si no hay nada que mostrar (ni detail ni lista).
+  // Con caché (típico offline) se ignora el error y se pinta el dato.
+  if (!effectiveData?.data) {
     return (
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className={dialogClass}>
@@ -206,7 +234,7 @@ const BatchDetailModal = ({
   }
 
   /* ─── Datos ─── */
-  const raw = batchData.data as any
+  const raw = (effectiveData as { data: unknown }).data as any
   const batch: LoteConDetalles = (raw?.lote ?? raw) as LoteConDetalles
 
   const isLocked = Boolean(batch.estado)

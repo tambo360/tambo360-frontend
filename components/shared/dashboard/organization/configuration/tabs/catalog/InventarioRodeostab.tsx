@@ -82,7 +82,7 @@ export default function InventarioRodeosTab() {
           <div
             key={rodeo.id}
             onClick={() => setVistaActiva('plantel')}
-            className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-[160px]"
+            className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-40"
           >
             {/* Botón Editar */}
             <button

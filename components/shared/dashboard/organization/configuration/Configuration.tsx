@@ -267,8 +267,6 @@ const Configuration = () => {
         rodeos,
       }
     }
-
-    // console.log('>> PAYLOAD', payload)
     sendConfiguration(payload, {
       onSuccess: () => {
         toast.success('Configuración guardada correctamente', {

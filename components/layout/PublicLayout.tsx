@@ -16,6 +16,7 @@ export default function PublicLayout({
 
   useEffect(() => {
     if (loading) return
+    if (typeof window !== 'undefined' && !navigator.onLine) return
 
     if (user && !pathname.includes('/verificar')) {
       if (user.organizaciones != undefined && user.organizaciones?.length > 0) {

@@ -4,6 +4,7 @@ interface UseConnectionErrorOptions {
   onServerError?: (message: string) => void
   closeParentDialog?: () => void // cierra el form cuando hay error de red
   openParentDialog?: () => void // reabre el form al hacer retry
+  offlinePassthrough?: boolean
 }
 
 interface UseConnectionErrorReturn {
@@ -26,6 +27,20 @@ export const useConnectionError = (
       async (data: T) => {
         const attempt = async () => {
           if (!navigator.onLine) {
+            // Flujo con cola offline: delega en la mutación (encola + éxito
+            // optimista) sin mostrar el modal de error de conexión.
+            if (options?.offlinePassthrough) {
+              try {
+                await submitFn(data)
+                setShowConnectionError(false)
+                pendingRetryRef.current = null
+              } catch (err: any) {
+                const serverMessage =
+                  err?.response!.data?.message || 'Error inesperado'
+                options?.onServerError?.(serverMessage)
+              }
+              return
+            }
             options?.closeParentDialog?.()
             setShowConnectionError(true)
             pendingRetryRef.current = attempt
