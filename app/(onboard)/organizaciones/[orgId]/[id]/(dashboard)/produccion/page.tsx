@@ -459,8 +459,8 @@ const Produccion: React.FC = () => {
             </div>
           )}
 
-          {/* Estado de Error */}
-          {error && (
+          {/* Estado de Error (solo si no hay nada que mostrar: sin caché offline no se levanta pantalla de error) */}
+          {error && lotes.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-6 gap-6 bg-white w-full">
               <div className="w-20 h-20 bg-slate-100 rounded-md flex items-center justify-center">
                 <CloudOff className="w-10 h-10 text-slate-400" />

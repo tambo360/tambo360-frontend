@@ -65,16 +65,24 @@ function createIdbPersister(throttleTime = 1000): Persister {
 
 /**
  * Solo se persiste lo visitado que permite sobrevivir offline:
- * Todo lo de batch, y establecimiento solo (list y configuration).
+ * lotes + mermas + catálogos chicos (productos, tipos de merma) +
+ * datos del establecimiento (configuración, opciones, form de transferencia).
+ * Auth, dashboard y mutaciones NO se persisten.
  */
 function shouldDehydrateQuery(query: { queryKey: unknown }) {
   const key = query.queryKey as unknown[]
   if (key[0] === 'batch') return true
-  if (
-    key[0] === 'establishment' &&
-    (key[1] === 'configuration' || key[1] === 'list')
-  ) {
-    return true
+  if (key[0] === 'mermas') return true
+  if (key[0] === 'decrease') return true
+  if (key[0] === 'product') return true
+  if (key[0] === 'establishment') {
+    if (key[1] === 'configuration' || key[1] === 'list') return true
+    if (
+      key[2] === 'opciones-seguimiento' ||
+      key[2] === 'transferir-form-data'
+    ) {
+      return true
+    }
   }
   return false
 }

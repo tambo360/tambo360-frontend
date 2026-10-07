@@ -1,5 +1,4 @@
 'use client'
-import { useState } from 'react'
 import {
   Droplet,
   SquarePen,
@@ -55,7 +54,7 @@ export default function ProductosDestinoTab() {
 
   return (
     <div className="w-full bg-[#FAFAFA] antialiased min-h-screen pt-4 pb-12">
-      <div className="max-w-[1200px] mx-auto px-4">
+      <div className="max-w-300 mx-auto px-4">
         {/* Título de la Sección */}
         <h2 className="text-[15px] font-bold text-gray-800 mb-6 tracking-tight">
           Productos Destino

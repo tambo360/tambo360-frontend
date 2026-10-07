@@ -117,6 +117,9 @@ export function useChangeBatchForm({
     onServerError: showErrorMessage,
     closeParentDialog: onClose,
     openParentDialog: onOpen,
+    // Lotes tiene cola offline-first: sin red se encola y se muestra éxito
+    // optimista en vez del modal de error de conexión.
+    offlinePassthrough: true,
   })
 
   // ─── Tipo de seguimiento ───────────────────────────────────────────
@@ -340,14 +343,12 @@ export function useChangeBatchForm({
         return
       }
 
-      const idLote = crypto.randomUUID()
       const base = {
         tipoSeguimiento,
         idProducto: data.idProducto,
         cantidad: Number(data.cantidad),
         unidad: data.unidad,
         fechaProduccion: data.fechaProduccion,
-        idLote,
         tempTanque:
           data.destino === TipoDestino.TANQUE_FRIO && data.tempTanque
             ? Number(data.tempTanque)
@@ -370,7 +371,7 @@ export function useChangeBatchForm({
 
       try {
         const created = await mutateAsync(payload)
-        setCreatedBatchId(created?.idLote ?? idLote)
+        setCreatedBatchId(created?.idLote ?? created?.id ?? '')
         setFinished(true)
       } catch (error) {
         const axiosError = error as AxiosError<{ message?: string }>

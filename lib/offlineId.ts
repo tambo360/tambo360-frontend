@@ -1,8 +1,9 @@
 /**
  * Helpers offline-first para lotes.
- * El id temporal es un UUID v4 normal (el form ya genera `idLote` con
- * `crypto.randomUUID()` y lo envía en el payload), así el replay online
- * reenvía el mismo payload sin remapeos frágiles. Si un id es temporal o no
+ * El id temporal es un UUID v4 normal generado en `useCreateBatch`
+ * (única fuente) cuando no hay conexión; se guarda en el payload del
+ * outbox y se usa para la caché optimista, así el replay online reenvía
+ * el mismo payload sin remapeos frágiles. Si un id es temporal o no
  * se sabe consultando la cola del outbox, no por prefijos.
  */
 

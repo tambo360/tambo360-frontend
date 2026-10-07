@@ -58,6 +58,44 @@ const withPWA = require('@ducanh2912/next-pwa').default({
           cacheableResponse: { statuses: [0, 200] },
         },
       },
+      // Mermas por lote + tipos (detalle del lote offline).
+      {
+        urlPattern: /\/backend\/mermas.*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-mermas',
+          expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Detalle de lote por id.
+      {
+        urlPattern: /\/backend\/lote\/buscar.*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-lote-detail',
+          expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Form de transferencia + opciones de seguimiento + productos
+      // (el modal de transferencia y el form de lote los necesitan offline).
+      {
+        urlPattern:
+          /\/backend\/(conf\/animal\/transferir\/form-data|establecimiento\/info\/opciones-seguimiento|productos).*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-catalogs',
+          expiration: { maxEntries: 30, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
       // { // PLANTILLA, por cada endpoint GET en offline debe agregar un objeto similar.
       //   urlPattern: /\/backend\/merma\/listar.*$/,
       //   handler: 'NetworkFirst',

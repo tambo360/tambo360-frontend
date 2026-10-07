@@ -3,6 +3,8 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { del } from 'idb-keyval'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
+import { useDecreaseOutbox } from '@/stores/useDecreaseOutbox'
+import { useTransferOutbox } from '@/stores/useTransferOutbox'
 import { clearCuestionarioCompletado } from '@/lib/offlineUser'
 import { OFFLINE_QUERY_CACHE_KEY } from '@/utils/QueryProvider'
 
@@ -17,6 +19,8 @@ export function useLogout() {
     onSuccess: () => {
       queryClient.clear()
       useBatchOutbox.getState().clear()
+      useDecreaseOutbox.getState().clear()
+      useTransferOutbox.getState().clear()
       clearCuestionarioCompletado()
       del(OFFLINE_QUERY_CACHE_KEY).catch(() => undefined)
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser })

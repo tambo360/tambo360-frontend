@@ -10,11 +10,7 @@ const LAST_USER_KEY = 'tambo360-last-user'
  * login. Nunca guarda tokens ni credenciales.
  */
 export function saveLastUser(user: User) {
-  try {
-    window.localStorage.setItem(LAST_USER_KEY, JSON.stringify(user))
-  } catch {
-    // Cuota llena o modo privado: se sigue sin snapshot, no es fatal.
-  }
+  window.localStorage.setItem(LAST_USER_KEY, JSON.stringify(user))
 }
 
 export function getLastUser(): User | null {
@@ -27,11 +23,7 @@ export function getLastUser(): User | null {
 }
 
 export function clearLastUser() {
-  try {
-    window.localStorage.removeItem(LAST_USER_KEY)
-  } catch {
-    // noop
-  }
+  window.localStorage.removeItem(LAST_USER_KEY)
 }
 
 const QUESTIONNAIRE_KEY = 'tambo360-cuestionario-completado'
@@ -42,11 +34,7 @@ const QUESTIONNAIRE_KEY = 'tambo360-cuestionario-completado'
  * lo resetea a `false` y `PublicLayout` expulsa a `/cuestionario`.
  */
 export function saveCuestionarioCompletado(value: boolean) {
-  try {
-    window.localStorage.setItem(QUESTIONNAIRE_KEY, value ? '1' : '0')
-  } catch {
-    // noop
-  }
+  window.localStorage.setItem(QUESTIONNAIRE_KEY, value ? '1' : '0')
 }
 
 export function getCuestionarioCompletado(): boolean | null {
@@ -61,11 +49,7 @@ export function getCuestionarioCompletado(): boolean | null {
 }
 
 export function clearCuestionarioCompletado() {
-  try {
-    window.localStorage.removeItem(QUESTIONNAIRE_KEY)
-  } catch {
-    // noop
-  }
+  window.localStorage.removeItem(QUESTIONNAIRE_KEY)
 }
 
 /**
