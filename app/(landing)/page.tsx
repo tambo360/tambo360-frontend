@@ -1,4 +1,4 @@
-import Testimonials from '@/components/shared/landing/Testimonials'
+//import Testimonials from '@/components/shared/landing/Testimonials'
 import ContactForm from '@/components/shared/landing/ContactForm'
 import Features from '@/components/shared/landing/Features'
 import Pricing from '@/components/shared/landing/Pricing'
