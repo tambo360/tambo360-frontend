@@ -67,9 +67,12 @@ function forEachEstablishmentCache<T extends object>(
   variant: string,
   fn: (data: T) => T | undefined
 ) {
-  const entries = qc
-    .getQueryCache()
-    .findAll({ queryKey: baseKeys.establishment })
+  const entries = qc.getQueryCache().findAll({
+    queryKey: baseKeys.establishment,
+    exact: false,
+  })
+  let visited = 0
+  let patched = 0
   for (const entry of entries) {
     const key = entry.queryKey as unknown[]
     if (key[2] !== variant) continue
@@ -78,13 +81,28 @@ function forEachEstablishmentCache<T extends object>(
     // La API a veces envuelve en `data`: se parchea donde viva la forma real.
     const holder = ((raw as { data?: T }).data ?? raw) as T
     if (!holder || typeof holder !== 'object') continue
+    visited += 1
     const next = fn(holder)
     if (!next) continue
+    patched += 1
     if ((raw as { data?: T }).data) {
       qc.setQueryData(entry.queryKey, { ...(raw as object), data: next })
     } else {
       qc.setQueryData(entry.queryKey, next)
     }
+  }
+  // Sin red el parche es la única señal visible: si había caché y no se tocó
+  // nada, avisar en dev en vez de fallar en silencio.
+  if (
+    visited > 0 &&
+    patched === 0 &&
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production'
+  ) {
+    console.warn(
+      `[offline] transferencia sin efecto sobre '${variant}': ` +
+        'caché visitado pero ningún animal coincidió con el payload.'
+    )
   }
 }
 
@@ -257,6 +275,24 @@ export function applyOptimisticTransfer(
       )
     }
     return applyRodeoTransferToFormData(data, payload as TransferRodeoPayload)
+  })
+}
+
+export function refreshAnimalCategoria(
+  qc: QueryClient,
+  idAnimal: string,
+  categoria: string
+) {
+  if (!idAnimal || !categoria) return
+  forEachOpcionesCache(qc, (data) => {
+    if (!data.animales) return undefined
+    if (!data.animales.some((a) => a.idAnimal === idAnimal)) return undefined
+    return {
+      ...data,
+      animales: data.animales.map((a) =>
+        a.idAnimal === idAnimal ? { ...a, categoria } : a
+      ),
+    }
   })
 }
 

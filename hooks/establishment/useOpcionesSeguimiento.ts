@@ -21,8 +21,6 @@ export function useOpcionesSeguimiento() {
     queryFn: getOpcionesSeguimiento,
     staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
-    // Offline: sirve rodeos/animales visitados (el form de lote y el
-    // transfer dependen de esto tras un reload).
     networkMode: 'offlineFirst',
     placeholderData: keepPreviousData,
     retry: isOnline ? 3 : false,

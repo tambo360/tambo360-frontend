@@ -245,6 +245,17 @@ async function drainScope(qc: QueryClient, scope: string) {
   useSyncStatus.getState().begin(unified.length)
   await qc.cancelQueries({ queryKey: ['mermas'] })
   await qc.cancelQueries({ queryKey: [...baseKeys.batch, 'filters'] })
+  // Misma carrera para `opciones-seguimiento`: el refetch automático al
+  // reconectar pisaba el optimista antes de confirmar la transferencia.
+  await qc.cancelQueries({
+    predicate: (query) => {
+      const key = query.queryKey as unknown[]
+      return (
+        key[0] === baseKeys.establishment[0] &&
+        (key[2] === 'opciones-seguimiento' || key[2] === 'transferir-form-data')
+      )
+    },
+  })
 
   const loteIdMap = new Map<string, string>()
   const mermaIdMap = new Map<string, string>()
