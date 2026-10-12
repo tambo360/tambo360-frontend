@@ -40,8 +40,10 @@ export function useCreateDecrease() {
     },
 
     onSuccess: (_, variables) => {
-      if (!isCurrentlyOnline()) return
       queryClient.invalidateQueries({ queryKey: queryKeys.decrease.lists() })
+      queryClient.invalidateQueries({
+        queryKey: ['mermas', 'lote', variables.idLote],
+      })
       queryClient.invalidateQueries({
         queryKey: queryKeys.batch.detail(variables.idLote),
       })

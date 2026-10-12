@@ -36,8 +36,9 @@ export function useDeleteDecrease({ idLote }: DeleteDecreaseProps) {
     },
 
     onSuccess: () => {
-      if (!isCurrentlyOnline()) return
+      // Ver useCreateDecrease: siempre invalidar, incluida la tabla real.
       queryClient.invalidateQueries({ queryKey: queryKeys.decrease.lists() })
+      queryClient.invalidateQueries({ queryKey: ['mermas', 'lote', idLote] })
       queryClient.invalidateQueries({
         queryKey: queryKeys.batch.detail(idLote),
       })

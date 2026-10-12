@@ -44,8 +44,8 @@ export function useUpdateDecrease({ idLote }: UpdateDecreaseProps) {
     },
 
     onSuccess: () => {
-      if (!isCurrentlyOnline()) return
       queryClient.invalidateQueries({ queryKey: queryKeys.decrease.lists() })
+      queryClient.invalidateQueries({ queryKey: ['mermas', 'lote', idLote] })
       queryClient.invalidateQueries({
         queryKey: queryKeys.batch.detail(idLote),
       })

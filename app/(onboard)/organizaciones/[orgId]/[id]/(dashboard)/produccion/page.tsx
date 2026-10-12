@@ -58,6 +58,12 @@ import { useQueryClient } from '@tanstack/react-query'
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
+import { TipoRodeo } from '@/types/enums'
+
+const TIPO_RODEO: { value: TipoRodeo; label: string }[] = [
+  { value: TipoRodeo.BAJA_PRODUCCION, label: 'Baja Producción' },
+  { value: TipoRodeo.ALTA_PRODUCCION, label: 'Alta Producción' },
+]
 
 const Produccion: React.FC = () => {
   const queryClient = useQueryClient()
@@ -160,9 +166,9 @@ const Produccion: React.FC = () => {
   const isLocked = (batch: Lote) => Boolean((batch as any).estado)
 
   const getRodeoDisplay = (batch: Lote) => {
-    const b = batch as any
-    const directo = b.rodeo?.tipoRodeo || b.rodeo?.nombre
-    if (directo) return directo
+    const b = batch
+    const directo = TIPO_RODEO.find((t) => t.value === b.rodeo?.tipoRodeo)
+    if (directo) return directo.label
 
     if (b.cantAnimales && Number(b.cantAnimales) > 0) {
       return 'Rodeo único'

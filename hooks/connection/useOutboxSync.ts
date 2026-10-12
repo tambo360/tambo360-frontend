@@ -111,8 +111,11 @@ async function replayBatch(
   const resolveId = (id: string) => loteIdMap.get(id) ?? id
 
   if (op.type === 'create') {
-    if (!op.payload) return
-    const { data } = await createBatch(op.payload)
+    const payload = op.payload
+    if (!payload?.idLote) {
+      throw new Error('Lote sin idLote: el alta debe regenerarse')
+    }
+    const { data } = await createBatch({ ...payload, idLote: payload.idLote })
     const real = (data?.data ?? data) as {
       idLote?: string
       id?: string
@@ -240,6 +243,8 @@ async function drainScope(qc: QueryClient, scope: string) {
 
   // Aviso bloqueante (mínimo 5s en el overlay): solo si hay pendientes.
   useSyncStatus.getState().begin(unified.length)
+  await qc.cancelQueries({ queryKey: ['mermas'] })
+  await qc.cancelQueries({ queryKey: [...baseKeys.batch, 'filters'] })
 
   const loteIdMap = new Map<string, string>()
   const mermaIdMap = new Map<string, string>()

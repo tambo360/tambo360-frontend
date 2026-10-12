@@ -35,8 +35,9 @@ function patchBatchEnvelopes(
   idLote: string,
   fn: (mermas: Merma[]) => Merma[]
 ) {
-  // Listas paginadas
-  const entries = qc.getQueryCache().findAll({ queryKey: FILTERS_PREFIX })
+  const entries = qc
+    .getQueryCache()
+    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
   for (const entry of entries) {
     const envelope = entry.state.data as
       | { data?: { lotes?: Array<{ lote?: Lote } | Lote> } }

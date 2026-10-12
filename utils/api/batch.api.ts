@@ -1,7 +1,8 @@
 import { api } from '@/services/api'
 import { BatchData, BatchFilters } from '@/types/batch'
 
-export const createBatch = (dto: BatchData) => api.post('/lote', dto)
+export const createBatch = (dto: BatchData & { idLote: string }) =>
+  api.post('/lote', dto)
 
 export const updateBatch = (dto: BatchData, id: string) =>
   api.patch(`/lote/${id}`, dto)

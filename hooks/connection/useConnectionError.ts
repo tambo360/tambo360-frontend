@@ -53,7 +53,7 @@ export const useConnectionError = (
             pendingRetryRef.current = null
           } catch (err: any) {
             const serverMessage =
-              err?.response!.data?.message || 'Error inesperado'
+              err?.response?.data?.message ?? err?.message ?? 'Error inesperado'
 
             if (!navigator.onLine) {
               options?.closeParentDialog?.()

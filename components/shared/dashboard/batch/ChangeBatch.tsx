@@ -89,10 +89,7 @@ const ChangeBatch = ({
     tipoSeguimiento === TipoSeguimiento.RODEO ||
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
 
-  // Vacas seleccionables: solo las que NO están secas. Las ya seleccionadas
-  // se conservan visibles (si no, su input de litros desaparecería pero el
-  // dato seguiría en el form). Refleja las transferencias encoladas porque
-  // `animals` sale del caché optimista.
+  // Vacas seleccionables: solo las que NO están secas.
   const selectedIds = new Set(individualLote.fields.map((f) => f.idAnimal))
   const visibleAnimals = individualLote.animals.filter(
     (a) =>

@@ -1,11 +1,22 @@
-/**
- * Helpers offline-first para lotes.
- * El id temporal es un UUID v4 normal generado en `useCreateBatch`
- * (única fuente) cuando no hay conexión; se guarda en el payload del
- * outbox y se usa para la caché optimista, así el replay online reenvía
- * el mismo payload sin remapeos frágiles. Si un id es temporal o no
- * se sabe consultando la cola del outbox, no por prefijos.
- */
+// Genera un UUID v7
+export function randomLoteId(): string {
+  const randomBytes = (n: number): number[] => {
+    if (typeof crypto !== 'undefined' && 'getRandomValues' in crypto) {
+      return Array.from(crypto.getRandomValues(new Uint8Array(n)))
+    }
+    // Fallback
+    return Array.from({ length: n }, () => Math.floor(Math.random() * 256))
+  }
+  const hex = (b: number) => b.toString(16).padStart(2, '0')
+  const ts = Date.now().toString(16).padStart(12, '0').slice(-12)
+  const r = randomBytes(10).map(hex).join('')
+  return (
+    `${ts.slice(0, 8)}-${ts.slice(8, 12)}` +
+    `-7${r.slice(0, 3)}` +
+    `-${((parseInt(r.slice(3, 4), 16) & 0x3) | 0x8).toString(16)}${r.slice(4, 7)}` +
+    `-${r.slice(7, 19)}`
+  )
+}
 
 /** `orgId/estId` actuales desde el pathname (misma fuente que el interceptor). */
 export function currentScope(): string {
