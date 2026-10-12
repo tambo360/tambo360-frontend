@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Plus,
   Search,
@@ -54,6 +54,9 @@ import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
 import { useQueryClient } from '@tanstack/react-query'
+import { useBatchOutbox } from '@/stores/useBatchOutbox'
+import { currentScope } from '@/lib/offlineId'
+import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
 
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
@@ -102,9 +105,26 @@ const Produccion: React.FC = () => {
     useCreateDecrease()
   const { showErrorMessage } = useErrorMessage()
 
-  // Transformación de datos
-  const lotes = (data?.data?.lotes?.map((item: any) => item.lote) ||
-    []) as Lote[]
+  // Overlay offline: mientras la op `complete` siga encolada, el lote se
+  // muestra Completado aunque el caché diga otra cosa (recarga sin red o
+  // refetch stale). Al drenar, la op sale y el servidor manda lo real.
+  const batchOps = useBatchOutbox((s) => s.ops)
+  const scope = currentScope()
+
+  // Transformación de datos + overlay offline (todo dentro del memo para no
+  // invalidarlo en cada render con un array recién creado).
+  const lotes = useMemo(() => {
+    const base = (data?.data?.lotes?.map((item: any) => item.lote) ??
+      []) as Lote[]
+    if (!batchOps.some((o) => o.type === 'complete' && o.scope === scope))
+      return base
+    return base.map((lote) =>
+      hasPendingComplete(batchOps, scope, lote.idLote)
+        ? { ...lote, estado: true }
+        : lote
+    )
+  }, [batchOps, scope, data])
+
   const totalPaginas: number = data?.data?.totalPaginas ?? 1
 
   // Ubicación real de la base de datos

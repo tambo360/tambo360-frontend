@@ -47,6 +47,9 @@ import {
 } from '@tanstack/react-query'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
+import { useBatchOutbox } from '@/stores/useBatchOutbox'
+import { currentScope } from '@/lib/offlineId'
+import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
 
 interface LoteConDetalles extends Lote {
   observaciones?: string
@@ -97,6 +100,8 @@ const BatchDetailModal = ({
 }: BatchDetailModalProps) => {
   const queryClient = useQueryClient()
   const isOnline = useOnlineStatus()
+  const batchOps = useBatchOutbox((s) => s.ops)
+  const scope = currentScope()
 
   const { data: batchData, isLoading, error } = useBatch({ id: batchId })
   const { isLoading: configLoading } = useConfiguration()
@@ -235,7 +240,16 @@ const BatchDetailModal = ({
 
   /* ─── Datos ─── */
   const raw = (effectiveData as { data: unknown }).data as any
-  const batch: LoteConDetalles = (raw?.lote ?? raw) as LoteConDetalles
+  const rawBatch = (raw?.lote ?? raw) as LoteConDetalles
+  // Overlay offline: complete pendiente ⇒ Completado (aunque el caché diga
+  // otra cosa por recarga sin red o refetch stale). Ver tabla de producción.
+  const batch: LoteConDetalles = hasPendingComplete(
+    batchOps,
+    scope,
+    rawBatch.idLote ?? batchId
+  )
+    ? { ...rawBatch, estado: true }
+    : rawBatch
 
   const isLocked = Boolean(batch.estado)
   const isIncomplete = !isLocked

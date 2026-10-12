@@ -245,6 +245,9 @@ async function drainScope(qc: QueryClient, scope: string) {
   useSyncStatus.getState().begin(unified.length)
   await qc.cancelQueries({ queryKey: ['mermas'] })
   await qc.cancelQueries({ queryKey: [...baseKeys.batch, 'filters'] })
+  // Misma carrera para el detalle del lote al reconectar (el refetch
+  // automático pisaba el optimista antes de confirmar create/complete).
+  await qc.cancelQueries({ queryKey: baseKeys.batch })
   // Misma carrera para `opciones-seguimiento`: el refetch automático al
   // reconectar pisaba el optimista antes de confirmar la transferencia.
   await qc.cancelQueries({

@@ -37,7 +37,8 @@ export function useCompleteBatch() {
     },
 
     onSuccess: () => {
-      if (!isCurrentlyOnline()) return
+      // Siempre invalidar (online y offline): con `offlineFirst` es inocuo
+      // sin red y al reconectar dispara el fetch con el estado real.
       queryClient.invalidateQueries({
         queryKey: [...baseKeys.batch, 'filters'],
       })
