@@ -32,7 +32,11 @@ function forEachFiltersCache(
     envelope: ListEnvelope
   ) => ListEnvelope | undefined
 ) {
-  const entries = qc.getQueryCache().findAll({ queryKey: FILTERS_PREFIX })
+  // Prefijo: matchea `['batch', 'filters', filtros]`. `exact: false` explícito
+  // para que el default nunca decida si el parche optimista aplica.
+  const entries = qc
+    .getQueryCache()
+    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
   for (const entry of entries) {
     const current = entry.state.data as ListEnvelope | undefined
     if (!current?.data?.lotes) continue
@@ -160,7 +164,9 @@ export function buildOptimisticLote(
 /** Próximo número de lote provisional (máximo local + 1). */
 export function nextProvisionalNumero(qc: QueryClient): number {
   let max = 0
-  const entries = qc.getQueryCache().findAll({ queryKey: FILTERS_PREFIX })
+  const entries = qc
+    .getQueryCache()
+    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
   for (const entry of entries) {
     const current = entry.state.data as ListEnvelope | undefined
     for (const item of current?.data?.lotes ?? []) {
@@ -319,7 +325,9 @@ export function findCachedLote(
   qc: QueryClient,
   idLote: string
 ): Lote | undefined {
-  const entries = qc.getQueryCache().findAll({ queryKey: FILTERS_PREFIX })
+  const entries = qc
+    .getQueryCache()
+    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
   for (const entry of entries) {
     const current = entry.state.data as ListEnvelope | undefined
     for (const item of current?.data?.lotes ?? []) {

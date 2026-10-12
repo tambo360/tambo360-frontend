@@ -4,7 +4,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError } from 'axios'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentScope, randomLoteId } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import {
   applyOptimisticCreate,
@@ -26,14 +26,19 @@ function invalidateAll(queryClient: ReturnType<typeof useQueryClient>) {
 
 export function useCreateBatch() {
   const queryClient = useQueryClient()
-  return useMutation<any, AxiosError<{ message: string }>, BatchData>({
+  return useMutation<
+    any,
+    AxiosError<{ message: string }>,
+    BatchData & { idLote?: string }
+  >({
     networkMode: 'always',
-    mutationFn: async (values: BatchData) => {
+    mutationFn: async (values: BatchData & { idLote?: string }) => {
+      const idLote = values.idLote ?? randomLoteId()
+      const payload = { ...values, idLote }
+
       // offline
       if (!isCurrentlyOnline()) {
         const scope = currentScope()
-        const idLote = crypto.randomUUID()
-        const payload = { ...values, idLote }
         const lote = buildOptimisticLote(
           queryClient,
           payload,
@@ -44,8 +49,7 @@ export function useCreateBatch() {
 
         return { idLote, offline: true }
       }
-
-      const { data } = await createBatch(values)
+      const { data } = await createBatch(payload)
       return data.data
     },
 

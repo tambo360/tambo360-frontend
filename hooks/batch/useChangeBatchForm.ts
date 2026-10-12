@@ -13,6 +13,7 @@ import { useConnectionError } from '@/hooks/connection/useConnectionError'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useOpcionesSeguimiento } from '@/hooks/establishment/useOpcionesSeguimiento'
 import { RodeoOpcion } from '@/utils/api/establishment/configuration.api'
+import { randomLoteId } from '@/lib/offlineId'
 
 export interface RodeoOption {
   idRodeo: string
@@ -358,8 +359,9 @@ export function useChangeBatchForm({
       }
 
       // RODEO y RODEO_UNICO llevan el mismo payload; INDIVIDUAL solo animales
-      const payload: any =
-        tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
+      const payload: any = {
+        idLote: randomLoteId(),
+        ...(tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
           ? {
               ...base,
               animales: data.animales.map((a: any) => ({
@@ -367,7 +369,8 @@ export function useChangeBatchForm({
                 litros: Number(a.litros),
               })),
             }
-          : { ...base, idRodeo: data.idRodeo }
+          : { ...base, idRodeo: data.idRodeo }),
+      }
 
       try {
         const created = await mutateAsync(payload)
