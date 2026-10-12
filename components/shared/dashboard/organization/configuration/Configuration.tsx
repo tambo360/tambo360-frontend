@@ -841,9 +841,9 @@ const Configuration = () => {
                             {
                               codigo: '',
                               nombre: '',
-                              raza: '',
-                              categoria: '',
-                              estado: '',
+                              raza: RazasVacas.HOLANDO_ARGENTINO,
+                              categoria: CategoriaAnimal.ORDENE,
+                              estado: EstadoAnimal.SANO,
                             },
                           ])
                         }}
