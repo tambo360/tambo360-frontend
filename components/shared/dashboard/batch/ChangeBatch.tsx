@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,16 @@ import { Lote } from '@/types/batch'
 import { TipoDestino, TipoSeguimiento } from '@/types/enums'
 import { useChangeBatchForm } from '@/hooks/batch/useChangeBatchForm'
 import { ConnectionErrorModal } from '@/components/ConnectionErrorModal'
-import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import {
+  TransferModal,
+  type TransferSuccessResult,
+} from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { refreshAnimalCategoria } from '@/hooks/transfer/offlineTransferCache'
+import { useTransferOutbox } from '@/stores/useTransferOutbox'
+import { currentScope } from '@/lib/offlineId'
+import type { TransferAnimalPayload } from '@/types/transfer'
+import { useQueryClient } from '@tanstack/react-query'
+import { baseKeys } from '@/utils/queryKeys'
 import { blockNegativeKeys } from '../organization/configuration/RodeoCategoriaCard'
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -89,13 +99,59 @@ const ChangeBatch = ({
     tipoSeguimiento === TipoSeguimiento.RODEO ||
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
 
+  const queryClient = useQueryClient()
+
+  // Overlay offline: las transferencias encoladas mandan sobre el caché.
+  const pendingTransfers = useTransferOutbox((s) => s.ops)
+  const scope = currentScope()
+  const animalesConEstado = useMemo(() => {
+    const byAnimal = new Map<string, { destino: string; createdAt: number }>()
+    for (const op of pendingTransfers) {
+      if (op.scope !== scope) continue
+      const payload = op.payload as unknown as TransferAnimalPayload
+      if (payload?.tipoSeguimiento !== 'INDIVIDUAL') continue
+      const id = payload.animal?.id
+      if (!id || !payload.destino) continue
+      const prev = byAnimal.get(id)
+      if (!prev || op.createdAt >= prev.createdAt) {
+        byAnimal.set(id, { destino: payload.destino, createdAt: op.createdAt })
+      }
+    }
+    if (byAnimal.size === 0) return individualLote.animals
+    return individualLote.animals.map((a) => {
+      const hit = byAnimal.get(a.idAnimal)
+      return hit ? { ...a, categoria: hit.destino } : a
+    })
+  }, [pendingTransfers, scope, individualLote.animals])
+
   // Vacas seleccionables: solo las que NO están secas.
-  const selectedIds = new Set(individualLote.fields.map((f) => f.idAnimal))
-  const visibleAnimals = individualLote.animals.filter(
-    (a) =>
-      (a.categoria ?? '').toUpperCase() !== 'SECAS' ||
-      selectedIds.has(a.idAnimal)
+  const visibleAnimals = animalesConEstado.filter(
+    (a) => (a.categoria ?? '').toUpperCase() !== 'SECAS'
   )
+
+  // Cada transferencia actualiza `opciones-seguimiento`
+  const handleTransferSuccess = (result?: TransferSuccessResult) => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey as unknown[]
+        return (
+          key[0] === baseKeys.establishment[0] &&
+          key[2] === 'opciones-seguimiento'
+        )
+      },
+    })
+    if (!result?.animalId || !result?.destino) return
+    refreshAnimalCategoria(queryClient, result.animalId, result.destino)
+    // Al pasar a SECAS nunca quedan seleccionadas: si lo estaba, se quita.
+    // Al volver a ORDENE solo reaparece en el listado; la selección la decide
+    // el usuario tildando manualmente.
+    if (
+      result.destino.toUpperCase() === 'SECAS' &&
+      individualLote.isAnimalSelected(result.animalId)
+    ) {
+      individualLote.toggleAnimal(result.animalId)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
@@ -649,8 +705,9 @@ const ChangeBatch = ({
         open={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         tipoSeguimiento={TipoSeguimiento.INDIVIDUAL}
-        animales={individualLote.animals}
+        animales={animalesConEstado}
         preselectedIds={individualLote.fields.map((f) => f.idAnimal)}
+        onSuccess={handleTransferSuccess}
       />
     </Dialog>
   )

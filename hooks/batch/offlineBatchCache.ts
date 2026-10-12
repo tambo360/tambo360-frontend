@@ -280,17 +280,73 @@ export function removeOptimistic(qc: QueryClient, id: string) {
 }
 
 export function markCompleteOptimistic(qc: QueryClient, id: string) {
-  forEachFiltersCache(qc, (_key, envelope) => ({
-    ...envelope,
-    data: {
-      ...envelope.data,
-      lotes: (envelope.data?.lotes ?? []).map((item) => {
-        const lote = readLote(item)
-        if (lote.idLote !== id) return item
-        return { ...(item as object), lote: { ...lote, estado: true } }
-      }),
-    },
-  }))
+  let touched = false
+  forEachFiltersCache(qc, (_key, envelope) => {
+    const lotes = envelope.data?.lotes ?? []
+    if (lotes.some((item) => readLote(item).idLote === id)) touched = true
+    return {
+      ...envelope,
+      data: {
+        ...envelope.data,
+        lotes: lotes.map((item) => {
+          const lote = readLote(item)
+          if (lote.idLote !== id) return item
+          return { ...(item as object), lote: { ...lote, estado: true } }
+        }),
+      },
+    }
+  })
+  // El modal de detalle lee `batch.detail(id)`: sin este parche seguiría
+  // "Incompleto" offline aunque la tabla ya muestre Completado.
+  qc.setQueryData(queryKeys.batch.detail(id), (prev: unknown) => {
+    if (!prev || typeof prev !== 'object') return prev
+    const holder = (prev as { data?: unknown }).data
+    if (!holder || typeof holder !== 'object') return prev
+    if ((holder as { lote?: Lote }).lote) {
+      const lote = (holder as { lote: Lote }).lote
+      if (lote.idLote !== id) return prev
+      touched = true
+      return {
+        ...(prev as object),
+        data: { ...(holder as object), lote: { ...lote, estado: true } },
+      }
+    }
+    if ((holder as Lote).idLote) {
+      if ((holder as Lote).idLote !== id) return prev
+      touched = true
+      return {
+        ...(prev as object),
+        data: { ...(holder as Lote), estado: true },
+      }
+    }
+    return prev
+  })
+  if (
+    !touched &&
+    typeof process !== 'undefined' &&
+    process.env.NODE_ENV !== 'production'
+  ) {
+    console.warn(
+      `[offline] completar sin efecto sobre '${id}': ` +
+        'lote no encontrado en listas ni detalle cacheados.'
+    )
+  }
+}
+
+/**
+ * Overlay de completados pendientes: mientras la op `complete` siga encolada,
+ * el lote se muestra con `estado: true` aunque el caché diga otra cosa
+ * (recarga offline, refetch stale). Al drenar, la op sale y el servidor manda
+ * lo real. Handoff sin parpadeo.
+ */
+export function hasPendingComplete(
+  ops: Array<{ type: string; scope: string; targetId?: string | null }>,
+  scope: string,
+  idLote: string
+): boolean {
+  return ops.some(
+    (o) => o.type === 'complete' && o.scope === scope && o.targetId === idLote
+  )
 }
 
 /** Tras sincronizar un create: reemplaza el item temporal por el real. */
