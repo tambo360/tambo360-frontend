@@ -6,7 +6,7 @@ const NotFound = () => {
     <div className="flex flex-col gap-6 items-center justify-center h-screen w-full">
       <div className="flex flex-col items-center justify-center">
         <img
-          src="/logos/isotipo_tambo 1.png"
+          src="/logos/isotipo_tambo_1.png"
           alt="Not Found"
           className="w-64"
         />

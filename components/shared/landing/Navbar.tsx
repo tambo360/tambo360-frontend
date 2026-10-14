@@ -29,7 +29,7 @@ const Navbar = () => {
           className="flex items-center text-xl font-bold tracking-tight"
         >
           <img
-            src="/logos/isotipo_tambo 1.png"
+            src="/logos/isotipo_tambo_1.png"
             alt="Logo"
             className="size-12"
           />
@@ -89,7 +89,7 @@ const Navbar = () => {
                 className="flex items-center gap-2 text-xl font-bold tracking-tight mb-4"
               >
                 <img
-                  src="/logos/isotipo_tambo 1.png"
+                  src="/logos/isotipo_tambo_1.png"
                   alt="Logo"
                   className="size-10"
                 />
