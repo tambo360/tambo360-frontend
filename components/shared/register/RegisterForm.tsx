@@ -98,11 +98,11 @@ const RegisterForm = () => {
   const nombreField = register('nombre')
 
   return (
-    <CardContent className="px-0 flex-1">
+    <CardContent className="flex flex-1 flex-col px-0">
       {step === 1 ? (
         <form
           onSubmit={onSubmit}
-          className="flex flex-col h-full justify-between gap-4 py-5"
+          className="flex flex-1 flex-col justify-between gap-4 py-5"
           noValidate
           data-testid="register-form"
         >
@@ -295,7 +295,7 @@ const RegisterForm = () => {
         </form>
       ) : (
         <section
-          className="h-full min-h-[40vh] flex flex-col items-center justify-center gap-6"
+          className="flex flex-1 flex-col items-center justify-center gap-6 py-5"
           data-testid="verify-email-step"
         >
           <h2 className="text-4xl font-bold tracking-tight text-[#0B1001]">

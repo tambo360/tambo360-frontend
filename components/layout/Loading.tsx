@@ -4,14 +4,14 @@ const Loading = () => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
       <div className="relative w-48 h-48 flex items-center justify-center">
         <img
-          src="/logos/isotipo_tambo 1.png"
+          src="/logos/isotipo_tambo_1.png"
           alt=""
           className="absolute inset-0 w-full h-full object-contain"
           style={{ filter: 'grayscale(100%) opacity(0.15)' }}
         />
 
         <img
-          src="/logos/isotipo_tambo 1.png"
+          src="/logos/isotipo_tambo_1.png"
           alt="Cargando..."
           className="absolute inset-0 w-full h-full object-contain"
           style={{

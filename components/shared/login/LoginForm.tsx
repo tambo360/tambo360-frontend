@@ -78,10 +78,10 @@ const LoginForm: React.FC = () => {
   })
 
   return (
-    <CardContent className="px-0 flex-1">
+    <CardContent className="flex flex-1 flex-col px-0">
       <form
         onSubmit={onSubmit}
-        className="flex flex-col h-full justify-between gap-4 py-5"
+        className="flex flex-1 flex-col justify-between gap-4 py-5"
         noValidate
         autoComplete="on"
         data-testid="login-form"
