@@ -20,9 +20,11 @@ const Register: React.FC = () => {
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
+
       <div className="absolute inset-0 bg-black/30 z-0" />
-      <div className="w-full h-screen flex items-center justify-center sm:items-start sm:justify-end p-4 z-10">
-        <Card className="w-full sm:h-full sm:max-w-125 border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative">
+
+      <div className="w-full min-h-screen flex items-center justify-center md:items-start md:justify-end p-2 sm:p-4 z-10">
+        <Card className="w-full md:max-w-125 max-h-[95vh] md:max-h-[95vh] border-none shadow-2xl py-0 px-4 sm:px-6 bg-white/95 backdrop-blur-md rounded-xl relative flex flex-col overflow-hidden">
           <RegisterForm />
         </Card>
       </div>

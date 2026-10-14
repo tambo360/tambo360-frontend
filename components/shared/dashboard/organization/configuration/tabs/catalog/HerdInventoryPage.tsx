@@ -1,132 +1,232 @@
 'use client'
-import React, { useState } from 'react'
-import { Plus, ArrowRight, Edit3 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
 
-const HerdInventoryPage = () => {
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false)
+import {
+  ArrowRight,
+  ArrowRightLeft,
+  ArrowUpRight,
+  Droplet,
+  Loader2,
+  Minus,
+  Pencil,
+  Plus,
+  Sun,
+  UserPlus,
+} from 'lucide-react'
+import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
+import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
+import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { useInventarioRodeos } from '@/hooks/establishment/useInventarioRodeos'
+
+type TipoVisual = 'alto' | 'bajo' | 'secas'
+
+function getTipoVisual(value?: string): TipoVisual {
+  const v = (value || '').toUpperCase()
+  if (v.includes('SECA') || v.includes('REPOSO')) return 'secas'
+  if (v.includes('BAJ') || v.includes('RECRIA')) return 'bajo'
+  return 'alto'
+}
+
+const SUBTITULOS: Record<TipoVisual, string> = {
+  alto: 'Producción Intensiva',
+  bajo: 'Recria y Mantenimiento',
+  secas: 'Período de Reposo',
+}
+
+export default function HerdInventoryPage() {
+  const {
+    loading,
+    rodeos,
+    refetch,
+    isAltaOpen,
+    isBajaOpen,
+    isTransferOpen,
+    motivoAlta,
+    motivoBaja,
+    abrirAlta,
+    abrirBaja,
+    cerrarAlta,
+    cerrarBaja,
+    abrirTransferencia,
+    cerrarTransferencia,
+  } = useInventarioRodeos()
+
+  if (loading) {
+    return (
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#659711]" />
+      </div>
+    )
+  }
 
   return (
-    <div className="flex flex-col gap-6 w-full animate-in fade-in duration-300">
-      {/* Cabecera de la sección */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-            Rodeo Único
-          </h1>
-        </div>
-
-        <Button className="bg-[#2E7D53] hover:bg-[#236342] text-white font-semibold rounded-xl h-11 px-5 shadow-sm gap-2 w-fit">
-          <Plus className="w-4 h-4" /> Registrar Alta
-        </Button>
+    <div className="flex flex-col gap-8 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold tracking-tight text-slate-900">
+          Inventario de Rodeos
+        </h1>
+        <button
+          onClick={() => abrirAlta()}
+          className="flex items-center gap-2 rounded-lg bg-[#659711] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#537d0d]"
+        >
+          <UserPlus size={18} />
+          <span>Registrar Alta</span>
+        </button>
       </div>
 
-      {/* Tarjetas de gestión de inventario */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Tarjeta: Rodeo Único */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-4 relative">
-          <div className="flex items-start justify-between">
-            <div className="w-7 h-7 bg-emerald-50 rounded-lg flex items-center justify-center text-[#2E7D53]">
-              <ArrowRight className="w-4 h-4 -rotate-45" />
-            </div>
-            <button className="text-gray-400 hover:text-gray-600 transition-colors">
-              <Edit3 className="w-4 h-4" />
-            </button>
+      {/* Tarjetas de rodeos */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {rodeos.length === 0 && (
+          <div className="col-span-full rounded-xl bg-white p-6 text-center text-sm text-slate-400 shadow-md">
+            No hay rodeos cargados todavía.
           </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-bold text-gray-900">Rodeo Único</h3>
-            <p className="text-xs text-gray-400 font-medium">
-              Producción Intensiva
-            </p>
-          </div>
-          <div>
-            <span className="text-2xl font-extrabold text-[#2E7D53]">142</span>
-            <span className="text-xs font-bold text-gray-500 ml-1.5 uppercase">
-              cabezas
-            </span>
-          </div>
-        </div>
+        )}
 
-        {/* Tarjeta: Registro de Altas */}
-        <div className="bg-[#E8F5E9]/60 p-6 rounded-3xl border border-emerald-100 shadow-sm space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-white rounded-lg flex items-center justify-center text-[#2E7D53] shadow-xs">
-              <Plus className="w-4 h-4" />
+        {rodeos.map((rodeo: any) => {
+          const tipo = getTipoVisual(rodeo.value)
+          return (
+            <div
+              key={rodeo.idRodeo}
+              className="relative flex min-h-[170px] flex-col justify-between rounded-xl bg-white p-6 shadow-md"
+            >
+              <div className="flex items-start justify-between">
+                {tipo === 'alto' && (
+                  <ArrowUpRight className="w-4 h-4 text-[#659711]" />
+                )}
+                {tipo === 'bajo' && (
+                  <Droplet className="w-4 h-4 text-[#2E8B57] fill-[#2E8B57]" />
+                )}
+                {tipo === 'secas' && <Sun className="w-4 h-4 text-[#2E8B57]" />}
+
+                <button
+                  type="button"
+                  className="text-slate-800 transition-colors hover:text-slate-600"
+                  aria-label="Editar rodeo"
+                >
+                  <Pencil size={16} />
+                </button>
+              </div>
+
+              <div>
+                <h3 className="text-base font-bold leading-tight text-slate-900">
+                  {rodeo.label}
+                </h3>
+                <p className="mt-0.5 text-[11px] text-slate-700">
+                  {SUBTITULOS[tipo]}
+                </p>
+              </div>
+
+              <div className="flex items-baseline gap-3">
+                <span className="text-xl font-bold text-[#659711]">
+                  {rodeo.cantVacas ?? 0}
+                </span>
+                <span className="text-xs text-slate-800">cabezas</span>
+              </div>
             </div>
-            <h3 className="text-sm font-bold text-gray-900">
-              Registro de Altas
-            </h3>
+          )
+        })}
+      </div>
+
+      {/* Accesos directos */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {/* Altas */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#D0E4D8] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#2E8B57] text-[#2E8B57]">
+              <Plus size={10} strokeWidth={3} />
+            </div>
+            <span>Registro de Altas</span>
           </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 bg-white rounded-2xl shadow-xs cursor-pointer hover:bg-gray-50 transition-colors">
-              <span className="text-xs font-semibold text-gray-800">
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => abrirAlta('INGRESO_NACIMIENTO')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#0A5C36]">
                 Nacimientos
               </span>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-white rounded-2xl shadow-xs cursor-pointer hover:bg-gray-50 transition-colors">
-              <span className="text-xs font-semibold text-gray-800">
+              <ArrowRight size={14} className="text-[#0A5C36]" />
+            </button>
+            <button
+              onClick={() => abrirAlta('INGRESO_COMPRA')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#0A5C36]">
                 Compras Externas
               </span>
-              <ArrowRight className="w-4 h-4 text-gray-400" />
-            </div>
+              <ArrowRight size={14} className="text-[#0A5C36]" />
+            </button>
           </div>
         </div>
 
-        {/* Tarjeta: Transferencia de Rodeo */}
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col justify-between space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 bg-gray-50 rounded-lg flex items-center justify-center text-gray-600">
-              <ArrowRight className="w-4 h-4" />
+        {/* Bajas */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#E53935] text-[#E53935]">
+              <Minus size={10} strokeWidth={3} />
             </div>
-            <h3 className="text-sm font-bold text-gray-900">
-              Transferencia de Rodeo
-            </h3>
+            <span>Registro de Bajas</span>
           </div>
-          <p className="text-xs text-gray-500">
-            Mueve animales de un rodeo a otro de manera ágil.
-          </p>
-          <Button
-            onClick={() => setIsTransferModalOpen(true)}
-            className="bg-[#2E7D53] hover:bg-[#236342] text-white font-semibold rounded-2xl h-11 w-full shadow-sm"
-          >
-            Nueva Transferencia
-          </Button>
+          <div className="flex flex-col gap-2.5">
+            <button
+              onClick={() => abrirBaja('EGRESO_VENTA')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#E53935]">
+                Venta de Animales
+              </span>
+              <ArrowRight size={14} className="text-[#E53935]" />
+            </button>
+            <button
+              onClick={() => abrirBaja('EGRESO_MUERTE')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#E53935]">
+                Otras Causas
+              </span>
+              <ArrowRight size={14} className="text-[#E53935]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Transferencia */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#F5A623] text-[#F5A623]">
+              <ArrowRightLeft size={10} strokeWidth={2.5} />
+            </div>
+            <span>Transferencia de Rodeo</span>
+          </div>
+          <div className="mt-2">
+            <button
+              onClick={abrirTransferencia}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#659711] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#537d0d]"
+            >
+              <span>Nueva Transferencia</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Tarjeta inferior: Registro de Bajas */}
-      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4 max-w-md">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-rose-50 rounded-lg flex items-center justify-center text-rose-600">
-            <span className="text-xs font-bold">-</span>
-          </div>
-          <h3 className="text-sm font-bold text-gray-900">Registro de Bajas</h3>
-        </div>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100/50 transition-colors">
-            <span className="text-xs font-semibold text-rose-600">
-              Venta de Animales
-            </span>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50/50 rounded-2xl border border-gray-100 cursor-pointer hover:bg-gray-100/50 transition-colors">
-            <span className="text-xs font-semibold text-rose-600">
-              Otras Causas
-            </span>
-            <ArrowRight className="w-4 h-4 text-gray-400" />
-          </div>
-        </div>
-      </div>
-
-      {/* Modal de Nueva Transferencia */}
+      {/* Modales */}
+      <AltaModal
+        open={isAltaOpen}
+        onClose={cerrarAlta}
+        onSuccess={refetch}
+        motivoInicial={motivoAlta}
+      />
+      <BajaModal
+        open={isBajaOpen}
+        onClose={cerrarBaja}
+        onSuccess={refetch}
+        motivoInicial={motivoBaja}
+      />
       <TransferModal
-        open={isTransferModalOpen}
-        onClose={() => setIsTransferModalOpen(false)}
+        open={isTransferOpen}
+        onClose={cerrarTransferencia}
+        onSuccess={refetch}
       />
     </div>
   )
 }
-
-export default HerdInventoryPage

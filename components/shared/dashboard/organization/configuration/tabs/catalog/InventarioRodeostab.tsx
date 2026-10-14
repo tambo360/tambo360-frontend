@@ -1,143 +1,162 @@
 'use client'
 
-import { useState } from 'react'
 import {
   Pencil,
   ArrowRight,
+  ArrowUpRight,
   Plus,
   Minus,
   UserPlus,
-  ArrowLeft,
-  ChevronDown,
-  TrendingUp,
-  Droplet,
   Sun,
   ArrowRightLeft,
+  Loader2,
 } from 'lucide-react'
+import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
+import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
+import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { TransferenciasTable } from '@/components/shared/dashboard/organization/configuration/TransferenciasTable'
+import { useInventarioRodeos } from '@/hooks/establishment/useInventarioRodeos'
 
-// ==========================================
-// 1. FUENTES DE DATOS (MOCKS)
-// ==========================================
-const RODEOS = [
-  {
-    id: 'alto',
-    nombre: 'Rodeo Alto',
-    subtitulo: 'Producción Intensiva',
-    cabezas: 142,
-    icon: <TrendingUp className="w-5 h-5 text-[#659711]" />,
-  },
-  {
-    id: 'bajo',
-    nombre: 'Rodeo Bajo',
-    subtitulo: 'Recría y Mantenimiento',
-    cabezas: 89,
-    icon: <Droplet className="w-5 h-5 text-[#659711] fill-[#659711]" />,
-  },
-  {
-    id: 'secas',
-    nombre: 'Rodeo Secas',
-    subtitulo: 'Período de Reposo',
-    cabezas: 34,
-    icon: <Sun className="w-5 h-5 text-[#659711]" />,
-  },
-]
+function esSeca(value?: string) {
+  const v = (value || '').toUpperCase()
+  return v.includes('SECA') || v.includes('REPOSO')
+}
 
-// ==========================================
-// 2. COMPONENTE EXPORTADO PRINCIPAL
-// ==========================================
+function getRodeoIcon(value?: string) {
+  return esSeca(value) ? (
+    <Sun className="w-4 h-4 text-[#659711]" />
+  ) : (
+    <ArrowUpRight className="w-4 h-4 text-[#659711]" />
+  )
+}
+
+function getRodeoSubtitulo(value?: string) {
+  return esSeca(value) ? 'Período de Reposo' : 'Producción Intensiva'
+}
+
 export default function InventarioRodeosTab() {
-  const [vistaActiva, setVistaActiva] = useState<
-    'inventario' | 'plantel' | 'transferencia'
-  >('inventario')
+  const {
+    loading,
+    rodeos,
+    promedioLitros,
+    transferencias,
+    refetch,
+    isAltaOpen,
+    isBajaOpen,
+    isTransferOpen,
+    motivoAlta,
+    motivoBaja,
+    abrirAlta,
+    abrirBaja,
+    cerrarAlta,
+    cerrarBaja,
+    abrirTransferencia,
+    cerrarTransferencia,
+  } = useInventarioRodeos()
 
-  // Renderizado condicional de vistas secundarias
-  if (vistaActiva === 'plantel') {
+  if (loading) {
     return (
-      <PlantelIndividualView onVolver={() => setVistaActiva('inventario')} />
-    )
-  }
-
-  if (vistaActiva === 'transferencia') {
-    return (
-      <NuevaTransferenciaView onVolver={() => setVistaActiva('inventario')} />
+      <div className="flex h-64 items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-[#659711]" />
+      </div>
     )
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
-      {/* 1. Encabezado de la sección */}
+    <div className="flex flex-col gap-8 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-slate-900 tracking-tight">
-          Inventario de Rodeos
+          Rodeo Único
         </h1>
-        <button className="flex items-center gap-2 px-5 py-2.5 text-xs font-bold text-white bg-[#659711] hover:bg-[#537d0d] rounded-xl transition-all shadow-sm">
-          <UserPlus size={16} />
+        <button
+          onClick={() => abrirAlta()}
+          className="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-white bg-[#659711] hover:bg-[#537d0d] rounded-lg transition-all shadow-sm"
+        >
+          <UserPlus size={18} />
           <span>Registrar Alta</span>
         </button>
       </div>
 
-      {/* 2. Tarjetas de Rodeos (3 Columnas) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {RODEOS.map((rodeo) => (
-          <div
-            key={rodeo.id}
-            onClick={() => setVistaActiva('plantel')}
-            className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm relative hover:shadow-md transition-all cursor-pointer flex flex-col justify-between min-h-[160px]"
-          >
-            {/* Botón Editar */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation()
-              }}
-              className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 transition-colors"
-            >
-              <Pencil size={15} />
-            </button>
+      {/* Tarjetas de rodeos + promedio */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {rodeos.length === 0 && (
+          <div className="md:col-span-2 bg-white rounded-xl p-6 text-center text-sm text-slate-400 shadow-md">
+            No hay rodeos cargados todavía.
+          </div>
+        )}
 
-            {/* Cabecera de Tarjeta */}
-            <div className="flex flex-col gap-3">
-              <div>{rodeo.icon}</div>
-              <div>
-                <h3 className="font-bold text-slate-900 text-base leading-tight">
-                  {rodeo.nombre}
-                </h3>
-                <p className="text-xs text-slate-400 font-medium mt-0.5">
-                  {rodeo.subtitulo}
-                </p>
-              </div>
+        {rodeos.map((rodeo: any) => (
+          <div
+            key={rodeo.idRodeo}
+            className="relative flex min-h-[170px] flex-col justify-between rounded-xl bg-white p-6 shadow-md"
+          >
+            <div className="flex items-start justify-between">
+              {getRodeoIcon(rodeo.value)}
+              <button
+                type="button"
+                className="text-slate-800 hover:text-slate-600 transition-colors"
+                aria-label="Editar rodeo"
+              >
+                <Pencil size={16} />
+              </button>
             </div>
 
-            {/* Conteo de cabezas */}
-            <div className="flex items-baseline gap-2 mt-4">
-              <span className="text-2xl font-extrabold text-[#659711] tracking-tight">
-                {rodeo.cabezas}
+            <div>
+              <h3 className="font-bold text-slate-900 text-base leading-tight">
+                {rodeo.label}
+              </h3>
+              <p className="text-[11px] text-slate-700 mt-0.5">
+                {getRodeoSubtitulo(rodeo.value)}
+              </p>
+            </div>
+
+            <div className="flex items-baseline gap-3">
+              <span className="text-xl font-bold text-[#659711]">
+                {rodeo.cantVacas}
               </span>
-              <span className="text-xs font-bold text-slate-800">cabezas</span>
+              <span className="text-xs text-slate-800">cabezas</span>
             </div>
           </div>
         ))}
+
+        {/* Prod. Promedio/Vaca */}
+        <div className="flex min-h-[110px] flex-col justify-between self-start rounded-xl bg-[#DDECE2] p-5 shadow-md">
+          <h3 className="font-bold text-slate-900 text-sm">
+            Prod. Promedio/Vaca
+          </h3>
+          <span className="text-2xl font-bold text-[#2E8B57] my-2">
+            {promedioLitros !== null ? `${promedioLitros.toFixed(1)}L` : '—'}
+          </span>
+          <p className="text-xs text-slate-800">Vacas en ordeñe</p>
+        </div>
       </div>
 
-      {/* 3. Sección Accesos Directos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Registro de Altas */}
-        <div className="bg-[#DDECE2] rounded-2xl p-5 flex flex-col justify-between border border-[#CCE2D2]">
-          <div className="flex items-center gap-2 text-[#0A5C36] font-bold text-sm mb-4">
-            <div className="flex items-center justify-center w-5 h-5 rounded border border-[#0A5C36] text-[#0A5C36]">
-              <Plus size={12} strokeWidth={3} />
+      {/* Accesos directos */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Altas */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#D0E4D8] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#2E8B57] text-[#2E8B57]">
+              <Plus size={10} strokeWidth={3} />
             </div>
             <span>Registro de Altas</span>
           </div>
-
           <div className="flex flex-col gap-2.5">
-            <button className="flex items-center justify-between bg-white px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-sm text-left">
-              <span className="font-bold text-[#0A5C36] text-xs">
+            <button
+              onClick={() => abrirAlta('INGRESO_NACIMIENTO')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#0A5C36]">
                 Nacimientos
               </span>
               <ArrowRight size={14} className="text-[#0A5C36]" />
             </button>
-            <button className="flex items-center justify-between bg-white px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-sm text-left">
-              <span className="font-bold text-[#0A5C36] text-xs">
+            <button
+              onClick={() => abrirAlta('INGRESO_COMPRA')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#0A5C36]">
                 Compras Externas
               </span>
               <ArrowRight size={14} className="text-[#0A5C36]" />
@@ -145,44 +164,48 @@ export default function InventarioRodeosTab() {
           </div>
         </div>
 
-        {/* Registro de Bajas */}
-        <div className="bg-[#EBEBEB] rounded-2xl p-5 flex flex-col justify-between border border-[#E0E0E0]">
-          <div className="flex items-center gap-2 text-[#D32F2F] font-bold text-sm mb-4">
-            <div className="flex items-center justify-center w-5 h-5 rounded border border-[#D32F2F] text-[#D32F2F]">
-              <Minus size={12} strokeWidth={3} />
+        {/* Bajas */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#E53935] text-[#E53935]">
+              <Minus size={10} strokeWidth={3} />
             </div>
-            <span className="text-slate-900">Registro de Bajas</span>
+            <span>Registro de Bajas</span>
           </div>
-
           <div className="flex flex-col gap-2.5">
-            <button className="flex items-center justify-between bg-white px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-sm text-left">
-              <span className="font-bold text-[#D32F2F] text-xs">
+            <button
+              onClick={() => abrirBaja('EGRESO_VENTA')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#E53935]">
                 Venta de Animales
               </span>
-              <ArrowRight size={14} className="text-[#D32F2F]" />
+              <ArrowRight size={14} className="text-[#E53935]" />
             </button>
-            <button className="flex items-center justify-between bg-white px-4 py-3 rounded-xl hover:bg-slate-50 transition-colors shadow-sm text-left">
-              <span className="font-bold text-[#D32F2F] text-xs">
+            <button
+              onClick={() => abrirBaja('EGRESO_MUERTE')}
+              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
+            >
+              <span className="text-xs font-bold text-[#E53935]">
                 Otras Causas
               </span>
-              <ArrowRight size={14} className="text-[#D32F2F]" />
+              <ArrowRight size={14} className="text-[#E53935]" />
             </button>
           </div>
         </div>
 
-        {/* Transferencia de Rodeo */}
-        <div className="bg-[#EBEBEB] rounded-2xl p-5 flex flex-col justify-between border border-[#E0E0E0]">
-          <div className="flex items-center gap-2 text-slate-800 font-bold text-sm mb-4">
-            <div className="flex items-center justify-center w-5 h-5 rounded border border-slate-400 text-slate-600">
-              <ArrowRightLeft size={12} strokeWidth={2.5} />
+        {/* Transferencia */}
+        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
+          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#F5A623] text-[#F5A623]">
+              <ArrowRightLeft size={10} strokeWidth={2.5} />
             </div>
             <span>Transferencia de Rodeo</span>
           </div>
-
-          <div className="mt-auto">
+          <div className="mt-2">
             <button
-              onClick={() => setVistaActiva('transferencia')}
-              className="w-full flex items-center justify-center gap-2 py-3 px-4 text-xs font-bold text-white bg-[#659711] hover:bg-[#537d0d] rounded-xl transition-all shadow-sm"
+              onClick={abrirTransferencia}
+              className="flex items-center justify-center gap-2 rounded-lg bg-[#659711] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#537d0d]"
             >
               <span>Nueva Transferencia</span>
               <ArrowRight size={14} />
@@ -190,159 +213,28 @@ export default function InventarioRodeosTab() {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
 
-// ==========================================
-// 3. SUB-COMPONENTE: VISTA PLANTEL INDIVIDUAL
-// ==========================================
-function PlantelIndividualView({ onVolver }: { onVolver: () => void }) {
-  return (
-    <div className="flex flex-col gap-6 w-full font-sans antialiased text-slate-800">
-      <button
-        onClick={onVolver}
-        className="self-start flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors mb-2"
-      >
-        <ArrowLeft size={14} strokeWidth={2.5} />
-        <span>Volver a Inventario</span>
-      </button>
-      <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-        Plantel Individual
-      </h2>
-    </div>
-  )
-}
+      {/* Tabla de transferencias */}
+      <TransferenciasTable transferencias={transferencias} />
 
-// ==========================================
-// 4. SUB-COMPONENTE: NUEVA TRANSFERENCIA VIEW
-// ==========================================
-function NuevaTransferenciaView({ onVolver }: { onVolver: () => void }) {
-  const [origen, setOrigen] = useState('')
-  const [destino, setDestino] = useState('')
-  const [cantidad, setCantidad] = useState('')
-  const [plazos, setPlazos] = useState('')
-  const [motivo, setMotivo] = useState('')
-
-  return (
-    <div className="flex flex-col gap-6 w-full font-sans antialiased text-slate-800">
-      <button
-        onClick={onVolver}
-        className="self-start flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-slate-700 transition-colors mb-2"
-      >
-        <ArrowLeft size={14} strokeWidth={2.5} />
-        <span>Volver a Inventario</span>
-      </button>
-
-      <div className="bg-white border border-slate-100 rounded-2xl p-8 max-w-xl w-full mx-auto shadow-sm flex flex-col gap-6">
-        <div>
-          <h2 className="text-base font-extrabold text-slate-900 tracking-tight">
-            Inventario de Rodeos
-          </h2>
-          <p className="text-xs font-bold text-slate-700 mt-4">
-            Nueva Transferencia
-          </p>
-        </div>
-
-        <div className="flex flex-col gap-4 text-xs">
-          {/* Rodeo Origen */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold text-slate-700">Rodeo Origen</label>
-            <div className="relative">
-              <select
-                value={origen}
-                onChange={(e) => setOrigen(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-semibold text-slate-500 appearance-none focus:outline-none focus:border-slate-400 transition-colors"
-              >
-                <option value="">Seleccionar</option>
-                <option value="Rodeo Alto">Rodeo Alto</option>
-                <option value="Rodeo Bajo">Rodeo Bajo</option>
-                <option value="Rodeo Secas">Rodeo Secas</option>
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-3.5 top-3.5 text-slate-400 pointer-events-none"
-              />
-            </div>
-          </div>
-
-          {/* Rodeo Destino */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold text-slate-700">Rodeo Destino</label>
-            <div className="relative">
-              <select
-                value={destino}
-                onChange={(e) => setDestino(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-semibold text-slate-500 appearance-none focus:outline-none focus:border-slate-400 transition-colors"
-              >
-                <option value="">Seleccionar</option>
-                <option value="Rodeo Alto">Rodeo Alto</option>
-                <option value="Rodeo Bajo">Rodeo Bajo</option>
-                <option value="Rodeo Secas">Rodeo Secas</option>
-              </select>
-              <ChevronDown
-                size={14}
-                className="absolute right-3.5 top-3.5 text-slate-400 pointer-events-none"
-              />
-            </div>
-          </div>
-
-          {/* Cantidad de Animales */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold text-slate-700">
-              Cantidad de Animales
-            </label>
-            <div className="relative flex items-center">
-              <input
-                type="number"
-                placeholder="00"
-                value={cantidad}
-                onChange={(e) => setCantidad(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-semibold text-slate-700 focus:outline-none focus:border-slate-400 transition-colors placeholder-slate-300"
-              />
-              <span className="absolute right-4 font-bold text-slate-400">
-                Cabezas
-              </span>
-            </div>
-          </div>
-
-          {/* Plazos de Retorno (Días) */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold text-slate-700">
-              Plazos de Retorno (Días)
-            </label>
-            <input
-              type="text"
-              value={plazos}
-              onChange={(e) => setPlazos(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 font-semibold text-slate-700 focus:outline-none focus:border-slate-400 transition-colors"
-            />
-          </div>
-
-          {/* Motivo de transferencia */}
-          <div className="flex flex-col gap-1.5">
-            <label className="font-bold text-slate-700">
-              Motivo de transferencia
-            </label>
-            <textarea
-              rows={4}
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl p-4 font-semibold text-slate-700 focus:outline-none focus:border-slate-400 transition-colors resize-none"
-            />
-          </div>
-
-          {/* Botón Transferir */}
-          <div className="flex justify-center mt-2">
-            <button
-              onClick={() => alert('Transferencia guardada con éxito')}
-              className="px-8 py-2.5 text-xs font-bold text-white bg-[#659711] hover:bg-[#537d0d] rounded-xl transition-colors shadow-sm"
-            >
-              Transferir
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Modales */}
+      <AltaModal
+        open={isAltaOpen}
+        onClose={cerrarAlta}
+        onSuccess={refetch}
+        motivoInicial={motivoAlta}
+      />
+      <BajaModal
+        open={isBajaOpen}
+        onClose={cerrarBaja}
+        onSuccess={refetch}
+        motivoInicial={motivoBaja}
+      />
+      <TransferModal
+        open={isTransferOpen}
+        onClose={cerrarTransferencia}
+        onSuccess={refetch}
+      />
     </div>
   )
 }
