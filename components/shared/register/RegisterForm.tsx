@@ -1,4 +1,5 @@
 'use client'
+
 import { ArrowRight, EyeOff, EyeIcon } from 'lucide-react'
 import { useRegister } from '@/hooks/auth/useRegister'
 import { Button } from '@/components/ui/button'
@@ -106,29 +107,38 @@ const RegisterForm = () => {
           noValidate
           data-testid="register-form"
         >
-          <div className="space-y-4">
-            <div className="flex items-center justify-center md:py-7 sm:py-4 py-2">
+          <div className="space-y-3">
+            {/* Logo */}
+            <div className="flex items-center justify-center py-3">
               <img
                 src="/logos/tambo-logo-360.png"
                 alt="logo"
-                className="h-10.75"
+                className="h-12"
               />
             </div>
-            <div className="space-y-2 text-center">
+
+            {/* Título */}
+            <div className="space-y-1 text-center">
               <h1
-                className="text-3xl font-bold tracking-tight text-[#0B1001]"
+                className="text-2xl font-bold tracking-tight text-[#0B1001]"
                 data-testid="register-title"
               >
                 Crear cuenta
               </h1>
-              <p className="text-sm text-[#626059]">
+              <p className="text-xs text-[#626059]">
                 Comencemos con el proceso de registro para tu establecimiento
                 lácteo
               </p>
             </div>
-            <div className="space-y-2 text-left">
+
+            {/* Nombre */}
+            <div className="space-y-1.5 text-left">
               <Label
-                className={`font-bold ${submitCount > 0 && errors.nombre ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`text-sm font-bold ${
+                  submitCount > 0 && errors.nombre
+                    ? 'text-[#B91C1C]'
+                    : 'text-[#0B1001]'
+                }`}
               >
                 Nombre*
               </Label>
@@ -153,13 +163,17 @@ const RegisterForm = () => {
                     shouldDirty: true,
                   })
                 }}
-                className={`h-14 ${submitCount > 0 && errors.nombre ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                className={`h-11 ${
+                  submitCount > 0 && errors.nombre
+                    ? 'border-[#F87171] bg-[#FCE8E5]/30'
+                    : 'border-[#D1CFCA] bg-[#F9F9F7]'
+                }`}
                 disabled={isPending || isResendingEmail}
                 data-testid="full-name-input"
               />
               {!(submitCount > 0 && errors.nombre) && (
                 <p className="text-[10px] text-[#626059]">
-                  Requisitos: Debe ser minimo de 10 caracteres.
+                  Requisitos: Debe ser mínimo de 10 caracteres.
                 </p>
               )}
               {submitCount > 0 && errors.nombre && (
@@ -169,16 +183,25 @@ const RegisterForm = () => {
               )}
             </div>
 
-            <div className="space-y-2 text-left">
+            {/* Correo */}
+            <div className="space-y-1.5 text-left">
               <Label
-                className={`font-bold ${submitCount > 0 && errors.correo ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`text-sm font-bold ${
+                  submitCount > 0 && errors.correo
+                    ? 'text-[#B91C1C]'
+                    : 'text-[#0B1001]'
+                }`}
               >
                 Correo electrónico*
               </Label>
               <Input
                 placeholder="Ingresa tu correo electrónico"
                 {...register('correo')}
-                className={`h-14 ${submitCount > 0 && errors.correo ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                className={`h-11 ${
+                  submitCount > 0 && errors.correo
+                    ? 'border-[#F87171] bg-[#FCE8E5]/30'
+                    : 'border-[#D1CFCA] bg-[#F9F9F7]'
+                }`}
                 disabled={isPending || isResendingEmail}
                 data-testid="email-input"
               />
@@ -189,9 +212,14 @@ const RegisterForm = () => {
               )}
             </div>
 
-            <div className="space-y-2 text-left">
+            {/* Contraseña */}
+            <div className="space-y-1.5 text-left">
               <Label
-                className={`font-bold ${submitCount > 0 && errors.contraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`text-sm font-bold ${
+                  submitCount > 0 && errors.contraseña
+                    ? 'text-[#B91C1C]'
+                    : 'text-[#0B1001]'
+                }`}
               >
                 Contraseña*
               </Label>
@@ -201,7 +229,11 @@ const RegisterForm = () => {
                   placeholder="••••••••••••"
                   {...register('contraseña')}
                   maxLength={50}
-                  className={`h-14 ${submitCount > 0 && errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                  className={`h-11 ${
+                    submitCount > 0 && errors.contraseña
+                      ? 'border-[#F87171] bg-[#FCE8E5]/30'
+                      : 'border-[#D1CFCA] bg-[#F9F9F7]'
+                  }`}
                   disabled={isPending || isResendingEmail}
                   data-testid="password-input"
                 />
@@ -232,9 +264,14 @@ const RegisterForm = () => {
               )}
             </div>
 
-            <div className="space-y-2 text-left">
+            {/* Confirmar contraseña */}
+            <div className="space-y-1.5 text-left">
               <Label
-                className={`font-bold ${submitCount > 0 && errors.confirmarContraseña ? 'text-[#B91C1C]' : 'text-[#0B1001]'}`}
+                className={`text-sm font-bold ${
+                  submitCount > 0 && errors.confirmarContraseña
+                    ? 'text-[#B91C1C]'
+                    : 'text-[#0B1001]'
+                }`}
               >
                 Confirmar contraseña*
               </Label>
@@ -244,7 +281,11 @@ const RegisterForm = () => {
                   placeholder="••••••••••••"
                   {...register('confirmarContraseña')}
                   maxLength={50}
-                  className={`h-14 ${submitCount > 0 && errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
+                  className={`h-11 ${
+                    submitCount > 0 && errors.confirmarContraseña
+                      ? 'border-[#F87171] bg-[#FCE8E5]/30'
+                      : 'border-[#D1CFCA] bg-[#F9F9F7]'
+                  }`}
                   disabled={isPending || isResendingEmail}
                   data-testid="confirm-password-input"
                 />
@@ -269,17 +310,19 @@ const RegisterForm = () => {
               )}
             </div>
           </div>
-          <div>
+
+          {/* Botón + Link */}
+          <div className="pt-1">
             <Button
               type="submit"
-              className="w-full h-14 rounded-lg text-lg font-medium transition-all bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1] flex items-center justify-center gap-2"
+              className="w-full h-12 rounded-lg text-base font-medium transition-all bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1] flex items-center justify-center gap-2"
               disabled={isPending || isResendingEmail || !isValid}
               data-testid="register-submit-button"
             >
               {isPending || isResendingEmail ? 'Cargando...' : 'Siguiente'}
               <ArrowRight className="size-5" />
             </Button>
-            <div className="text-center pt-2 border-t border-[#F2F1EC]">
+            <div className="text-center pt-2">
               <p className="text-sm text-[#626059]">
                 ¿Ya tienes una cuenta?{' '}
                 <Link
