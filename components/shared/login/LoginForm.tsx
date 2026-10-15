@@ -78,10 +78,10 @@ const LoginForm: React.FC = () => {
   })
 
   return (
-    <CardContent className="flex flex-1 flex-col px-0">
+    <CardContent className="flex flex-col px-0">
       <form
         onSubmit={onSubmit}
-        className="flex flex-1 flex-col justify-between gap-4 py-5"
+        className="flex flex-col justify-center gap-4 py-5"
         noValidate
         autoComplete="on"
         data-testid="login-form"
@@ -194,7 +194,7 @@ const LoginForm: React.FC = () => {
             {isPending ? 'Cargando...' : 'Iniciar sesión'}{' '}
             <ArrowRight className="size-5" />
           </Button>
-          <div className="text-center pt-2 border-t border-[#F2F1EC]">
+          <div className="text-center py-6 border-t border-[#F2F1EC]">
             <p className="text-sm text-[#626059]">
               ¿No tienes una cuenta?{' '}
               <Link
