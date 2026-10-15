@@ -159,7 +159,7 @@ const RegisterForm = () => {
               />
               {!(submitCount > 0 && errors.nombre) && (
                 <p className="text-[10px] text-[#626059]">
-                  Requisitos: Debe ser minimo de 10 caracteres.
+                  Requisitos: Debe ser minimo de 3 caracteres.
                 </p>
               )}
               {submitCount > 0 && errors.nombre && (
@@ -298,14 +298,22 @@ const RegisterForm = () => {
           className="flex flex-1 flex-col items-center justify-center gap-6 py-5"
           data-testid="verify-email-step"
         >
+          <div className="flex items-center justify-center md:py-7 sm:py-4 py-2">
+            <img
+              src="/logos/tambo-logo-360.png"
+              alt="logo"
+              className="h-10.75"
+            />
+          </div>
           <h2 className="text-4xl font-bold tracking-tight text-[#0B1001]">
             Revisa tu email
           </h2>
           <p className="text-sm text-center text-[#626059]">
-            Haz clic en el enlace del email para activar tu cuenta y comenzar a
-            usar Tambo360.
+            Enviamos un enlace de activacion a{' '}
+            <span className="underline">{email}</span>. Hacé clic en el enlace
+            para activar tu cuenta y comenzar a usar Tambo360
           </p>
-          <div className="w-full max-w-sm">
+          <div className="w-full space-y-4 pb-7">
             <Button
               className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1]"
               onClick={handleResend}
@@ -319,6 +327,13 @@ const RegisterForm = () => {
                 : secondsLeft > 0
                   ? `Reenviar email (${Math.floor(secondsLeft / 60)}:${(secondsLeft % 60).toString().padStart(2, '0')})`
                   : 'Reenviar email'}
+            </Button>
+            <Button
+              className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1]"
+              onClick={() => setStep(1)}
+              data-testid="change-email-button"
+            >
+              Cambiar email
             </Button>
           </div>
         </section>
