@@ -131,7 +131,7 @@ const ResetPasswordForm: React.FC = () => {
     }
   })
 
-  const showAltBackground = step === 2 || step === 4
+  const showAltBackground = step === 2
 
   return (
     <>
@@ -142,11 +142,11 @@ const ResetPasswordForm: React.FC = () => {
           style={{ backgroundImage: "url('/vacas_4.webp')" }}
         />
       )}
-      <CardContent className="flex flex-1 flex-col px-0">
+      <CardContent className="flex flex-col px-0">
         {step === 1 && (
           <form
             onSubmit={handleRequestReset}
-            className="flex flex-1 flex-col justify-between gap-4 py-5"
+            className="flex flex-col gap-4 py-5"
             noValidate
             data-testid="forgot-password-form"
           >
@@ -188,7 +188,7 @@ const ResetPasswordForm: React.FC = () => {
                 {isSendingEmail ? 'Enviando...' : 'Enviar enlace'}{' '}
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              <div className="text-center pt-2 border-t border-[#F2F1EC]">
+              <div className="text-center py-6 border-t border-[#F2F1EC]">
                 <Link
                   href="/iniciar-sesion"
                   data-testid="back-to-login"
@@ -295,7 +295,7 @@ const ResetPasswordForm: React.FC = () => {
                 {isResetting ? 'Guardando...' : 'Restablecer contraseña'}{' '}
                 <ArrowRight className="w-5 h-5" />
               </Button>
-              <div className="text-center pt-2 border-t border-[#F2F1EC]">
+              <div className="text-center py-6 border-t border-[#F2F1EC]">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
@@ -310,7 +310,7 @@ const ResetPasswordForm: React.FC = () => {
         )}
 
         {step === 4 && (
-          <div className="relative flex flex-1 flex-col justify-between gap-4 py-5">
+          <div className="relative flex flex-col justify-center gap-4 py-5 bg-white/95">
             <div className="absolute left-1/2 top-7 -translate-x-1/2">
               <img
                 src="/logos/tambo-logo-360.png"
@@ -318,17 +318,18 @@ const ResetPasswordForm: React.FC = () => {
                 className="h-10.75"
               />
             </div>
-            <div className="flex-1 grid place-items-center pt-20 sm:pt-0">
-              <div className="w-full flex flex-col gap-4">
+            <div className="">
+              <div className="w-full flex flex-col gap-4 pb-5 pt-20">
                 <div className="space-y-2 text-center">
                   <h1
                     className="text-3xl font-bold tracking-tight text-[#0B1001]"
                     data-testid="register-title"
                   >
-                    ¡Todo listo!
+                    ¡Contraseña Actualizada!
                   </h1>
                   <p className="text-sm text-[#626059]">
-                    Tu contraseña ha sido actualizada con éxito.
+                    Tu contraseña ha sido restablecida con éxito. Ya puedes
+                    iniciar sesión con tus nuevas credenciales.
                   </p>
                 </div>
                 <Button

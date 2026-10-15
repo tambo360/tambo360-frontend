@@ -33,8 +33,8 @@ const Register: React.FC = () => {
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
-      <div className="relative z-10 flex min-h-dvh w-full p-4">
-        <Card className="m-auto w-full border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative sm:m-0 sm:ml-auto sm:max-w-125 sm:min-h-[calc(100dvh-2rem)]">
+      <div className="relative z-10 flex justify-end items-center min-h-dvh w-full p-4">
+        <Card className="m-auto w-full border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative sm:m-0 sm:ml-auto sm:max-w-125">
           <RegisterForm />
         </Card>
       </div>

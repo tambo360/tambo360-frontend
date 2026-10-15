@@ -98,11 +98,11 @@ const RegisterForm = () => {
   const nombreField = register('nombre')
 
   return (
-    <CardContent className="flex flex-1 flex-col px-0">
+    <CardContent className="flex flex-col px-0">
       {step === 1 ? (
         <form
           onSubmit={onSubmit}
-          className="flex flex-1 flex-col justify-between gap-4 py-5"
+          className="flex flex-col gap-4 py-5"
           noValidate
           data-testid="register-form"
         >
@@ -279,7 +279,7 @@ const RegisterForm = () => {
               {isPending || isResendingEmail ? 'Cargando...' : 'Siguiente'}
               <ArrowRight className="size-5" />
             </Button>
-            <div className="text-center pt-2 border-t border-[#F2F1EC]">
+            <div className="text-center py-6 border-t border-[#F2F1EC]">
               <p className="text-sm text-[#626059]">
                 ¿Ya tienes una cuenta?{' '}
                 <Link
