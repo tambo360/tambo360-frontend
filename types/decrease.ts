@@ -27,7 +27,7 @@ export const DecreaseSchema = z.object({
     .optional(),
   cantidad: z
     .string()
-    .min(1, 'Cantidad es requerido')
+    .min(1, 'Cantidad de Merma es requerida')
     .refine((value) => !isNaN(Number(value)), 'Cantidad no valida')
     .transform((value) => Number(value)),
 })

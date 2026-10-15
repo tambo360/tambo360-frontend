@@ -57,7 +57,8 @@ api.interceptors.response.use(
     const isLogout = error.config?.url?.includes('/auth/logout')
 
     if (error.response?.status === 401) {
-      if (!isAuthMe && !isLogout && typeof window !== 'undefined') {
+      const offline = typeof navigator !== 'undefined' && !navigator.onLine
+      if (!isAuthMe && !isLogout && !offline && typeof window !== 'undefined') {
         window.location.href = '/iniciar-sesion'
       }
     }

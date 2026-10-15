@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -32,7 +33,16 @@ import { Lote } from '@/types/batch'
 import { TipoDestino, TipoSeguimiento } from '@/types/enums'
 import { useChangeBatchForm } from '@/hooks/batch/useChangeBatchForm'
 import { ConnectionErrorModal } from '@/components/ConnectionErrorModal'
-import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import {
+  TransferModal,
+  type TransferSuccessResult,
+} from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { refreshAnimalCategoria } from '@/hooks/transfer/offlineTransferCache'
+import { useTransferOutbox } from '@/stores/useTransferOutbox'
+import { currentScope } from '@/lib/offlineId'
+import type { TransferAnimalPayload } from '@/types/transfer'
+import { useQueryClient } from '@tanstack/react-query'
+import { baseKeys } from '@/utils/queryKeys'
 import { blockNegativeKeys } from '../organization/configuration/RodeoCategoriaCard'
 
 const ESTADO_LABELS: Record<string, string> = {
@@ -81,15 +91,67 @@ const ChangeBatch = ({
     createdBatchId,
     isTransferModalOpen,
     setIsTransferModalOpen,
-    handleSaveTransfer,
     showConnectionError,
     retry,
     handleConnectionCancel,
   } = useChangeBatchForm({ open, onClose, onOpen, batch })
-
   const isRodeoMode =
     tipoSeguimiento === TipoSeguimiento.RODEO ||
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
+
+  const queryClient = useQueryClient()
+
+  // Overlay offline: las transferencias encoladas mandan sobre el caché.
+  const pendingTransfers = useTransferOutbox((s) => s.ops)
+  const scope = currentScope()
+  const animalesConEstado = useMemo(() => {
+    const byAnimal = new Map<string, { destino: string; createdAt: number }>()
+    for (const op of pendingTransfers) {
+      if (op.scope !== scope) continue
+      const payload = op.payload as unknown as TransferAnimalPayload
+      if (payload?.tipoSeguimiento !== 'INDIVIDUAL') continue
+      const id = payload.animal?.id
+      if (!id || !payload.destino) continue
+      const prev = byAnimal.get(id)
+      if (!prev || op.createdAt >= prev.createdAt) {
+        byAnimal.set(id, { destino: payload.destino, createdAt: op.createdAt })
+      }
+    }
+    if (byAnimal.size === 0) return individualLote.animals
+    return individualLote.animals.map((a) => {
+      const hit = byAnimal.get(a.idAnimal)
+      return hit ? { ...a, categoria: hit.destino } : a
+    })
+  }, [pendingTransfers, scope, individualLote.animals])
+
+  // Vacas seleccionables: solo las que NO están secas.
+  const visibleAnimals = animalesConEstado.filter(
+    (a) => (a.categoria ?? '').toUpperCase() !== 'SECAS'
+  )
+
+  // Cada transferencia actualiza `opciones-seguimiento`
+  const handleTransferSuccess = (result?: TransferSuccessResult) => {
+    queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey as unknown[]
+        return (
+          key[0] === baseKeys.establishment[0] &&
+          key[2] === 'opciones-seguimiento'
+        )
+      },
+    })
+    if (!result?.animalId || !result?.destino) return
+    refreshAnimalCategoria(queryClient, result.animalId, result.destino)
+    // Al pasar a SECAS nunca quedan seleccionadas: si lo estaba, se quita.
+    // Al volver a ORDENE solo reaparece en el listado; la selección la decide
+    // el usuario tildando manualmente.
+    if (
+      result.destino.toUpperCase() === 'SECAS' &&
+      individualLote.isAnimalSelected(result.animalId)
+    ) {
+      individualLote.toggleAnimal(result.animalId)
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleDialogChange}>
@@ -358,7 +420,7 @@ const ChangeBatch = ({
                       type="button"
                       variant="default"
                       size="sm"
-                      className="h-7 text-xs bg-[#2E7D53] hover:bg-[#236342] text-white rounded-lg px-3 shrink-0 w-full sm:w-auto"
+                      className="h-7 text-xs bg-green-main hover:bg-[#309c6a] rounded-[7px] px-3 shrink-0 w-full sm:w-auto"
                       onClick={() => setIsTransferModalOpen(true)}
                     >
                       Cambiar estado
@@ -372,13 +434,13 @@ const ChangeBatch = ({
                         Cargando animales...
                       </span>
                     </div>
-                  ) : individualLote.animals.length === 0 ? (
+                  ) : visibleAnimals.length === 0 ? (
                     <div className="text-sm text-yellow-600 bg-yellow-50 p-3 rounded-xl">
                       No se encontraron animales reales en el sistema.
                     </div>
                   ) : (
                     <div className="border border-gray-200 rounded-xl divide-y max-h-64 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                      {individualLote.animals.map((animal) => {
+                      {visibleAnimals.map((animal) => {
                         const selected = individualLote.isAnimalSelected(
                           animal.idAnimal
                         )
@@ -406,6 +468,23 @@ const ChangeBatch = ({
                                       {animal.raza
                                         .replace(/_/g, ' ')
                                         .toLowerCase()}
+                                    </span>
+                                  )}
+                                  {animal.categoria && (
+                                    <span
+                                      className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shrink-0 ${
+                                        animal.categoria === 'ORDENE'
+                                          ? 'bg-[#E8F5E9] text-[#2E7D53]'
+                                          : 'bg-slate-100 text-slate-600'
+                                      }`}
+                                    >
+                                      {animal.categoria === 'ORDENE'
+                                        ? 'Ordeñe'
+                                        : animal.categoria === 'SECAS'
+                                          ? 'Secas'
+                                          : animal.categoria
+                                              .replace(/_/g, ' ')
+                                              .toLowerCase()}
                                     </span>
                                   )}
                                 </span>
@@ -626,8 +705,9 @@ const ChangeBatch = ({
         open={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
         tipoSeguimiento={TipoSeguimiento.INDIVIDUAL}
-        animales={individualLote.animals}
+        animales={animalesConEstado}
         preselectedIds={individualLote.fields.map((f) => f.idAnimal)}
+        onSuccess={handleTransferSuccess}
       />
     </Dialog>
   )

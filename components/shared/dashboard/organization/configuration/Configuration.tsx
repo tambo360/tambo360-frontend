@@ -251,16 +251,23 @@ const Configuration = () => {
         animales,
       }
     } else {
-      const rodeos = (data.rodeos ?? [])
-        .filter((r) => esRodeoCompleto(r))
-        .map((r) => ({
-          tipoRodeo: r.tipoRodeo,
-          costoRacion: r.costoRacion as number,
-          razas: (r.razas ?? []).map((item) => ({
+      const rodeos = (data.rodeos ?? []).map((r) => {
+        const costoRacion =
+          typeof r.costoRacion === 'number' && Number.isFinite(r.costoRacion)
+            ? r.costoRacion
+            : 0
+        const razas = (r.razas ?? [])
+          .filter((item) => item?.raza && Number(item?.cantVacas) > 0)
+          .map((item) => ({
             raza: item.raza,
             cantVacas: item.cantVacas as number,
-          })),
-        }))
+          }))
+        return {
+          tipoRodeo: r.tipoRodeo,
+          costoRacion,
+          ...(razas.length > 0 ? { razas } : {}),
+        }
+      })
       payload = {
         TipoSeguimiento: selectedTipo,
         ...rest,
@@ -268,7 +275,6 @@ const Configuration = () => {
       }
     }
 
-    // console.log('>> PAYLOAD', payload)
     sendConfiguration(payload, {
       onSuccess: () => {
         toast.success('Configuración guardada correctamente', {
@@ -500,7 +506,7 @@ const Configuration = () => {
                   type="number"
                   step={0.1}
                   min={1}
-                  placeholder="1"
+                  placeholder="000"
                   {...promLitrosField}
                   onKeyDown={(e) => {
                     blockNegativeKeys(e)
@@ -517,9 +523,6 @@ const Configuration = () => {
                       : 'border-slate-200 focus:border-[#29845A]'
                   )}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                  lts
-                </span>
               </div>
               {errors.promLitros && (
                 <p className="text-xs text-red-500">
@@ -570,7 +573,7 @@ const Configuration = () => {
                   type="number"
                   step={1}
                   min={1}
-                  placeholder="1"
+                  placeholder="000"
                   inputMode="numeric"
                   {...register('promDEL', { valueAsNumber: true })}
                   onKeyDown={(e) => {
@@ -590,9 +593,6 @@ const Configuration = () => {
                       : 'border-slate-200 focus:border-[#29845A]'
                   )}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                  días
-                </span>
               </div>
               {errors.promDEL && (
                 <p className="text-xs text-red-500">{errors.promDEL.message}</p>
@@ -604,11 +604,14 @@ const Configuration = () => {
                 ¿Cuál es tu precio de venta actual por litro ($/Lts)?
               </p>
               <div className="relative w-full max-w-4xl">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
+                  $
+                </span>
                 <Input
                   type="number"
                   step={0.1}
                   min={1}
-                  placeholder="1"
+                  placeholder="0.00"
                   {...precioLitroField}
                   onKeyDown={(e) => {
                     blockNegativeKeys(e)
@@ -619,15 +622,12 @@ const Configuration = () => {
                     precioLitroField.onChange(e) // sin esto RHF no guarda el valor
                   }}
                   className={cn(
-                    'w-full max-w-4xl no-spinner pr-16! p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
+                    'w-full max-w-4xl no-spinner pl-8! p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
                     errors.precioLitro
                       ? 'border-red-400 focus:border-red-500'
                       : 'border-slate-200 focus:border-[#29845A]'
                   )}
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 font-bold text-slate-400">
-                  $/Lts
-                </span>
               </div>
               {errors.precioLitro && (
                 <p className="text-xs text-red-500">
@@ -843,9 +843,9 @@ const Configuration = () => {
                             {
                               codigo: '',
                               nombre: '',
-                              raza: '',
-                              categoria: '',
-                              estado: '',
+                              raza: RazasVacas.HOLANDO_ARGENTINO,
+                              categoria: CategoriaAnimal.ORDENE,
+                              estado: EstadoAnimal.SANO,
                             },
                           ])
                         }}

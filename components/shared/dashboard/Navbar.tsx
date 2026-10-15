@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
+import { useOnlineStatus } from '@/hooks/connection/useOnlineStatus'
 
 interface NavbarProps {
   onMenuClick: () => void
@@ -17,17 +18,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     id: configData?.data.idEstablecimiento,
   })
 
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine)
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true)
-    const handleOffline = () => setIsOnline(false)
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
-    return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-    }
-  }, [])
+  const isOnline = useOnlineStatus()
 
   return (
     <nav className="sticky top-0 z-30 flex h-20 w-full items-center justify-between px-4 sm:px-8">

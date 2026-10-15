@@ -17,7 +17,6 @@ export function useGeneralCostsSummary(
     ),
     queryFn: async (): Promise<EconomicSummary> => {
       const { data } = await getGeneralCostsSummary(period)
-      console.log(data)
       return data.data as EconomicSummary
     },
     enabled:

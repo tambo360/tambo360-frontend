@@ -37,7 +37,7 @@ define(['exports'], function (t) {
       )
     }
   }
-  class o {
+  class a {
     constructor() {
       ;((this.t = new Map()), (this.i = new Map()))
     }
@@ -77,12 +77,12 @@ define(['exports'], function (t) {
           sameOrigin: n,
           url: s,
         })
-      let o = i && i.handler
-      const a = t.method
-      if ((!o && this.i.has(a) && (o = this.i.get(a)), !o)) return
+      let a = i && i.handler
+      const o = t.method
+      if ((!a && this.i.has(o) && (a = this.i.get(o)), !a)) return
       let c
       try {
-        c = o.handle({ url: s, request: t, event: e, params: r })
+        c = a.handle({ url: s, request: t, event: e, params: r })
       } catch (t) {
         c = Promise.reject(t)
       }
@@ -112,13 +112,13 @@ define(['exports'], function (t) {
       const r = this.t.get(s.method) || []
       for (const i of r) {
         let r
-        const o = i.match({ url: t, sameOrigin: e, request: s, event: n })
-        if (o)
+        const a = i.match({ url: t, sameOrigin: e, request: s, event: n })
+        if (a)
           return (
-            (r = o),
+            (r = a),
             ((Array.isArray(r) && 0 === r.length) ||
-              (o.constructor === Object && 0 === Object.keys(o).length) ||
-              'boolean' == typeof o) &&
+              (a.constructor === Object && 0 === Object.keys(a).length) ||
+              'boolean' == typeof a) &&
               (r = void 0),
             { route: i, params: r }
           )
@@ -145,18 +145,18 @@ define(['exports'], function (t) {
       this.t.get(t.method).splice(e, 1)
     }
   }
-  let a
+  let o
   const c = () => (
-    a || ((a = new o()), a.addFetchListener(), a.addCacheListener()),
-    a
+    o || ((o = new a()), o.addFetchListener(), o.addCacheListener()),
+    o
   )
   function h(t, e, n) {
-    let o
+    let a
     if ('string' == typeof t) {
       const s = new URL(t, location.href)
-      o = new r(({ url: t }) => t.href === s.href, e, n)
-    } else if (t instanceof RegExp) o = new i(t, e, n)
-    else if ('function' == typeof t) o = new r(t, e, n)
+      a = new r(({ url: t }) => t.href === s.href, e, n)
+    } else if (t instanceof RegExp) a = new i(t, e, n)
+    else if ('function' == typeof t) a = new r(t, e, n)
     else {
       if (!(t instanceof r))
         throw new s('unsupported-route-type', {
@@ -164,9 +164,9 @@ define(['exports'], function (t) {
           funcName: 'registerRoute',
           paramName: 'capture',
         })
-      o = t
+      a = t
     }
-    return (c().registerRoute(o), o)
+    return (c().registerRoute(a), a)
   }
   try {
     self['workbox:strategies:7.0.0'] && _()
@@ -269,8 +269,8 @@ define(['exports'], function (t) {
       let s
       const { cacheName: n, matchOptions: r } = this.u,
         i = await this.getCacheKey(e, 'read'),
-        o = Object.assign(Object.assign({}, r), { cacheName: n })
-      s = await caches.match(i, o)
+        a = Object.assign(Object.assign({}, r), { cacheName: n })
+      s = await caches.match(i, a)
       for (const t of this.iterateCallbacks('cachedResponseWillBeUsed'))
         s =
           (await t({
@@ -296,10 +296,10 @@ define(['exports'], function (t) {
             )),
         })
       var i
-      const o = await this.v(e)
-      if (!o) return !1
-      const { cacheName: a, matchOptions: c } = this.u,
-        h = await self.caches.open(a),
+      const a = await this.v(e)
+      if (!a) return !1
+      const { cacheName: o, matchOptions: c } = this.u,
+        h = await self.caches.open(o),
         u = this.hasCallback('cacheDidUpdate'),
         l = u
           ? await (async function (t, e, s, n) {
@@ -308,12 +308,12 @@ define(['exports'], function (t) {
               const i = Object.assign(Object.assign({}, n), {
                   ignoreSearch: !0,
                 }),
-                o = await t.keys(e, i)
-              for (const e of o) if (r === p(e.url, s)) return t.match(e, n)
+                a = await t.keys(e, i)
+              for (const e of a) if (r === p(e.url, s)) return t.match(e, n)
             })(h, r.clone(), ['__WB_REVISION__'], c)
           : null
       try {
-        await h.put(r, u ? o.clone() : o)
+        await h.put(r, u ? a.clone() : a)
       } catch (t) {
         if (t instanceof Error)
           throw (
@@ -326,9 +326,9 @@ define(['exports'], function (t) {
       }
       for (const t of this.iterateCallbacks('cacheDidUpdate'))
         await t({
-          cacheName: a,
+          cacheName: o,
           oldResponse: l,
-          newResponse: o.clone(),
+          newResponse: a.clone(),
           request: r,
           event: this.event,
         })
@@ -397,7 +397,7 @@ define(['exports'], function (t) {
       return (s || (e && 200 !== e.status && (e = void 0)), e)
     }
   }
-  class q {
+  class b {
     constructor(t = {}) {
       ;((this.cacheName = d(t.cacheName)),
         (this.plugins = t.plugins || []),
@@ -415,13 +415,13 @@ define(['exports'], function (t) {
         n = 'params' in t ? t.params : void 0,
         r = new v(this, { event: e, request: s, params: n }),
         i = this.q(r, s, e)
-      return [i, this.U(i, r, s, e)]
+      return [i, this.D(i, r, s, e)]
     }
     async q(t, e, n) {
       let r
       await t.runCallbacks('handlerWillStart', { event: n, request: e })
       try {
-        if (((r = await this.L(e, t)), !r || 'error' === r.type))
+        if (((r = await this.U(e, t)), !r || 'error' === r.type))
           throw new s('no-response', { url: e.url })
       } catch (s) {
         if (s instanceof Error)
@@ -433,7 +433,7 @@ define(['exports'], function (t) {
         r = await s({ event: n, request: e, response: r })
       return r
     }
-    async U(t, e, s, n) {
+    async D(t, e, s, n) {
       let r, i
       try {
         r = await t
@@ -461,14 +461,392 @@ define(['exports'], function (t) {
         throw i
     }
   }
-  function U(t, e) {
+  function q(t) {
+    t.then(() => {})
+  }
+  function D() {
+    return (
+      (D = Object.assign
+        ? Object.assign.bind()
+        : function (t) {
+            for (var e = 1; e < arguments.length; e++) {
+              var s = arguments[e]
+              for (var n in s) ({}).hasOwnProperty.call(s, n) && (t[n] = s[n])
+            }
+            return t
+          }),
+      D.apply(null, arguments)
+    )
+  }
+  let U, x
+  const E = new WeakMap(),
+    L = new WeakMap(),
+    C = new WeakMap(),
+    I = new WeakMap(),
+    N = new WeakMap()
+  let O = {
+    get(t, e, s) {
+      if (t instanceof IDBTransaction) {
+        if ('done' === e) return L.get(t)
+        if ('objectStoreNames' === e) return t.objectStoreNames || C.get(t)
+        if ('store' === e)
+          return s.objectStoreNames[1]
+            ? void 0
+            : s.objectStore(s.objectStoreNames[0])
+      }
+      return B(t[e])
+    },
+    set: (t, e, s) => ((t[e] = s), !0),
+    has: (t, e) =>
+      (t instanceof IDBTransaction && ('done' === e || 'store' === e)) ||
+      e in t,
+  }
+  function T(t) {
+    return t !== IDBDatabase.prototype.transaction ||
+      'objectStoreNames' in IDBTransaction.prototype
+      ? (
+          x ||
+          (x = [
+            IDBCursor.prototype.advance,
+            IDBCursor.prototype.continue,
+            IDBCursor.prototype.continuePrimaryKey,
+          ])
+        ).includes(t)
+        ? function (...e) {
+            return (t.apply(P(this), e), B(E.get(this)))
+          }
+        : function (...e) {
+            return B(t.apply(P(this), e))
+          }
+      : function (e, ...s) {
+          const n = t.call(P(this), e, ...s)
+          return (C.set(n, e.sort ? e.sort() : [e]), B(n))
+        }
+  }
+  function k(t) {
+    return 'function' == typeof t
+      ? T(t)
+      : (t instanceof IDBTransaction &&
+          (function (t) {
+            if (L.has(t)) return
+            const e = new Promise((e, s) => {
+              const n = () => {
+                  ;(t.removeEventListener('complete', r),
+                    t.removeEventListener('error', i),
+                    t.removeEventListener('abort', i))
+                },
+                r = () => {
+                  ;(e(), n())
+                },
+                i = () => {
+                  ;(s(t.error || new DOMException('AbortError', 'AbortError')),
+                    n())
+                }
+              ;(t.addEventListener('complete', r),
+                t.addEventListener('error', i),
+                t.addEventListener('abort', i))
+            })
+            L.set(t, e)
+          })(t),
+        (e = t),
+        (
+          U ||
+          (U = [
+            IDBDatabase,
+            IDBObjectStore,
+            IDBIndex,
+            IDBCursor,
+            IDBTransaction,
+          ])
+        ).some((t) => e instanceof t)
+          ? new Proxy(t, O)
+          : t)
+    var e
+  }
+  function B(t) {
+    if (t instanceof IDBRequest)
+      return (function (t) {
+        const e = new Promise((e, s) => {
+          const n = () => {
+              ;(t.removeEventListener('success', r),
+                t.removeEventListener('error', i))
+            },
+            r = () => {
+              ;(e(B(t.result)), n())
+            },
+            i = () => {
+              ;(s(t.error), n())
+            }
+          ;(t.addEventListener('success', r), t.addEventListener('error', i))
+        })
+        return (
+          e
+            .then((e) => {
+              e instanceof IDBCursor && E.set(e, t)
+            })
+            .catch(() => {}),
+          N.set(e, t),
+          e
+        )
+      })(t)
+    if (I.has(t)) return I.get(t)
+    const e = k(t)
+    return (e !== t && (I.set(t, e), N.set(e, t)), e)
+  }
+  const P = (t) => N.get(t)
+  const M = ['get', 'getKey', 'getAll', 'getAllKeys', 'count'],
+    W = ['put', 'add', 'delete', 'clear'],
+    j = new Map()
+  function S(t, e) {
+    if (!(t instanceof IDBDatabase) || e in t || 'string' != typeof e) return
+    if (j.get(e)) return j.get(e)
+    const s = e.replace(/FromIndex$/, ''),
+      n = e !== s,
+      r = W.includes(s)
+    if (
+      !(s in (n ? IDBIndex : IDBObjectStore).prototype) ||
+      (!r && !M.includes(s))
+    )
+      return
+    const i = async function (t, ...e) {
+      const i = this.transaction(t, r ? 'readwrite' : 'readonly')
+      let a = i.store
+      return (
+        n && (a = a.index(e.shift())),
+        (await Promise.all([a[s](...e), r && i.done]))[0]
+      )
+    }
+    return (j.set(e, i), i)
+  }
+  O = ((t) =>
+    D({}, t, {
+      get: (e, s, n) => S(e, s) || t.get(e, s, n),
+      has: (e, s) => !!S(e, s) || t.has(e, s),
+    }))(O)
+  try {
+    self['workbox:expiration:7.0.0'] && _()
+  } catch (t) {}
+  const K = 'cache-entries',
+    A = (t) => {
+      const e = new URL(t, location.href)
+      return ((e.hash = ''), e.href)
+    }
+  class F {
+    constructor(t) {
+      ;((this._ = null), (this.L = t))
+    }
+    C(t) {
+      const e = t.createObjectStore(K, { keyPath: 'id' })
+      ;(e.createIndex('cacheName', 'cacheName', { unique: !1 }),
+        e.createIndex('timestamp', 'timestamp', { unique: !1 }))
+    }
+    I(t) {
+      ;(this.C(t),
+        this.L &&
+          (function (t, { blocked: e } = {}) {
+            const s = indexedDB.deleteDatabase(t)
+            ;(e && s.addEventListener('blocked', (t) => e(t.oldVersion, t)),
+              B(s).then(() => {}))
+          })(this.L))
+    }
+    async setTimestamp(t, e) {
+      const s = {
+          url: (t = A(t)),
+          timestamp: e,
+          cacheName: this.L,
+          id: this.N(t),
+        },
+        n = (await this.getDb()).transaction(K, 'readwrite', {
+          durability: 'relaxed',
+        })
+      ;(await n.store.put(s), await n.done)
+    }
+    async getTimestamp(t) {
+      const e = await this.getDb(),
+        s = await e.get(K, this.N(t))
+      return null == s ? void 0 : s.timestamp
+    }
+    async expireEntries(t, e) {
+      const s = await this.getDb()
+      let n = await s
+        .transaction(K)
+        .store.index('timestamp')
+        .openCursor(null, 'prev')
+      const r = []
+      let i = 0
+      for (; n; ) {
+        const s = n.value
+        ;(s.cacheName === this.L &&
+          ((t && s.timestamp < t) || (e && i >= e) ? r.push(n.value) : i++),
+          (n = await n.continue()))
+      }
+      const a = []
+      for (const t of r) (await s.delete(K, t.id), a.push(t.url))
+      return a
+    }
+    N(t) {
+      return this.L + '|' + A(t)
+    }
+    async getDb() {
+      return (
+        this._ ||
+          (this._ = await (function (
+            t,
+            e,
+            { blocked: s, upgrade: n, blocking: r, terminated: i } = {}
+          ) {
+            const a = indexedDB.open(t, e),
+              o = B(a)
+            return (
+              n &&
+                a.addEventListener('upgradeneeded', (t) => {
+                  n(
+                    B(a.result),
+                    t.oldVersion,
+                    t.newVersion,
+                    B(a.transaction),
+                    t
+                  )
+                }),
+              s &&
+                a.addEventListener('blocked', (t) =>
+                  s(t.oldVersion, t.newVersion, t)
+                ),
+              o
+                .then((t) => {
+                  ;(i && t.addEventListener('close', () => i()),
+                    r &&
+                      t.addEventListener('versionchange', (t) =>
+                        r(t.oldVersion, t.newVersion, t)
+                      ))
+                })
+                .catch(() => {}),
+              o
+            )
+          })('workbox-expiration', 1, { upgrade: this.I.bind(this) })),
+        this._
+      )
+    }
+  }
+  class $ {
+    constructor(t, e = {}) {
+      ;((this.O = !1),
+        (this.T = !1),
+        (this.k = e.maxEntries),
+        (this.B = e.maxAgeSeconds),
+        (this.P = e.matchOptions),
+        (this.L = t),
+        (this.M = new F(t)))
+    }
+    async expireEntries() {
+      if (this.O) return void (this.T = !0)
+      this.O = !0
+      const t = this.B ? Date.now() - 1e3 * this.B : 0,
+        e = await this.M.expireEntries(t, this.k),
+        s = await self.caches.open(this.L)
+      for (const t of e) await s.delete(t, this.P)
+      ;((this.O = !1), this.T && ((this.T = !1), q(this.expireEntries())))
+    }
+    async updateTimestamp(t) {
+      await this.M.setTimestamp(t, Date.now())
+    }
+    async isURLExpired(t) {
+      if (this.B) {
+        const e = await this.M.getTimestamp(t),
+          s = Date.now() - 1e3 * this.B
+        return void 0 === e || e < s
+      }
+      return !1
+    }
+    async delete() {
+      ;((this.T = !1), await this.M.expireEntries(1 / 0))
+    }
+  }
+  try {
+    self['workbox:cacheable-response:7.0.0'] && _()
+  } catch (t) {}
+  class H {
+    constructor(t = {}) {
+      ;((this.W = t.statuses), (this.j = t.headers))
+    }
+    isResponseCacheable(t) {
+      let e = !0
+      return (
+        this.W && (e = this.W.includes(t.status)),
+        this.j &&
+          e &&
+          (e = Object.keys(this.j).some((e) => t.headers.get(e) === this.j[e])),
+        e
+      )
+    }
+  }
+  try {
+    self['workbox:range-requests:7.0.0'] && _()
+  } catch (t) {}
+  async function z(t, e) {
+    try {
+      if (206 === e.status) return e
+      const n = t.headers.get('range')
+      if (!n) throw new s('no-range-header')
+      const r = (function (t) {
+          const e = t.trim().toLowerCase()
+          if (!e.startsWith('bytes='))
+            throw new s('unit-must-be-bytes', { normalizedRangeHeader: e })
+          if (e.includes(','))
+            throw new s('single-range-only', { normalizedRangeHeader: e })
+          const n = /(\d*)-(\d*)/.exec(e)
+          if (!n || (!n[1] && !n[2]))
+            throw new s('invalid-range-values', { normalizedRangeHeader: e })
+          return {
+            start: '' === n[1] ? void 0 : Number(n[1]),
+            end: '' === n[2] ? void 0 : Number(n[2]),
+          }
+        })(n),
+        i = await e.blob(),
+        a = (function (t, e, n) {
+          const r = t.size
+          if ((n && n > r) || (e && e < 0))
+            throw new s('range-not-satisfiable', { size: r, end: n, start: e })
+          let i, a
+          return (
+            void 0 !== e && void 0 !== n
+              ? ((i = e), (a = n + 1))
+              : void 0 !== e && void 0 === n
+                ? ((i = e), (a = r))
+                : void 0 !== n && void 0 === e && ((i = r - n), (a = r)),
+            { start: i, end: a }
+          )
+        })(i, r.start, r.end),
+        o = i.slice(a.start, a.end),
+        c = o.size,
+        h = new Response(o, {
+          status: 206,
+          statusText: 'Partial Content',
+          headers: e.headers,
+        })
+      return (
+        h.headers.set('Content-Length', String(c)),
+        h.headers.set(
+          'Content-Range',
+          `bytes ${a.start}-${a.end - 1}/${i.size}`
+        ),
+        h
+      )
+    } catch (t) {
+      return new Response('', {
+        status: 416,
+        statusText: 'Range Not Satisfiable',
+      })
+    }
+  }
+  function G(t, e) {
     const s = e()
     return (t.waitUntil(s), s)
   }
   try {
     self['workbox:precaching:7.0.0'] && _()
   } catch (t) {}
-  function L(t) {
+  function V(t) {
     if (!t) throw new s('add-to-cache-list-unexpected-type', { entry: t })
     if ('string' == typeof t) {
       const e = new URL(t, location.href)
@@ -487,7 +865,7 @@ define(['exports'], function (t) {
       { cacheKey: r.href, url: i.href }
     )
   }
-  class b {
+  class J {
     constructor() {
       ;((this.updatedURLs = []),
         (this.notUpdatedURLs = []),
@@ -512,18 +890,18 @@ define(['exports'], function (t) {
         }))
     }
   }
-  class E {
+  class Q {
     constructor({ precacheController: t }) {
       ;((this.cacheKeyWillBeUsed = async ({ request: t, params: e }) => {
         const s =
-          (null == e ? void 0 : e.cacheKey) || this._.getCacheKeyForURL(t.url)
+          (null == e ? void 0 : e.cacheKey) || this.S.getCacheKeyForURL(t.url)
         return s ? new Request(s, { headers: t.headers }) : t
       }),
-        (this._ = t))
+        (this.S = t))
     }
   }
-  let C, x
-  async function O(t, e) {
+  let X, Y
+  async function Z(t, e) {
     let n = null
     if (t.url) {
       n = new URL(t.url).origin
@@ -536,44 +914,44 @@ define(['exports'], function (t) {
         status: r.status,
         statusText: r.statusText,
       },
-      o = e ? e(i) : i,
-      a = (function () {
-        if (void 0 === C) {
+      a = e ? e(i) : i,
+      o = (function () {
+        if (void 0 === X) {
           const t = new Response('')
           if ('body' in t)
             try {
-              ;(new Response(t.body), (C = !0))
+              ;(new Response(t.body), (X = !0))
             } catch (t) {
-              C = !1
+              X = !1
             }
-          C = !1
+          X = !1
         }
-        return C
+        return X
       })()
         ? r.body
         : await r.blob()
-    return new Response(a, o)
+    return new Response(o, a)
   }
-  class N extends q {
+  class tt extends b {
     constructor(t = {}) {
       ;((t.cacheName = w(t.cacheName)),
         super(t),
-        (this.C = !1 !== t.fallbackToNetwork),
-        this.plugins.push(N.copyRedirectedCacheableResponsesPlugin))
+        (this.K = !1 !== t.fallbackToNetwork),
+        this.plugins.push(tt.copyRedirectedCacheableResponsesPlugin))
     }
-    async L(t, e) {
+    async U(t, e) {
       const s = await e.cacheMatch(t)
       return (
         s ||
         (e.event && 'install' === e.event.type
-          ? await this.O(t, e)
-          : await this.N(t, e))
+          ? await this.A(t, e)
+          : await this.F(t, e))
       )
     }
-    async N(t, e) {
+    async F(t, e) {
       let n
       const r = e.params || {}
-      if (!this.C)
+      if (!this.K)
         throw new s('missing-precache-entry', {
           cacheName: this.cacheName,
           url: t.url,
@@ -581,56 +959,56 @@ define(['exports'], function (t) {
       {
         const s = r.integrity,
           i = t.integrity,
-          o = !i || i === s
+          a = !i || i === s
         ;((n = await e.fetch(
           new Request(t, { integrity: 'no-cors' !== t.mode ? i || s : void 0 })
         )),
           s &&
-            o &&
+            a &&
             'no-cors' !== t.mode &&
-            (this.P(), await e.cachePut(t, n.clone())))
+            (this.$(), await e.cachePut(t, n.clone())))
       }
       return n
     }
-    async O(t, e) {
-      this.P()
+    async A(t, e) {
+      this.$()
       const n = await e.fetch(t)
       if (!(await e.cachePut(t, n.clone())))
         throw new s('bad-precaching-response', { url: t.url, status: n.status })
       return n
     }
-    P() {
+    $() {
       let t = null,
         e = 0
       for (const [s, n] of this.plugins.entries())
-        n !== N.copyRedirectedCacheableResponsesPlugin &&
-          (n === N.defaultPrecacheCacheabilityPlugin && (t = s),
+        n !== tt.copyRedirectedCacheableResponsesPlugin &&
+          (n === tt.defaultPrecacheCacheabilityPlugin && (t = s),
           n.cacheWillUpdate && e++)
       0 === e
-        ? this.plugins.push(N.defaultPrecacheCacheabilityPlugin)
+        ? this.plugins.push(tt.defaultPrecacheCacheabilityPlugin)
         : e > 1 && null !== t && this.plugins.splice(t, 1)
     }
   }
-  ;((N.defaultPrecacheCacheabilityPlugin = {
+  ;((tt.defaultPrecacheCacheabilityPlugin = {
     cacheWillUpdate: async ({ response: t }) =>
       !t || t.status >= 400 ? null : t,
   }),
-    (N.copyRedirectedCacheableResponsesPlugin = {
+    (tt.copyRedirectedCacheableResponsesPlugin = {
       cacheWillUpdate: async ({ response: t }) =>
-        t.redirected ? await O(t) : t,
+        t.redirected ? await Z(t) : t,
     }))
-  class P {
+  class et {
     constructor({
       cacheName: t,
       plugins: e = [],
       fallbackToNetwork: s = !0,
     } = {}) {
-      ;((this.T = new Map()),
-        (this.k = new Map()),
-        (this.W = new Map()),
-        (this.u = new N({
+      ;((this.H = new Map()),
+        (this.G = new Map()),
+        (this.V = new Map()),
+        (this.u = new tt({
           cacheName: w(t),
-          plugins: [...e, new E({ precacheController: this })],
+          plugins: [...e, new Q({ precacheController: this })],
           fallbackToNetwork: s,
         })),
         (this.install = this.install.bind(this)),
@@ -641,10 +1019,10 @@ define(['exports'], function (t) {
     }
     precache(t) {
       ;(this.addToCacheList(t),
-        this.K ||
+        this.J ||
           (self.addEventListener('install', this.install),
           self.addEventListener('activate', this.activate),
-          (this.K = !0)))
+          (this.J = !0)))
     }
     addToCacheList(t) {
       const e = []
@@ -652,31 +1030,31 @@ define(['exports'], function (t) {
         'string' == typeof n
           ? e.push(n)
           : n && void 0 === n.revision && e.push(n.url)
-        const { cacheKey: t, url: r } = L(n),
+        const { cacheKey: t, url: r } = V(n),
           i = 'string' != typeof n && n.revision ? 'reload' : 'default'
-        if (this.T.has(r) && this.T.get(r) !== t)
+        if (this.H.has(r) && this.H.get(r) !== t)
           throw new s('add-to-cache-list-conflicting-entries', {
-            firstEntry: this.T.get(r),
+            firstEntry: this.H.get(r),
             secondEntry: t,
           })
         if ('string' != typeof n && n.integrity) {
-          if (this.W.has(t) && this.W.get(t) !== n.integrity)
+          if (this.V.has(t) && this.V.get(t) !== n.integrity)
             throw new s('add-to-cache-list-conflicting-integrities', { url: r })
-          this.W.set(t, n.integrity)
+          this.V.set(t, n.integrity)
         }
-        if ((this.T.set(r, t), this.k.set(r, i), e.length > 0)) {
+        if ((this.H.set(r, t), this.G.set(r, i), e.length > 0)) {
           const t = `Workbox is precaching URLs without revision info: ${e.join(', ')}\nThis is generally NOT safe. Learn more at https://bit.ly/wb-precache`
           console.warn(t)
         }
       }
     }
     install(t) {
-      return U(t, async () => {
-        const e = new b()
+      return G(t, async () => {
+        const e = new J()
         this.strategy.plugins.push(e)
-        for (const [e, s] of this.T) {
-          const n = this.W.get(s),
-            r = this.k.get(e),
+        for (const [e, s] of this.H) {
+          const n = this.V.get(s),
+            r = this.G.get(e),
             i = new Request(e, {
               integrity: n,
               cache: r,
@@ -695,27 +1073,27 @@ define(['exports'], function (t) {
       })
     }
     activate(t) {
-      return U(t, async () => {
+      return G(t, async () => {
         const t = await self.caches.open(this.strategy.cacheName),
           e = await t.keys(),
-          s = new Set(this.T.values()),
+          s = new Set(this.H.values()),
           n = []
         for (const r of e) s.has(r.url) || (await t.delete(r), n.push(r.url))
         return { deletedURLs: n }
       })
     }
     getURLsToCacheKeys() {
-      return this.T
+      return this.H
     }
     getCachedURLs() {
-      return [...this.T.keys()]
+      return [...this.H.keys()]
     }
     getCacheKeyForURL(t) {
       const e = new URL(t, location.href)
-      return this.T.get(e.href)
+      return this.H.get(e.href)
     }
     getIntegrityForCacheKey(t) {
-      return this.W.get(t)
+      return this.V.get(t)
     }
     async matchPrecache(t) {
       const e = t instanceof Request ? t.url : t,
@@ -734,8 +1112,8 @@ define(['exports'], function (t) {
       )
     }
   }
-  const T = () => (x || (x = new P()), x)
-  class k extends r {
+  const st = () => (Y || (Y = new et()), Y)
+  class nt extends r {
     constructor(t, e) {
       super(({ request: s }) => {
         const n = t.getURLsToCacheKeys()
@@ -750,17 +1128,17 @@ define(['exports'], function (t) {
         ) {
           const i = new URL(t, location.href)
           ;((i.hash = ''), yield i.href)
-          const o = (function (t, e = []) {
+          const a = (function (t, e = []) {
             for (const s of [...t.searchParams.keys()])
               e.some((t) => t.test(s)) && t.searchParams.delete(s)
             return t
           })(i, e)
-          if ((yield o.href, s && o.pathname.endsWith('/'))) {
-            const t = new URL(o.href)
+          if ((yield a.href, s && a.pathname.endsWith('/'))) {
+            const t = new URL(a.href)
             ;((t.pathname += s), yield t.href)
           }
           if (n) {
-            const t = new URL(o.href)
+            const t = new URL(a.href)
             ;((t.pathname += '.html'), yield t.href)
           }
           if (r) {
@@ -776,75 +1154,184 @@ define(['exports'], function (t) {
       }, t.strategy)
     }
   }
-  ;((t.NetworkFirst = class extends q {
-    constructor(t = {}) {
-      ;(super(t),
-        this.plugins.some((t) => 'cacheWillUpdate' in t) ||
-          this.plugins.unshift(u),
-        (this.j = t.networkTimeoutSeconds || 0))
-    }
-    async L(t, e) {
-      const n = [],
-        r = []
-      let i
-      if (this.j) {
-        const { id: s, promise: o } = this.M({
-          request: t,
-          logs: n,
-          handler: e,
-        })
-        ;((i = s), r.push(o))
-      }
-      const o = this.S({ timeoutId: i, request: t, logs: n, handler: e })
-      r.push(o)
-      const a = await e.waitUntil(
-        (async () => (await e.waitUntil(Promise.race(r))) || (await o))()
-      )
-      if (!a) throw new s('no-response', { url: t.url })
-      return a
-    }
-    M({ request: t, logs: e, handler: s }) {
-      let n
-      return {
-        promise: new Promise((e) => {
-          n = setTimeout(async () => {
-            e(await s.cacheMatch(t))
-          }, 1e3 * this.j)
-        }),
-        id: n,
-      }
-    }
-    async S({ timeoutId: t, request: e, logs: s, handler: n }) {
-      let r, i
-      try {
-        i = await n.fetchAndCachePut(e)
-      } catch (t) {
-        t instanceof Error && (r = t)
-      }
-      return (t && clearTimeout(t), (!r && i) || (i = await n.cacheMatch(e)), i)
+  ;((t.CacheFirst = class extends b {
+    async U(t, e) {
+      let n,
+        r = await e.cacheMatch(t)
+      if (!r)
+        try {
+          r = await e.fetchAndCachePut(t)
+        } catch (t) {
+          t instanceof Error && (n = t)
+        }
+      if (!r) throw new s('no-response', { url: t.url, error: n })
+      return r
     }
   }),
-    (t.NetworkOnly = class extends q {
-      constructor(t = {}) {
-        ;(super(t), (this.j = t.networkTimeoutSeconds || 0))
+    (t.CacheableResponsePlugin = class {
+      constructor(t) {
+        ;((this.cacheWillUpdate = async ({ response: t }) =>
+          this.X.isResponseCacheable(t) ? t : null),
+          (this.X = new H(t)))
       }
-      async L(t, e) {
+    }),
+    (t.ExpirationPlugin = class {
+      constructor(t = {}) {
+        ;((this.cachedResponseWillBeUsed = async ({
+          event: t,
+          request: e,
+          cacheName: s,
+          cachedResponse: n,
+        }) => {
+          if (!n) return null
+          const r = this.Y(n),
+            i = this.Z(s)
+          q(i.expireEntries())
+          const a = i.updateTimestamp(e.url)
+          if (t)
+            try {
+              t.waitUntil(a)
+            } catch (t) {}
+          return r ? n : null
+        }),
+          (this.cacheDidUpdate = async ({ cacheName: t, request: e }) => {
+            const s = this.Z(t)
+            ;(await s.updateTimestamp(e.url), await s.expireEntries())
+          }),
+          (this.tt = t),
+          (this.B = t.maxAgeSeconds),
+          (this.et = new Map()),
+          t.purgeOnQuotaError &&
+            (function (t) {
+              g.add(t)
+            })(() => this.deleteCacheAndMetadata()))
+      }
+      Z(t) {
+        if (t === d()) throw new s('expire-custom-caches-only')
+        let e = this.et.get(t)
+        return (e || ((e = new $(t, this.tt)), this.et.set(t, e)), e)
+      }
+      Y(t) {
+        if (!this.B) return !0
+        const e = this.st(t)
+        if (null === e) return !0
+        return e >= Date.now() - 1e3 * this.B
+      }
+      st(t) {
+        if (!t.headers.has('date')) return null
+        const e = t.headers.get('date'),
+          s = new Date(e).getTime()
+        return isNaN(s) ? null : s
+      }
+      async deleteCacheAndMetadata() {
+        for (const [t, e] of this.et)
+          (await self.caches.delete(t), await e.delete())
+        this.et = new Map()
+      }
+    }),
+    (t.NetworkFirst = class extends b {
+      constructor(t = {}) {
+        ;(super(t),
+          this.plugins.some((t) => 'cacheWillUpdate' in t) ||
+            this.plugins.unshift(u),
+          (this.nt = t.networkTimeoutSeconds || 0))
+      }
+      async U(t, e) {
+        const n = [],
+          r = []
+        let i
+        if (this.nt) {
+          const { id: s, promise: a } = this.rt({
+            request: t,
+            logs: n,
+            handler: e,
+          })
+          ;((i = s), r.push(a))
+        }
+        const a = this.it({ timeoutId: i, request: t, logs: n, handler: e })
+        r.push(a)
+        const o = await e.waitUntil(
+          (async () => (await e.waitUntil(Promise.race(r))) || (await a))()
+        )
+        if (!o) throw new s('no-response', { url: t.url })
+        return o
+      }
+      rt({ request: t, logs: e, handler: s }) {
+        let n
+        return {
+          promise: new Promise((e) => {
+            n = setTimeout(async () => {
+              e(await s.cacheMatch(t))
+            }, 1e3 * this.nt)
+          }),
+          id: n,
+        }
+      }
+      async it({ timeoutId: t, request: e, logs: s, handler: n }) {
+        let r, i
+        try {
+          i = await n.fetchAndCachePut(e)
+        } catch (t) {
+          t instanceof Error && (r = t)
+        }
+        return (
+          t && clearTimeout(t),
+          (!r && i) || (i = await n.cacheMatch(e)),
+          i
+        )
+      }
+    }),
+    (t.NetworkOnly = class extends b {
+      constructor(t = {}) {
+        ;(super(t), (this.nt = t.networkTimeoutSeconds || 0))
+      }
+      async U(t, e) {
         let n, r
         try {
           const s = [e.fetch(t)]
-          if (this.j) {
-            const t = m(1e3 * this.j)
+          if (this.nt) {
+            const t = m(1e3 * this.nt)
             s.push(t)
           }
           if (((r = await Promise.race(s)), !r))
             throw new Error(
-              `Timed out the network response after ${this.j} seconds.`
+              `Timed out the network response after ${this.nt} seconds.`
             )
         } catch (t) {
           t instanceof Error && (n = t)
         }
         if (!r) throw new s('no-response', { url: t.url, error: n })
         return r
+      }
+    }),
+    (t.RangeRequestsPlugin = class {
+      constructor() {
+        this.cachedResponseWillBeUsed = async ({
+          request: t,
+          cachedResponse: e,
+        }) => (e && t.headers.has('range') ? await z(t, e) : e)
+      }
+    }),
+    (t.StaleWhileRevalidate = class extends b {
+      constructor(t = {}) {
+        ;(super(t),
+          this.plugins.some((t) => 'cacheWillUpdate' in t) ||
+            this.plugins.unshift(u))
+      }
+      async U(t, e) {
+        const n = e.fetchAndCachePut(t).catch(() => {})
+        e.waitUntil(n)
+        let r,
+          i = await e.cacheMatch(t)
+        if (i);
+        else
+          try {
+            i = await n
+          } catch (t) {
+            t instanceof Error && (r = t)
+          }
+        if (!i) throw new s('no-response', { url: t.url, error: r })
+        return i
       }
     }),
     (t.cleanupOutdatedCaches = function () {
@@ -866,11 +1353,11 @@ define(['exports'], function (t) {
     }),
     (t.precacheAndRoute = function (t, e) {
       ;(!(function (t) {
-        T().precache(t)
+        st().precache(t)
       })(t),
         (function (t) {
-          const e = T()
-          h(new k(e, t))
+          const e = st()
+          h(new nt(e, t))
         })(e))
     }),
     (t.registerRoute = h))

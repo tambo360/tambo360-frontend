@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Plus,
   Search,
@@ -54,10 +54,19 @@ import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
 import { useQueryClient } from '@tanstack/react-query'
+import { useBatchOutbox } from '@/stores/useBatchOutbox'
+import { currentScope } from '@/lib/offlineId'
+import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
 
 // Modales
 import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
+import { TipoRodeo } from '@/types/enums'
+
+const TIPO_RODEO: { value: TipoRodeo; label: string }[] = [
+  { value: TipoRodeo.BAJA_PRODUCCION, label: 'Baja Producción' },
+  { value: TipoRodeo.ALTA_PRODUCCION, label: 'Alta Producción' },
+]
 
 const Produccion: React.FC = () => {
   const queryClient = useQueryClient()
@@ -72,18 +81,20 @@ const Produccion: React.FC = () => {
   const [selectedBatchId, setSelectedBatchId] = useState('')
 
   // Estados de filtros y paginación
-  const [nombre, setNombre] = useState('')
+  const [busqueda, setBusqueda] = useState('')
   const [orden, setOrden] = useState<'asc' | 'desc'>('desc')
   const [pagina, setPagina] = useState(1)
 
-  const [nameDebounced] = useDebounce(nombre, 300)
-  const searchFilter = nameDebounced?.replace(/^0+/, '')
-  const highlightQuery = nombre.replace(/^0+/, '')
+  const [busquedaDebounced] = useDebounce(busqueda, 300)
+  const digitos = busquedaDebounced.replace(/\D/g, '').slice(0, 4)
+  const esSoloCeros = digitos.length > 0 && /^0+$/.test(digitos)
+  const searchFilter = !digitos || esSoloCeros ? '' : String(Number(digitos))
+  const highlightQuery = busqueda.trim()
 
   // Hook de datos
   const { data, isPending, error, refetch } = useBatches({
     filters: {
-      nombre: searchFilter || undefined,
+      numeroLote: searchFilter || undefined,
       orden,
       page: String(pagina),
     },
@@ -94,9 +105,26 @@ const Produccion: React.FC = () => {
     useCreateDecrease()
   const { showErrorMessage } = useErrorMessage()
 
-  // Transformación de datos
-  const lotes = (data?.data?.lotes?.map((item: any) => item.lote) ||
-    []) as Lote[]
+  // Overlay offline: mientras la op `complete` siga encolada, el lote se
+  // muestra Completado aunque el caché diga otra cosa (recarga sin red o
+  // refetch stale). Al drenar, la op sale y el servidor manda lo real.
+  const batchOps = useBatchOutbox((s) => s.ops)
+  const scope = currentScope()
+
+  // Transformación de datos + overlay offline (todo dentro del memo para no
+  // invalidarlo en cada render con un array recién creado).
+  const lotes = useMemo(() => {
+    const base = (data?.data?.lotes?.map((item: any) => item.lote) ??
+      []) as Lote[]
+    if (!batchOps.some((o) => o.type === 'complete' && o.scope === scope))
+      return base
+    return base.map((lote) =>
+      hasPendingComplete(batchOps, scope, lote.idLote)
+        ? { ...lote, estado: true }
+        : lote
+    )
+  }, [batchOps, scope, data])
+
   const totalPaginas: number = data?.data?.totalPaginas ?? 1
 
   // Ubicación real de la base de datos
@@ -105,8 +133,8 @@ const Produccion: React.FC = () => {
     data?.data?.establecimiento?.ubicacion ||
     data?.data?.ubicacion
 
-  const handleNombreChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setNombre(e.target.value)
+  const handleBusquedaChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setBusqueda(e.target.value)
     setPagina(1)
   }
 
@@ -158,9 +186,9 @@ const Produccion: React.FC = () => {
   const isLocked = (batch: Lote) => Boolean((batch as any).estado)
 
   const getRodeoDisplay = (batch: Lote) => {
-    const b = batch as any
-    const directo = b.rodeo?.tipoRodeo || b.rodeo?.nombre
-    if (directo) return directo
+    const b = batch
+    const directo = TIPO_RODEO.find((t) => t.value === b.rodeo?.tipoRodeo)
+    if (directo) return directo.label
 
     if (b.cantAnimales && Number(b.cantAnimales) > 0) {
       return 'Rodeo único'
@@ -225,14 +253,14 @@ const Produccion: React.FC = () => {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-black transition-colors" />
                 <Input
                   className="pl-10 w-full md:w-60 bg-gray-50 border-gray-200 rounded-lg"
-                  placeholder="Buscar lote..."
-                  value={nombre}
-                  onChange={handleNombreChange}
+                  placeholder="Buscar por lote..."
+                  value={busqueda}
+                  onChange={handleBusquedaChange}
                 />
-                {nombre && (
+                {busqueda && (
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 size-4 text-gray-400 group-focus-within:text-black transition-colors"
-                    onClick={() => setNombre('')}
+                    onClick={() => setBusqueda('')}
                   >
                     <X className="size-4" />
                   </button>
@@ -257,7 +285,7 @@ const Produccion: React.FC = () => {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="p-0 px-5">
           {/* ============ VISTA TABLA (única, con scroll horizontal en mobile) ============ */}
           <div className="block overflow-x-auto thin-scroll">
             <Table className="w-full min-w-190">
@@ -322,7 +350,6 @@ const Produccion: React.FC = () => {
 
                         const totalMerma = calcularMerma(batch)
                         const tipoRodeo = getRodeoDisplay(batch)
-                        // ✅ El estado viene del backend, NO de tener mermas
                         const isComplete = isCompleted(batch)
                         const locked = isLocked(batch)
 
@@ -356,10 +383,7 @@ const Produccion: React.FC = () => {
                                 : '0 L'}
                             </TableCell>
                             <TableCell className="text-gray-600 text-sm">
-                              <button
-                                //onClick={() => handleOpenDetail(batch.idLote)}
-                                className="text-left"
-                              >
+                              <button className="text-left">
                                 {totalMerma > 0
                                   ? `${totalMerma.toLocaleString('es-AR')} L`
                                   : '-'}
@@ -370,25 +394,15 @@ const Produccion: React.FC = () => {
                                 <TooltipTrigger asChild>
                                   <button
                                     type="button"
-                                    // onClick={() =>
-                                    //   handleOpenDetail(batch.idLote)
-                                    // }
                                     className={`text-sm font-semibold ${
                                       isComplete
                                         ? 'text-emerald-600'
-                                        : 'text-red-600'
+                                        : 'text-[#D3A430]'
                                     }`}
                                   >
                                     {isComplete ? 'Completado' : 'Incompleto'}
                                   </button>
                                 </TooltipTrigger>
-                                {/* <TooltipContent>
-                                <p>
-                                  {isComplete
-                                    ? 'Lote cerrado. No se puede editar.'
-                                    : 'Click para ver detalles y completar'}
-                                </p>
-                              </TooltipContent> */}
                               </Tooltip>
                             </TableCell>
                             <TableCell className="text-right pr-10">
@@ -471,8 +485,8 @@ const Produccion: React.FC = () => {
             </div>
           )}
 
-          {/* Estado de Error */}
-          {error && (
+          {/* Estado de Error (solo si no hay nada que mostrar: sin caché offline no se levanta pantalla de error) */}
+          {error && lotes.length === 0 && (
             <div className="flex flex-col items-center justify-center py-16 px-6 gap-6 bg-white w-full">
               <div className="w-20 h-20 bg-slate-100 rounded-md flex items-center justify-center">
                 <CloudOff className="w-10 h-10 text-slate-400" />
@@ -557,6 +571,7 @@ const Produccion: React.FC = () => {
 
       {/* Registrar merma desde la lista */}
       <RegisterMermaModal
+        key={isRegisterMermaOpen ? 'merma-open' : 'merma-closed'}
         open={isRegisterMermaOpen}
         onClose={() => {
           setIsRegisterMermaOpen(false)

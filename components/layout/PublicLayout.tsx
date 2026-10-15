@@ -16,6 +16,7 @@ export default function PublicLayout({
 
   useEffect(() => {
     if (loading) return
+    if (typeof window !== 'undefined' && !navigator.onLine) return
 
     if (user && !pathname.includes('/verificar')) {
       if (user.organizaciones != undefined && user.organizaciones?.length > 0) {
@@ -44,6 +45,15 @@ export default function PublicLayout({
   }, [user, loading, router, pathname, cuestionarioCompletado])
 
   if (loading) return <Loading />
+
+  // Sesión activa fuera de /verificar: la redirección ya está decidida en el
+  // efecto de arriba. Mostrar <Loading /> evita el flash del formulario
+  // público mientras el router.replace hace efecto. Offline no se redirige
+  // (ver efecto), así que ahí sí se renderiza el contenido.
+  const isOffline = typeof window !== 'undefined' && !navigator.onLine
+  if (!isOffline && user && !pathname.includes('/verificar')) {
+    return <Loading />
+  }
 
   return <>{children}</>
 }

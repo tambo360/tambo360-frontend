@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,8 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { useTransferFormData } from '@/hooks/transfer/useTransferFormData'
 import { useTransferRodeo } from '@/hooks/transfer/useTransferRodeo'
+import { submitTransferOffline } from '@/hooks/transfer/offlineTransferCache'
+import { useQueryClient } from '@tanstack/react-query'
 
 // ─────────────────────────────────────────────────────────────
 // Tipos del endpoint 10
@@ -59,15 +61,30 @@ interface TransferFormData {
   animales?: AnimalFormData[]
 }
 
+/** Fuente mínima del dropdown (ambas formas de animal la cumplen). */
+export interface TransferAnimalOption {
+  idAnimal: string
+  codigo?: string | null
+  nombre?: string | null
+}
+
+/** Transferencia confirmada (offline u online) para el llamador. */
+export interface TransferSuccessResult {
+  /** Solo individual; en rodeo no hay un animal único. */
+  animalId?: string
+  origen: string
+  destino: string
+}
+
 interface TransferModalProps {
   open: boolean
   onClose: () => void
-  animales?: any[]
+  animales?: TransferAnimalOption[]
   preselectedIds?: string[]
   // ✅ NUEVO: acepta la prop que pasa ChangeBatch (no se usa dentro del modal,
   //    el wrapper determina el modo según formData.tipoSeguimiento del backend)
   tipoSeguimiento?: string
-  onSuccess?: () => void
+  onSuccess?: (result?: TransferSuccessResult) => void
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -85,6 +102,7 @@ const formatLabel = (s: string) =>
 export const TransferModal = ({
   open,
   onClose,
+  animales,
   onSuccess,
 }: TransferModalProps) => {
   const { data, isLoading, isError, error } = useTransferFormData()
@@ -121,6 +139,7 @@ export const TransferModal = ({
         open={open}
         onClose={onClose}
         formData={formData}
+        animalesOverride={animales}
         onSuccess={onSuccess}
       />
     )
@@ -143,7 +162,7 @@ interface RodeoTransferModalProps {
   open: boolean
   onClose: () => void
   formData: TransferFormData
-  onSuccess?: () => void
+  onSuccess?: (result?: TransferSuccessResult) => void
 }
 
 const RodeoTransferModal = ({
@@ -167,6 +186,7 @@ const RodeoTransferModal = ({
   const [error, setError] = useState<string | null>(null)
 
   const { mutateAsync, isPending } = useTransferRodeo()
+  const queryClient = useQueryClient()
 
   const rodeoOrigen = rodeos.find((r) => r.idRodeo === origenId)
   const razas = rodeoOrigen?.razas ?? []
@@ -180,28 +200,30 @@ const RodeoTransferModal = ({
     [causasPorMotivo, motivo]
   )
 
-  useEffect(() => {
+  // Al cambiar de origen se reinicia la selección de raza (manejador de
+  // evento, no efecto: evita el setState síncrono dentro de effects).
+  const handleOrigenChange = (value: string) => {
+    setOrigenId(value)
     setRazaId('')
     setCantidades({})
     setPlazos({})
-  }, [origenId])
+  }
 
-  useEffect(() => {
-    if (!open) {
-      setOrigenId('')
-      setDestinoId('')
-      setRazaId('')
-      setCantidades({})
-      setPlazos({})
-      setMotivo('')
-      setCausa('')
-      setObservacion('')
-      setError(null)
-    }
-  }, [open])
+  const resetForm = () => {
+    setOrigenId('')
+    setDestinoId('')
+    setRazaId('')
+    setCantidades({})
+    setPlazos({})
+    setMotivo('')
+    setCausa('')
+    setObservacion('')
+    setError(null)
+  }
 
   const handleClose = () => {
     if (isPending) return
+    resetForm()
     onClose()
   }
 
@@ -232,7 +254,7 @@ const RodeoTransferModal = ({
     if (!causa) return setError('Elegí una causa')
 
     try {
-      await mutateAsync({
+      const rodeoPayload = {
         tipo: 'TRANSFERENCIA',
         motivo: motivo as any,
         causa,
@@ -244,8 +266,18 @@ const RodeoTransferModal = ({
         // Cuando lo arreglen, agregar:
         // retorno: dias > 0 ? new Date(Date.now() + dias*864e5).toISOString() : null,
         observacion: observacion || undefined,
-      } as any)
-      onSuccess?.()
+      } as any
+      // offline
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        submitTransferOffline(queryClient, rodeoPayload)
+        resetForm()
+        onSuccess?.({ origen: origenId, destino: destinoId })
+        onClose()
+        return
+      }
+      await mutateAsync(rodeoPayload)
+      resetForm()
+      onSuccess?.({ origen: origenId, destino: destinoId })
       onClose()
     } catch (e) {
       const err = e as any
@@ -285,7 +317,7 @@ const RodeoTransferModal = ({
             <Label className="font-bold text-[11px] text-gray-700">
               Estado Origen
             </Label>
-            <Select value={origenId} onValueChange={setOrigenId}>
+            <Select value={origenId} onValueChange={handleOrigenChange}>
               <SelectTrigger className="w-full h-10 rounded-xl border-gray-200 bg-gray-50/50 text-sm text-gray-500">
                 <SelectValue placeholder="Seleccionar" />
               </SelectTrigger>
@@ -509,16 +541,32 @@ interface IndividualTransferModalProps {
   open: boolean
   onClose: () => void
   formData: TransferFormData
-  onSuccess?: () => void
+  /** Ids del llamador (opciones-seguimiento) para que el parche offline acierte. */
+  animalesOverride?: TransferAnimalOption[]
+  onSuccess?: (result?: TransferSuccessResult) => void
 }
 
 const IndividualTransferModal = ({
   open,
   onClose,
   formData,
+  animalesOverride,
   onSuccess,
 }: IndividualTransferModalProps) => {
-  const animales = formData.animales ?? []
+  const animales: TransferAnimalOption[] = useMemo(() => {
+    const byId = new Map<string, TransferAnimalOption>()
+    for (const a of formData.animales ?? []) {
+      if (a?.idAnimal && !byId.has(a.idAnimal)) byId.set(a.idAnimal, a)
+    }
+    for (const a of animalesOverride ?? []) {
+      if (a?.idAnimal) byId.set(a.idAnimal, a)
+    }
+    return [...byId.values()].sort((x, y) =>
+      `${x.codigo ?? ''}${x.nombre ?? ''}`.localeCompare(
+        `${y.codigo ?? ''}${y.nombre ?? ''}`
+      )
+    )
+  }, [formData.animales, animalesOverride])
   const motivos = formData.motivos ?? []
 
   const [animalId, setAnimalId] = useState('')
@@ -530,6 +578,7 @@ const IndividualTransferModal = ({
   const [error, setError] = useState<string | null>(null)
 
   const { mutateAsync, isPending } = useTransferRodeo()
+  const queryClient = useQueryClient()
 
   const causasPorMotivo = useMemo(
     () => formData.causas ?? {},
@@ -545,8 +594,7 @@ const IndividualTransferModal = ({
     { value: 'SECAS', label: 'Secas' },
   ]
 
-  const handleClose = () => {
-    if (isPending) return
+  const resetForm = () => {
     setAnimalId('')
     setOrigen('')
     setDestino('')
@@ -554,6 +602,11 @@ const IndividualTransferModal = ({
     setCausa('')
     setObservacion('')
     setError(null)
+  }
+
+  const handleClose = () => {
+    if (isPending) return
+    resetForm()
 
     onClose()
   }
@@ -580,8 +633,17 @@ const IndividualTransferModal = ({
         retorno: null,
         observacion: observacion || undefined,
       }
+      // offline
+      if (typeof window !== 'undefined' && !navigator.onLine) {
+        submitTransferOffline(queryClient, payload as any)
+        resetForm()
+        onSuccess?.({ animalId, origen, destino })
+        onClose()
+        return
+      }
       await mutateAsync(payload as any)
-      onSuccess?.()
+      resetForm()
+      onSuccess?.({ animalId, origen, destino })
       onClose()
     } catch (e) {
       const err = e as any

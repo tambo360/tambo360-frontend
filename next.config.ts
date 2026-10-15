@@ -9,6 +9,13 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   cacheOnFrontEndNav: true,
   aggressiveFrontEndNavCaching: true,
   reloadOnOnline: true,
+  // Sin ella, un reload offline no matchea ninguna
+  // ruta y el navegador muestra su página de error (dino). Con `true` las
+  // nuestras van primero y las por defecto después.
+  extendDefaultRuntimeCaching: true,
+  fallbacks: {
+    document: '/offline.html',
+  },
   workboxOptions: {
     disableDevLogs: true,
     // Auth nunca debe cachearse: en iOS un 401 cacheado parece "no puedo entrar".
@@ -24,6 +31,82 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         handler: 'NetworkOnly',
         method: 'POST',
       },
+      // GET de lotes: primero red, si no hay red sirve lo visitado.
+      // Los datos entre recargas los sostiene además el caché persistido
+      // de React Query (IndexedDB); esto cubre el shell y respuestas crudas.
+      {
+        urlPattern: /\/backend\/lote\/listar.*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-lotes',
+          expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Config del establecimiento (ubicación, tipo de seguimiento, etc.)
+      {
+        urlPattern:
+          /\/backend\/(conf\/establecimiento|establecimiento\/cuestionario\/info).*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-config',
+          expiration: { maxEntries: 20, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Mermas por lote + tipos (detalle del lote offline).
+      {
+        urlPattern: /\/backend\/mermas.*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-mermas',
+          expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Detalle de lote por id.
+      {
+        urlPattern: /\/backend\/lote\/buscar.*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-lote-detail',
+          expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // Form de transferencia + opciones de seguimiento + productos
+      // (el modal de transferencia y el form de lote los necesitan offline).
+      {
+        urlPattern:
+          /\/backend\/(conf\/animal\/transferir\/form-data|establecimiento\/info\/opciones-seguimiento|productos).*$/,
+        handler: 'NetworkFirst',
+        method: 'GET',
+        options: {
+          cacheName: 'tambo360-catalogs',
+          expiration: { maxEntries: 30, maxAgeSeconds: 48 * 60 * 60 },
+          networkTimeoutSeconds: 3,
+          cacheableResponse: { statuses: [0, 200] },
+        },
+      },
+      // { // PLANTILLA, por cada endpoint GET en offline debe agregar un objeto similar.
+      //   urlPattern: /\/backend\/merma\/listar.*$/,
+      //   handler: 'NetworkFirst',
+      //   method: 'GET',
+      //   options: {
+      //     cacheName: 'tambo360-mermas', // nombre único por endpoint
+      //     expiration: { maxEntries: 60, maxAgeSeconds: 48 * 60 * 60 },
+      //     networkTimeoutSeconds: 3,
+      //     cacheableResponse: { statuses: [0, 200] },
+      //   },
+      // },
     ],
   },
 })
@@ -38,9 +121,6 @@ module.exports = withPWA({
   eslint: {
     ignoreDuringBuilds: true,
   },
-  // Proxy same-site: el browser solo habla con nuestro dominio (cookie
-  // first-party, Safari iOS la acepta) y Next reenvía al backend.
-  // No cambia paths: /backend/auth/me -> <BACKEND>/auth/me.
   async rewrites() {
     return [
       {

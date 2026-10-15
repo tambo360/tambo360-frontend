@@ -2,14 +2,27 @@ import RegisterForm from '@/components/shared/register/RegisterForm'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ChevronLeft } from 'lucide-react'
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'Crear cuenta | Tambo360',
+  description:
+    'Registrá tu establecimiento lácteo en Tambo360 y empezá a gestionar tu producción.',
+}
 
 const Register: React.FC = () => {
   return (
     <div
-      className="min-h-screen w-full flex flex-col md:flex-row bg-[#F2F1EC] relative font-inter bg-[url('/vacas_2.webp')] bg-cover bg-center bg-no-repeat transition-all duration-700"
+      className="relative min-h-dvh w-full bg-[#F2F1EC] font-inter"
       data-testid="register-page-container"
     >
+      <div
+        aria-hidden
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/vacas_2.webp')" }}
+      />
+      <div className="fixed inset-0 z-0 bg-black/30" />
       <Button
         variant="secondary"
         size="icon"
@@ -20,9 +33,8 @@ const Register: React.FC = () => {
           <ChevronLeft className="size-6" />
         </Link>
       </Button>
-      <div className="absolute inset-0 bg-black/30 z-0" />
-      <div className="w-full h-screen flex items-center justify-center sm:items-start sm:justify-end p-4 z-10">
-        <Card className="w-full sm:h-full sm:max-w-125 border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative">
+      <div className="relative z-10 flex justify-end items-center min-h-dvh w-full p-4">
+        <Card className="m-auto w-full border-none shadow-2xl py-0 px-4 bg-white/95 backdrop-blur-md rounded-xl relative sm:m-0 sm:ml-auto sm:max-w-125">
           <RegisterForm />
         </Card>
       </div>

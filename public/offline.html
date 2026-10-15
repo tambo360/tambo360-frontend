@@ -182,19 +182,21 @@
     <script>
       function handleRetry(btn) {
         btn.classList.add('loading')
-        // Espera 1s para dar feedback visual, luego recarga
+        // Espera 1s para dar feedback visual, luego reintenta LA MISMA url
+        // (ir a '/' sacaba al usuario de donde estaba, p.ej. producción,
+        // y PublicLayout lo mandaba a cuestionario con el flag reseteado).
         setTimeout(() => {
           if (navigator.onLine) {
-            window.location.href = '/'
+            window.location.reload()
           } else {
             btn.classList.remove('loading')
           }
         }, 1000)
       }
 
-      // Si recupera conexión automáticamente, redirige solo
+      // Si recupera conexión automáticamente, reintenta la misma página
       window.addEventListener('online', () => {
-        window.location.href = '/'
+        window.location.reload()
       })
     </script>
   </body>

@@ -13,6 +13,7 @@ import { useConnectionError } from '@/hooks/connection/useConnectionError'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useOpcionesSeguimiento } from '@/hooks/establishment/useOpcionesSeguimiento'
 import { RodeoOpcion } from '@/utils/api/establishment/configuration.api'
+import { randomLoteId } from '@/lib/offlineId'
 
 export interface RodeoOption {
   idRodeo: string
@@ -117,6 +118,9 @@ export function useChangeBatchForm({
     onServerError: showErrorMessage,
     closeParentDialog: onClose,
     openParentDialog: onOpen,
+    // Lotes tiene cola offline-first: sin red se encola y se muestra éxito
+    // optimista en vez del modal de error de conexión.
+    offlinePassthrough: true,
   })
 
   // ─── Tipo de seguimiento ───────────────────────────────────────────
@@ -244,6 +248,20 @@ export function useChangeBatchForm({
       fechaFormateada = `${day}/${month}/${year}`
     }
 
+    const estadosValidos = ['SANO', 'MASTITIS', 'TRATAMIENTO', 'PREPARTO']
+    const animalesEdit = (batch.produccionesIndividuales ?? [])
+      .filter((p) => !!p?.idAnimal)
+      .map((p) => {
+        const litrosNum =
+          p.litros != null && p.litros !== '' ? Number(p.litros) : undefined
+        return {
+          idAnimal: p.idAnimal,
+          litros: litrosNum,
+          estado: estadosValidos.includes(p.estado) ? p.estado : 'SANO',
+          destino: 'TANQUE',
+        }
+      })
+
     reset({
       tipoSeguimiento,
       idProducto: batch.idProducto ?? '',
@@ -255,6 +273,7 @@ export function useChangeBatchForm({
       idRodeo: batch.rodeo?.idRodeo ?? '',
       tempTanque: batch.tempTanque?.toString() ?? '',
       destino: batch.destino ?? '',
+      animales: animalesEdit,
     })
   }, [open, batch, tipoSeguimiento, reset])
 
@@ -299,13 +318,6 @@ export function useChangeBatchForm({
 
   const handleConnectionCancel = () => dismiss(() => resetToDefaults())
 
-  // Pendiente de conectar con el backend
-
-  const handleSaveTransfer = (data: any) => {
-    console.log('🔄 Datos de transferencia (pendiente conectar backend):', data)
-    setIsTransferModalOpen(false)
-  }
-
   const onSubmit = handleSubmit(
     handleSubmitWithConnectionCheck(async (data) => {
       // ── Editar ──
@@ -332,14 +344,12 @@ export function useChangeBatchForm({
         return
       }
 
-      const idLote = crypto.randomUUID()
       const base = {
         tipoSeguimiento,
         idProducto: data.idProducto,
         cantidad: Number(data.cantidad),
         unidad: data.unidad,
         fechaProduccion: data.fechaProduccion,
-        idLote,
         tempTanque:
           data.destino === TipoDestino.TANQUE_FRIO && data.tempTanque
             ? Number(data.tempTanque)
@@ -349,8 +359,9 @@ export function useChangeBatchForm({
       }
 
       // RODEO y RODEO_UNICO llevan el mismo payload; INDIVIDUAL solo animales
-      const payload: any =
-        tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
+      const payload: any = {
+        idLote: randomLoteId(),
+        ...(tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
           ? {
               ...base,
               animales: data.animales.map((a: any) => ({
@@ -358,11 +369,12 @@ export function useChangeBatchForm({
                 litros: Number(a.litros),
               })),
             }
-          : { ...base, idRodeo: data.idRodeo }
+          : { ...base, idRodeo: data.idRodeo }),
+      }
 
       try {
         const created = await mutateAsync(payload)
-        setCreatedBatchId(created?.idLote ?? idLote)
+        setCreatedBatchId(created?.idLote ?? created?.id ?? '')
         setFinished(true)
       } catch (error) {
         const axiosError = error as AxiosError<{ message?: string }>
@@ -416,7 +428,6 @@ export function useChangeBatchForm({
     // transferencia
     isTransferModalOpen,
     setIsTransferModalOpen,
-    handleSaveTransfer,
     // error de conexión
     showConnectionError,
     retry,

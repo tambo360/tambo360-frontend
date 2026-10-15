@@ -2,7 +2,9 @@
 
 import { AppSidebar } from '@/components/layout/AppSidebar'
 import { Navbar } from '@/components/shared/dashboard/Navbar'
+import SyncOverlay from '@/components/layout/SyncOverlay'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import { useOutboxSync } from '@/hooks/connection/useOutboxSync'
 import { useState, useEffect } from 'react'
 
 interface LayoutContentProps {
@@ -13,6 +15,9 @@ const LayoutContent = ({ children }: LayoutContentProps) => {
   const [isMobile, setIsMobile] = useState(false)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+
+  // Drena la cola offline-first al montar y al recuperar conexión.
+  useOutboxSync()
 
   useEffect(() => {
     const checkMobile = () => {
@@ -62,6 +67,9 @@ const LayoutContent = ({ children }: LayoutContentProps) => {
           </div>
         </main>
       </div>
+
+      {/* Aviso bloqueante al sincronizar la cola offline (mínimo 5s). */}
+      <SyncOverlay />
     </div>
   )
 }

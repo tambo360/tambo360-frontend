@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react'
+import { FormEvent, useMemo, useState } from 'react'
 import {
   DecreaseData,
   DecreaseSchema,
@@ -20,7 +20,6 @@ export interface InitialDecreaseData {
 type FieldErrors = Partial<Record<'tipo' | 'cantidad' | 'observacion', string>>
 
 interface UseDecreaseFormProps {
-  open: boolean
   onSave: (data: DecreaseData) => Promise<void>
   initialData?: InitialDecreaseData | null
 }
@@ -40,16 +39,11 @@ const getNowParts = () => {
   }
 }
 
-export function useDecreaseForm({
-  open,
-  onSave,
-  initialData,
-}: UseDecreaseFormProps) {
-  const [fecha, setFecha] = useState('')
-  const [hora, setHora] = useState('')
-  const [tipo, setTipo] = useState('')
-  const [cantidad, setCantidad] = useState('')
-  const [observacion, setObservacion] = useState('')
+export function useDecreaseForm({ onSave, initialData }: UseDecreaseFormProps) {
+  const [{ fecha, hora }] = useState(getNowParts)
+  const [tipo, setTipo] = useState(initialData?.tipo ?? '')
+  const [cantidad, setCantidad] = useState(String(initialData?.cantidad ?? ''))
+  const [observacion, setObservacion] = useState(initialData?.observacion || '')
   const [errors, setErrors] = useState<FieldErrors>({})
 
   const { data: typesData, isLoading: typesLoading } = useDecreaseType()
@@ -58,26 +52,6 @@ export function useDecreaseForm({
     const list = Array.isArray(typesData) ? typesData : typesData?.data
     return Array.isArray(list) && list.length > 0 ? list : FALLBACK_TYPES
   }, [typesData])
-
-  // Cada vez que se abre el modal: si hay initialData (edición) precarga
-  // valores, si no, limpia. Fecha y hora siempre son las del momento.
-  useEffect(() => {
-    if (!open) return
-    const now = getNowParts()
-    setFecha(now.fecha)
-    setHora(now.hora)
-
-    if (initialData) {
-      setTipo(initialData.tipo)
-      setCantidad(String(initialData.cantidad ?? ''))
-      setObservacion(initialData.observacion || '')
-    } else {
-      setTipo('')
-      setCantidad('')
-      setObservacion('')
-    }
-    setErrors({})
-  }, [open, initialData])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()

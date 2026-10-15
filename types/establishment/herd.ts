@@ -7,4 +7,5 @@ export interface Rodeo {
   label: string
   cantVacas: number
   costoRacion: number
+  tipoRodeo?: string
 }

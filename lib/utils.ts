@@ -5,6 +5,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+export const LETTERS_ONLY_PATTERN = "A-Za-zÁÉÍÓÚáéíóúÑñÜü\\s'-"
+
+export const sanitizeLettersOnly = (value: string) =>
+  value.replace(new RegExp(`[^${LETTERS_ONLY_PATTERN}]`, 'g'), '')
+
 export const allowOnlyLettersKeyDown = (
   e: React.KeyboardEvent<HTMLInputElement>
 ) => {

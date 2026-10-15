@@ -11,7 +11,7 @@ export const OrganizationNavbar = () => {
   return (
     <nav className="sticky top-0 z-30 flex h-20 w-full items-center justify-between px-4 sm:px-8 bg-white">
       <div className="w-auto flex items-center justify-start gap-2">
-        <img src="/logos/isotipo_tambo 1.png" alt="logo" className="h-12" />
+        <img src="/logos/isotipo_tambo_1.png" alt="logo" className="h-12" />
         <img src="/logotipo 1.png" alt="tambo" className="h-6" />
       </div>
 
