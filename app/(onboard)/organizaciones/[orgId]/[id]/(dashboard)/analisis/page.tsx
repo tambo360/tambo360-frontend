@@ -4,12 +4,17 @@ import DailyProductionLog from '@/components/shared/dashboard/DailyProductionLog
 import AlertsSection from '@/components/shared/dashboard/AlertsSection'
 import { useCurrentMonth } from '@/hooks/dashboard/useCurrentMonth'
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser'
+import { useGeneralCostsSummary } from '@/hooks/generalCost/useGeneralCostsSummary'
+import { useMonthPeriod } from '@/hooks/generalCost/useMonthPeriod'
 import { StatCard } from '@/components/shared/StatCard'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
 import { useParams } from 'next/navigation'
 
 const Dashboard = () => {
   const { data, isPending } = useCurrentMonth()
+  const { period } = useMonthPeriod()
+  const { data: costsSummary, isPending: isCostsPending } =
+    useGeneralCostsSummary(period)
   const params = useParams()
   const estId = params?.id as string
   const { data: establishment } = useEstablishment({
@@ -24,6 +29,11 @@ const Dashboard = () => {
     totalProduccion > 0
       ? ((data?.data.actual.mermas || 0) / totalProduccion) * 100
       : 0
+
+  // Costos del mes: lo que ya trae /dashboard/mes-actual (costos de lotes)
+  // + el total del resumen de costos generales (alimentación + gastos manuales)
+  const costosTotales =
+    (Number(data?.data.actual.costos) || 0) + (costsSummary?.gastoTotal ?? 0)
 
   return (
     <div className="space-y-6 w-full max-w-full overflow-x-hidden">
@@ -62,10 +72,10 @@ const Dashboard = () => {
           value={porcentajeMermas.toFixed(2)}
           unit="%"
           trend={
-            data?.data.variaciones.costos != null
+            data?.data.variaciones.mermas != null
               ? {
-                  value: data?.data.variaciones.mermas,
-                  isPositive: data?.data.variaciones.mermas <= 0,
+                  value: data.data.variaciones.mermas,
+                  isPositive: data.data.variaciones.mermas <= 0,
                 }
               : null
           }
@@ -75,7 +85,7 @@ const Dashboard = () => {
 
         <StatCard
           title="Costos totales"
-          value={data?.data.actual.costos}
+          value={costosTotales}
           unit="$ "
           trend={
             data?.data.variaciones.costos != null
@@ -86,7 +96,7 @@ const Dashboard = () => {
               : null
           }
           description={'vs ' + data?.data.mesPrevio}
-          isPending={isPending}
+          isPending={isPending || isCostsPending}
         />
 
         {/*
