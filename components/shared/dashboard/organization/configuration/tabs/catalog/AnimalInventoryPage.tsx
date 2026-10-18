@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import {
   UserPlus,
   UserMinus,
@@ -35,13 +36,17 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+
 import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
 import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
+import { EditAnimalModal } from '@/components/shared/dashboard/organization/configuration/modals/EditAnimalModal'
+
 import {
   useInventarioAnimales,
   type AnimalRow,
   type FiltroEstado,
 } from '@/hooks/establishment/useInventarioAnimales'
+import { useAnimalMutations } from '@/hooks/establishment/useAnimalMutations'
 
 function getCategoriaLabel(categoria: string) {
   if (categoria.includes('SECA')) return 'Secas'
@@ -56,7 +61,9 @@ function getObservacion(a: AnimalRow) {
   return '—'
 }
 
-const HEAD_CLASS = 'text-center text-xs font-semibold text-slate-700 py-4'
+// Clases ajustadas para evitar el scroll horizontal
+const HEAD_CLASS = 'text-center text-xs font-semibold text-slate-700 py-3 px-2'
+const CELL_CLASS = 'text-center text-[11px] px-2 py-4'
 
 export default function AnimalInventoryPage() {
   const {
@@ -81,27 +88,29 @@ export default function AnimalInventoryPage() {
     cerrarBaja,
   } = useInventarioAnimales()
 
-  // ─── Handlers de acciones ──────────────────────
+  const { deleteAnimal, isDeleting } = useAnimalMutations()
+
+  const [isEditOpen, setIsEditOpen] = useState(false)
+  const [selectedAnimal, setSelectedAnimal] = useState<AnimalRow | null>(null)
+
   const handleEditar = (animal: AnimalRow) => {
-    // TODO: conectar a PATCH /conf/animal (endpoint 6)
-    // Por ahora solo un log + alert para QA
-    console.log('Editar animal:', animal)
-    alert(
-      `Editar: ${animal.codigo} - ${animal.nombre}\n(Conectar modal de edición aquí)`
-    )
+    setSelectedAnimal(animal)
+    setIsEditOpen(true)
   }
 
-  const handleEliminar = (animal: AnimalRow) => {
+  const handleEliminar = async (animal: AnimalRow) => {
     const confirmar = window.confirm(
       `¿Estás seguro que querés dar de baja a ${animal.codigo} - ${animal.nombre}?`
     )
     if (!confirmar) return
 
-    // TODO: conectar a DELETE /conf/animal (endpoint 3)
-    console.log('Eliminar animal:', animal)
-    alert(
-      `Eliminar: ${animal.codigo} - ${animal.nombre}\n(Conectar endpoint DELETE aquí)`
-    )
+    try {
+      await deleteAnimal(animal.id, 'EGRESO_VENTA')
+      alert('✅ Animal dado de baja correctamente')
+      refetch()
+    } catch (error: any) {
+      alert(`❌ ${error.message}`)
+    }
   }
 
   if (loading) {
@@ -198,21 +207,34 @@ export default function AnimalInventoryPage() {
       </div>
 
       {/* Tabla */}
-      <div className="flex flex-col gap-4">
-        <div className="overflow-hidden rounded-lg border border-slate-100 bg-white">
-          <Table>
+      <div className="flex flex-col gap-4 relative">
+        {isDeleting && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/50 backdrop-blur-sm rounded-lg">
+            <Loader2 className="w-8 h-8 animate-spin text-[#659711]" />
+          </div>
+        )}
+
+        {/* Quitamos overflow-hidden para que no corte y forzamos table-fixed */}
+        <div className="rounded-lg border border-slate-100 bg-white">
+          <Table className="table-fixed w-full">
             <TableHeader className="bg-[#E8EEF5]">
               <TableRow className="hover:bg-[#E8EEF5]">
-                <TableHead className={HEAD_CLASS}>RP/N°</TableHead>
-                <TableHead className={HEAD_CLASS}>Nombre</TableHead>
-                <TableHead className={HEAD_CLASS}>Categoría</TableHead>
-                <TableHead className={HEAD_CLASS}>
-                  DEL (Días de Leche)
+                <TableHead className={`${HEAD_CLASS} w-[12%]`}>RP/N°</TableHead>
+                <TableHead className={`${HEAD_CLASS} w-[15%]`}>
+                  Nombre
                 </TableHead>
-                <TableHead className={HEAD_CLASS}>Prod. Hoy</TableHead>
-                <TableHead className={HEAD_CLASS}>Estado</TableHead>
-                <TableHead className={HEAD_CLASS}>OBS.</TableHead>
-                <TableHead className="w-10" />
+                <TableHead className={`${HEAD_CLASS} w-[12%]`}>
+                  Categoría
+                </TableHead>
+                <TableHead className={`${HEAD_CLASS} w-[10%]`}>DEL</TableHead>
+                <TableHead className={`${HEAD_CLASS} w-[12%]`}>
+                  Prod. Hoy
+                </TableHead>
+                <TableHead className={`${HEAD_CLASS} w-[15%]`}>
+                  Estado
+                </TableHead>
+                <TableHead className={`${HEAD_CLASS} w-[18%]`}>OBS.</TableHead>
+                <TableHead className="w-[6%]" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -220,21 +242,27 @@ export default function AnimalInventoryPage() {
                 const sana = a.estado === 'NORMAL'
                 return (
                   <TableRow key={a.id} className="border-b border-slate-100">
-                    <TableCell className="py-5 text-center text-[11px] font-bold text-slate-900">
+                    <TableCell
+                      className={`${CELL_CLASS} font-bold text-slate-900`}
+                    >
                       {a.codigo}
                     </TableCell>
-                    <TableCell className="text-center text-[11px] text-slate-800">
+                    <TableCell
+                      className={`${CELL_CLASS} text-slate-800 truncate`}
+                    >
                       {a.nombre}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <span className="inline-block rounded-full bg-[#9CC5AE] px-3 py-0.5 text-[10px] font-bold text-[#0A3D24]">
+                    <TableCell className="text-center px-1 py-4">
+                      <span className="inline-block rounded-full bg-[#9CC5AE] px-2 py-0.5 text-[10px] font-bold text-[#0A3D24] truncate max-w-full">
                         {getCategoriaLabel(a.categoria)}
                       </span>
                     </TableCell>
-                    <TableCell className="text-center text-sm font-bold text-slate-900">
+                    <TableCell
+                      className={`${CELL_CLASS} font-bold text-slate-900`}
+                    >
                       {a.del && a.del > 0 ? a.del : '—'}
                     </TableCell>
-                    <TableCell className="text-center text-sm font-bold">
+                    <TableCell className={`${CELL_CLASS} font-bold`}>
                       {sana ? (
                         <span className="text-slate-900">
                           {a.produccionHoy !== null
@@ -242,34 +270,29 @@ export default function AnimalInventoryPage() {
                             : '—'}
                         </span>
                       ) : (
-                        <span className="text-[11px] font-bold text-[#E8200C]">
-                          — (descarte)
+                        <span className="text-[10px] font-bold text-[#E8200C]">
+                          — (desc.)
                         </span>
                       )}
                     </TableCell>
-                    <TableCell>
-                      <span className="flex items-center justify-center gap-2">
+                    <TableCell className="px-1 py-4">
+                      <span className="flex items-center justify-center gap-1.5">
                         <span
-                          className={`h-3.5 w-3.5 rounded-full ${
-                            sana ? 'bg-[#659711]' : 'bg-[#E8200C]'
-                          }`}
+                          className={`h-2.5 w-2.5 shrink-0 rounded-full ${sana ? 'bg-[#659711]' : 'bg-[#E8200C]'}`}
                         />
                         <span
-                          className={
-                            sana
-                              ? 'text-sm font-bold text-slate-900'
-                              : 'text-[11px] font-bold text-[#E8200C]'
-                          }
+                          className={`truncate ${sana ? 'text-[11px] font-bold text-slate-900' : 'text-[10px] font-bold text-[#E8200C]'}`}
                         >
-                          {sana ? 'Sana' : 'En tratamiento'}
+                          {sana ? 'Sana' : 'En trat.'}
                         </span>
                       </span>
                     </TableCell>
-                    <TableCell className="text-center text-[11px] text-slate-800">
+                    <TableCell
+                      className={`${CELL_CLASS} text-slate-800 truncate`}
+                    >
                       {getObservacion(a)}
                     </TableCell>
-                    <TableCell className="pr-3 text-right">
-                      {/* Menú de 3 puntos con Editar/Eliminar */}
+                    <TableCell className="text-right px-2">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -277,6 +300,7 @@ export default function AnimalInventoryPage() {
                             size="icon"
                             className="h-8 w-8"
                             aria-label="Más opciones"
+                            disabled={isDeleting}
                           >
                             <MoreVertical className="w-4 h-4 text-slate-400" />
                           </Button>
@@ -347,9 +371,14 @@ export default function AnimalInventoryPage() {
         </div>
       </div>
 
-      {/* Modales */}
       <AltaModal open={isAltaOpen} onClose={cerrarAlta} onSuccess={refetch} />
       <BajaModal open={isBajaOpen} onClose={cerrarBaja} onSuccess={refetch} />
+      <EditAnimalModal
+        open={isEditOpen}
+        onClose={() => setIsEditOpen(false)}
+        animal={selectedAnimal}
+        onSuccess={refetch}
+      />
     </div>
   )
 }

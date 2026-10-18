@@ -10,7 +10,7 @@ export interface Opcion {
 
 export interface RazaOrigen {
   idRaza: string
-  value: string // enum de la raza, ej: HOLANDO_ARGENTINO
+  value: string
   label: string
   cantVacas: number
 }
@@ -22,14 +22,19 @@ export interface RodeoOrigen {
   razas: RazaOrigen[]
 }
 
+// 👇 NUEVA INTERFAZ PARA ANIMALES INDIVIDUALES
+export interface AnimalOpcion {
+  idAnimal: string
+  nombre: string
+  codigo: string
+}
+
 interface Params {
   open: boolean
   onClose: () => void
   onSuccess?: () => void
   motivoInicial?: string
 }
-
-// ─── Helpers ───────────────────────────────────
 
 function leerLabel(x: any, fallback = ''): string {
   if (!x) return fallback
@@ -41,7 +46,6 @@ function leerValue(x: any): string {
   return x && typeof x === 'object' ? (x.value ?? '') : ''
 }
 
-/** 'Holando Argentino' -> 'HOLANDO_ARGENTINO' (por si el backend no manda el enum) */
 function aEnum(texto: string): string {
   return texto
     .normalize('NFD')
@@ -55,7 +59,6 @@ function mensajeError(e: any, fallback: string): string {
   return e?.response?.data?.message ?? e?.message ?? fallback
 }
 
-// TODO: confirmar nombres reales con la respuesta de GET /conf/animal/baja/form-data
 function normalizarRodeo(r: any): RodeoOrigen {
   return {
     idRodeo: String(r.idRodeo ?? r.id),
@@ -84,11 +87,13 @@ export function useBajaForm({
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Opciones que vienen del backend (GET /conf/animal/baja/form-data)
   const [tipoSeguimiento, setTipoSeguimiento] = useState('')
   const [tipoMovimiento, setTipoMovimiento] = useState('EGRESO')
   const [motivos, setMotivos] = useState<Opcion[]>([])
   const [rodeos, setRodeos] = useState<RodeoOrigen[]>([])
+
+  // 👇 NUEVO ESTADO PARA ANIMALES INDIVIDUALES
+  const [animales, setAnimales] = useState<AnimalOpcion[]>([])
 
   // Valores del formulario
   const [motivo, setMotivo] = useState('')
@@ -96,6 +101,9 @@ export function useBajaForm({
   const [origen, setOrigen] = useState('')
   const [idRaza, setIdRaza] = useState('')
   const [cantidad, setCantidad] = useState('')
+
+  // 👇 NUEVO ESTADO PARA EL ID DEL ANIMAL SELECCIONADO
+  const [animalId, setAnimalId] = useState('')
 
   useEffect(() => {
     if (!open) return
@@ -121,7 +129,17 @@ export function useBajaForm({
         setMotivos(listaMotivos)
         setRodeos((data?.rodeos ?? []).map(normalizarRodeo))
 
-        // Reinicia el formulario; si el botón pasó un motivo, lo preselecciona
+        // 👇 GUARDAMOS LOS ANIMALES SI VIENEN EN LA RESPUESTA
+        const listaAnimales: AnimalOpcion[] = (data?.animales ?? []).map(
+          (a: any) => ({
+            idAnimal: String(a.idAnimal ?? a.id),
+            nombre: a.nombre ?? '',
+            codigo: a.codigo ?? '',
+          })
+        )
+        setAnimales(listaAnimales)
+
+        // Reinicia formulario
         setMotivo(
           motivoInicial && listaMotivos.some((m) => m.value === motivoInicial)
             ? motivoInicial
@@ -131,6 +149,7 @@ export function useBajaForm({
         setOrigen('')
         setIdRaza('')
         setCantidad('')
+        setAnimalId('') // 👈 Reiniciamos el animal
       } catch (e) {
         if (activo)
           setFormError(mensajeError(e, 'No se pudieron cargar las opciones.'))
@@ -145,7 +164,6 @@ export function useBajaForm({
     }
   }, [open, motivoInicial])
 
-  // ─── Cambios que reinician campos dependientes ─
   const cambiarOrigen = (v: string) => {
     setOrigen(v)
     setIdRaza('')
@@ -156,11 +174,9 @@ export function useBajaForm({
     setCantidad('')
   }
 
-  // ─── Derivados ─────────────────────────────────
   const esIndividual = tipoSeguimiento === 'INDIVIDUAL'
   const sinOpciones = !loadingForm && !formError && motivos.length === 0
 
-  // Solo rodeos que tengan animales para dar de baja
   const rodeosConAnimales = useMemo(
     () => rodeos.filter((r) => r.cantVacas > 0),
     [rodeos]
@@ -181,43 +197,55 @@ export function useBajaForm({
   const submit = async () => {
     setError(null)
 
-    if (esIndividual) {
-      setError('La baja animal por animal se conecta en el siguiente paso.')
-      return
-    }
     if (!motivo) {
       setError('Seleccioná un motivo.')
       return
     }
-    if (!origen) {
-      setError('Seleccioná el rodeo de origen.')
-      return
-    }
-    if (!grupo) {
-      setError('Seleccioná la raza a dar de baja.')
-      return
-    }
-    const cant = Number(cantidad)
-    if (!Number.isInteger(cant) || cant < 1) {
-      setError('La cantidad debe ser un número entero mayor a 0.')
-      return
-    }
-    if (cant > grupo.cantVacas) {
-      setError(`Solo hay ${grupo.cantVacas} animales de esa raza en el rodeo.`)
-      return
-    }
 
-    const payload = {
+    let payload: any = {
       tipoSeguimiento,
       tipo: tipoMovimiento,
       motivo,
-      origen,
-      raza: {
+      observacion: observacion.trim() || undefined,
+    }
+
+    // 👇 LÓGICA PARA INDIVIDUAL
+    if (esIndividual) {
+      if (!animalId) {
+        setError('Seleccioná un animal para dar de baja.')
+        return
+      }
+      // El backend está validando la propiedad "animal" (singular)
+      payload.animal = animalId
+    }
+    // 👇 LÓGICA PARA RODEO
+    else {
+      if (!origen) {
+        setError('Seleccioná el rodeo de origen.')
+        return
+      }
+      if (!grupo) {
+        setError('Seleccioná la raza a dar de baja.')
+        return
+      }
+      const cant = Number(cantidad)
+      if (!Number.isInteger(cant) || cant < 1) {
+        setError('La cantidad debe ser un número entero mayor a 0.')
+        return
+      }
+      if (cant > grupo.cantVacas) {
+        setError(
+          `Solo hay ${grupo.cantVacas} animales de esa raza en el rodeo.`
+        )
+        return
+      }
+
+      payload.origen = origen
+      payload.raza = {
         idRaza: grupo.idRaza,
         raza: grupo.value,
         cantVacas: cant,
-      },
-      observacion: observacion.trim() || undefined,
+      }
     }
 
     try {
@@ -244,6 +272,11 @@ export function useBajaForm({
     rodeosConAnimales,
     razasDisponibles,
     maxCantidad,
+
+    // 👇 EXPONEMOS LOS ANIMALES Y SU ESTADO AL MODAL
+    animales,
+    animalId,
+    setAnimalId,
 
     motivo,
     setMotivo,

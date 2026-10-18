@@ -40,8 +40,8 @@ export function BajaAnimalModal({
     f.submitting ||
     f.loadingForm ||
     !!f.formError ||
-    f.esIndividual ||
-    f.sinOpciones
+    (f.esIndividual && !f.animalId) ||
+    (!f.esIndividual && f.sinOpciones)
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -60,21 +60,16 @@ export function BajaAnimalModal({
           <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
             {f.formError}
           </p>
-        ) : f.esIndividual ? (
-          <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-600">
-            La baja animal por animal se conecta en el siguiente paso.
-          </p>
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {f.sinOpciones && (
+            {f.sinOpciones && !f.esIndividual && (
               <p className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 sm:col-span-2">
-                El backend no devolvió motivos para este formulario. Revisá la
-                respuesta de <code>/conf/animal/baja/form-data</code>.
+                El backend no devolvió motivos para este formulario.
               </p>
             )}
 
             {/* Motivo */}
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 sm:col-span-2">
               <label className={LABEL}>Motivo</label>
               <Select value={f.motivo} onValueChange={f.setMotivo}>
                 <SelectTrigger className={TRIGGER}>
@@ -90,66 +85,79 @@ export function BajaAnimalModal({
               </Select>
             </div>
 
-            {/* Rodeo origen */}
-            <div className="flex flex-col gap-1">
-              <label className={LABEL}>Rodeo Origen</label>
-              <Select value={f.origen} onValueChange={f.cambiarOrigen}>
-                <SelectTrigger className={TRIGGER}>
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {f.rodeosConAnimales.map((r) => (
-                    <SelectItem key={r.idRodeo} value={r.idRodeo}>
-                      {r.label} ({r.cantVacas})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* VISTA INDIVIDUAL: Selector de Animales */}
+            {f.esIndividual && (
+              <div className="flex flex-col gap-1 sm:col-span-2">
+                <label className={LABEL}>Seleccionar Animal</label>
+                <Select value={f.animalId} onValueChange={f.setAnimalId}>
+                  <SelectTrigger className={TRIGGER}>
+                    <SelectValue placeholder="Seleccionar animal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {f.animales.map((a) => (
+                      <SelectItem key={a.idAnimal} value={a.idAnimal}>
+                        {a.codigo} - {a.nombre}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
-            {/* Raza (un grupo a la vez) */}
-            <div className="flex flex-col gap-1">
-              <label className={LABEL}>Raza</label>
-              <Select
-                value={f.idRaza}
-                onValueChange={f.cambiarRaza}
-                disabled={!f.origen}
-              >
-                <SelectTrigger className={TRIGGER}>
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  {f.razasDisponibles.map((rz) => (
-                    <SelectItem key={rz.idRaza} value={rz.idRaza}>
-                      {rz.label} ({rz.cantVacas})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* VISTA RODEO: Rodeo, Raza, Cantidad */}
+            {!f.esIndividual && (
+              <>
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Rodeo Origen</label>
+                  <Select value={f.origen} onValueChange={f.cambiarOrigen}>
+                    <SelectTrigger className={TRIGGER}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f.rodeosConAnimales.map((r) => (
+                        <SelectItem key={r.idRodeo} value={r.idRodeo}>
+                          {r.label} ({r.cantVacas})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            {/* Cantidad */}
-            <div className="flex flex-col gap-1">
-              <label className={LABEL}>
-                Cantidad
-                {f.maxCantidad !== undefined && (
-                  <span className="font-normal text-slate-400">
-                    {' '}
-                    (máx. {f.maxCantidad})
-                  </span>
-                )}
-              </label>
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={f.maxCantidad}
-                className="h-9 rounded-lg"
-                value={f.cantidad}
-                onChange={(e) => f.setCantidad(e.target.value)}
-                disabled={!f.idRaza}
-              />
-            </div>
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Raza</label>
+                  <Select
+                    value={f.idRaza}
+                    onValueChange={f.cambiarRaza}
+                    disabled={!f.origen}
+                  >
+                    <SelectTrigger className={TRIGGER}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f.razasDisponibles.map((rz) => (
+                        <SelectItem key={rz.idRaza} value={rz.idRaza}>
+                          {rz.label} ({rz.cantVacas})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Cantidad</label>
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={f.maxCantidad}
+                    className="h-9 rounded-lg"
+                    value={f.cantidad}
+                    onChange={(e) => f.setCantidad(e.target.value)}
+                    disabled={!f.idRaza}
+                  />
+                </div>
+              </>
+            )}
 
             {/* Observación */}
             <div className="flex flex-col gap-1 sm:col-span-2">

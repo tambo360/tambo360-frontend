@@ -61,3 +61,18 @@ export const getAnimalesListar = async (params?: {
   const res = await api.get('/conf/animal/listar', { params })
   return res.data?.data ?? res.data
 }
+
+// ─── Endpoint 6: Actualizar animal (PATCH) ─────
+export const updateAnimalApi = async (
+  id: string,
+  codigo: string,
+  nombre: string,
+  observacion?: string
+) => {
+  // Usamos la misma instancia 'api' que ya inyecta los headers de autenticación.
+  // En Axios, los query params se pasan en el tercer argumento (config).
+  const res = await api.patch('/conf/animal', null, {
+    params: { id, codigo, nombre, observacion },
+  })
+  return res.data
+}
