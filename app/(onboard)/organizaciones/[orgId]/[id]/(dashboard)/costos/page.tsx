@@ -24,6 +24,7 @@ import {
 import RegisterNewCost from '@/components/shared/dashboard/generalCost/RegisterNewCost'
 import { useGeneralCosts } from '@/hooks/generalCost/useGeneralCosts'
 import { useGeneralCostsSummary } from '@/hooks/generalCost/useGeneralCostsSummary'
+import { useMonthPeriod } from '@/hooks/generalCost/useMonthPeriod'
 import { GeneralCost } from '@/types/generalCost'
 import { formatShortDate } from '@/utils/formatDate'
 
@@ -31,6 +32,19 @@ const capitalize = (text: string): string => {
   if (!text) return text
   const lower = text.toLowerCase()
   return lower.charAt(0).toUpperCase() + lower.slice(1)
+}
+
+// Busca la lista de costos sin importar si el backend la devuelve
+// directo, dentro de `data`, o dentro de otro campo de `data`.
+const extractCosts = (payload: unknown): GeneralCost[] => {
+  if (Array.isArray(payload)) return payload as GeneralCost[]
+  const inner = (payload as { data?: unknown } | undefined)?.data
+  if (Array.isArray(inner)) return inner as GeneralCost[]
+  if (inner && typeof inner === 'object') {
+    const found = Object.values(inner).find(Array.isArray)
+    if (Array.isArray(found)) return found as GeneralCost[]
+  }
+  return []
 }
 
 export interface GeneralCostRow {
@@ -43,25 +57,27 @@ export interface GeneralCostRow {
 
 const GeneralCosts = () => {
   const [openRegister, setOpenRegister] = useState(false)
-  const { data: costsData, isPending: isCostsPending } = useGeneralCosts()
-  const { data: summary } = useGeneralCostsSummary()
+  const { period, label, isCurrentMonth, goPrev, goNext } = useMonthPeriod()
+  const { data: costsData, isPending: isCostsPending } = useGeneralCosts(period)
+  const { data: summary } = useGeneralCostsSummary(period)
+
+  // TEMPORAL: borrar cuando confirmemos la forma de la respuesta
+  console.log('costsData:', costsData)
 
   const onNewCostClick = () => {
     setOpenRegister(true)
   }
 
-  const rawCosts: GeneralCost[] = Array.isArray(costsData)
-    ? costsData
-    : (costsData?.data ?? [])
+  const rawCosts: GeneralCost[] = extractCosts(costsData)
 
-  const expenseRows: GeneralCostRow[] = rawCosts.map((c) => ({
+  const rows: GeneralCostRow[] = rawCosts.map((c) => ({
     id: c.idCostoGeneral,
     date: formatShortDate(c.fecha),
     costType: c.tipoCosto,
     description: c.descripcion ?? '-',
-    amount: c.monto,
+    amount: Number(c.monto),
   }))
-  const rows = expenseRows.length > 0 ? expenseRows : []
+
   const loading = isCostsPending
   const foodCostValue = summary?.gastoAlimentacion ?? 0
   const prorrateoValue = summary?.prorrateoPromedio ?? 0
@@ -69,11 +85,36 @@ const GeneralCosts = () => {
 
   return (
     <div className="flex flex-col w-full gap-6 sm:gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-4 sm:p-8 rounded-2xl">
-      {/* TÍTULO PRINCIPAL */}
-      <div className="flex flex-col gap-1">
+      {/* TÍTULO PRINCIPAL + SELECTOR DE MES */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-gray-900">
           Costos Generales
         </h1>
+
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg border-gray-200"
+            onClick={goPrev}
+            aria-label="Mes anterior"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
+          </Button>
+          <span className="min-w-36 text-center text-sm font-semibold text-gray-800">
+            {label}
+          </span>
+          <Button
+            variant="outline"
+            size="icon"
+            className="h-8 w-8 rounded-lg border-gray-200"
+            onClick={goNext}
+            disabled={isCurrentMonth}
+            aria-label="Mes siguiente"
+          >
+            <ChevronRight className="w-4 h-4 text-gray-600" />
+          </Button>
+        </div>
       </div>
 
       {/* TARJETAS SUPERIORES DINÁMICAS */}
@@ -91,14 +132,9 @@ const GeneralCosts = () => {
               Gasto Alimentación
             </span>
             <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
-              $ {foodCostValue?.toLocaleString('es-AR') ?? '0'}
+              $ {foodCostValue.toLocaleString('es-AR')}
             </h2>
           </div>
-          {/* <div className="mt-4">
-            <span className="inline-block bg-[#1B4D3E] text-white text-[11px] font-bold px-3 py-1 rounded-full">
-              {previousMonthFoodPct || '0%'}
-            </span>
-          </div> */}
         </div>
 
         {/* Tarjeta 2: Otros costos */}
@@ -113,25 +149,9 @@ const GeneralCosts = () => {
               Otros costos (fijos/var)
             </span>
             <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
-              $ {generalCostsValue?.toLocaleString('es-AR') ?? '0'}
+              $ {generalCostsValue.toLocaleString('es-AR')}
             </h2>
           </div>
-          {/* <div className="mt-4 flex flex-col gap-2">
-            <div className="w-full bg-gray-100 h-2 rounded-full overflow-hidden flex">
-              <div
-                className="bg-gray-400 h-full"
-                style={{ width: `${fixedPct ?? 0}%` }}
-              ></div>
-              <div
-                className="bg-gray-200 h-full"
-                style={{ width: `${variablePct ?? 0}%` }}
-              ></div>
-            </div>
-             <div className="flex justify-between text-[11px] font-semibold text-gray-400">
-              <span>Fijos {fixedPct ?? 0}%</span>
-              <span>Var {variablePct ?? 0}%</span>
-            </div>
-          </div> */}
         </div>
 
         {/* Tarjeta 3: Costo Prorrateo (Verde) */}
@@ -145,7 +165,7 @@ const GeneralCosts = () => {
           <div className="mt-4">
             <span className="font-semibold">Costo Prorrateo/Lote</span>
             <h2 className="text-xl font-semibold text-white mt-3">
-              ${prorrateoValue?.toFixed(2) ?? '0.00'}/ Lt
+              ${prorrateoValue.toFixed(2)}/ Lt
             </h2>
           </div>
           <div className="absolute right-5 bottom-4 flex items-end gap-1 opacity-20 pointer-events-none">
@@ -180,11 +200,11 @@ const GeneralCosts = () => {
             <div className="flex items-center justify-center py-20 bg-white w-full">
               <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
             </div>
-          ) : !rows || rows.length === 0 ? (
+          ) : rows.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-6 gap-4 bg-white w-full text-center">
               <CloudOff className="w-10 h-10 text-gray-300" />
               <p className="text-sm text-gray-400 font-medium">
-                No hay registros en el historial de gastos.
+                No hay registros en el historial de gastos de {label}.
               </p>
             </div>
           ) : (
@@ -216,7 +236,7 @@ const GeneralCosts = () => {
                         {g.date}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <span className="inline-block bg-[#29845A80] text-blac font-semibold px-3 py-1 rounded-full text-[11px]">
+                        <span className="inline-block bg-[#29845A80] text-black font-semibold px-3 py-1 rounded-full text-[11px]">
                           {capitalize(g.costType)}
                         </span>
                       </TableCell>
@@ -227,30 +247,12 @@ const GeneralCosts = () => {
                         {g.description}
                       </TableCell>
                       <TableCell className="text-xs font-extrabold text-gray-900 pr-6">
-                        $ {g.amount?.toLocaleString('es-AR') ?? 0}
+                        $ {g.amount.toLocaleString('es-AR')}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-
-              {/* Paginador */}
-              <div className="flex items-center justify-center py-4 border-t border-gray-100 gap-2">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-gray-200"
-                >
-                  <ChevronLeft className="w-4 h-4 text-gray-600" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-8 w-8 rounded-lg border-gray-200"
-                >
-                  <ChevronRight className="w-4 h-4 text-gray-600" />
-                </Button>
-              </div>
             </div>
           )}
         </CardContent>
