@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import Providers from '@/utils/Providers'
 import { GoogleTagManager } from '@next/third-parties/google'
 import { PWAInstallToast } from '@/components/shared/PWAInstallToast'
+import DevSWUnregister from '@/components/shared/DevSWUnregister'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-sans' })
 
@@ -50,6 +51,7 @@ export default function RootLayout({
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>
+          {process.env.NODE_ENV === 'development' && <DevSWUnregister />}
           {children}
           <PWAInstallToast />
         </Providers>

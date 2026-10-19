@@ -455,8 +455,8 @@ const Configuration = () => {
                   >
                     <input
                       type="radio"
-                      value={n}
-                      {...register('cantOrdenie', { valueAsNumber: true })}
+                      value={String(n)}
+                      {...register('cantOrdenie')}
                       className={RADIO_DOT_CLASS}
                     />
                     {n === 1 ? '1 vez' : `${n} veces`}
