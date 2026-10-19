@@ -62,10 +62,21 @@ const ResetPasswordForm: React.FC = () => {
   const [step, setStep] = useState(token ? 3 : 1)
   const [showPass, setShowPass] = useState(false)
   const [showConfirmPass, setShowConfirmPass] = useState(false)
+  const [userEmail, setUserEmail] = useState('')
+  const [secondsLeft, setSecondsLeft] = useState(0)
 
   const { mutateAsync: sendEmail, isPending: isSendingEmail } =
     useForgotPassword()
   const { mutateAsync: resetPass, isPending: isResetting } = useResetPassword()
+
+  useEffect(() => {
+    if (secondsLeft <= 0) return
+    const timer = setInterval(
+      () => setSecondsLeft((s) => Math.max(0, s - 1)),
+      1000
+    )
+    return () => clearInterval(timer)
+  }, [secondsLeft])
 
   const emailForm = useForm({
     resolver: zodResolver(EmailSchema),
@@ -108,7 +119,9 @@ const ResetPasswordForm: React.FC = () => {
   const handleRequestReset = emailForm.handleSubmit(async (data) => {
     try {
       await sendEmail(data.email)
+      setUserEmail(data.email)
       setStep(2)
+      setSecondsLeft(180)
       toast.success('Correo enviado con éxito')
     } catch (err) {
       const error = err as AxiosError<{ message?: string }>
@@ -117,6 +130,16 @@ const ResetPasswordForm: React.FC = () => {
       )
     }
   })
+
+  async function handleResend() {
+    if (!userEmail) return
+    try {
+      await sendEmail(userEmail)
+      setSecondsLeft(180)
+    } catch {
+      // useForgotPassword already shows a toast on error
+    }
+  }
 
   const onResetSubmit = passForm.handleSubmit(async (data) => {
     if (!token) return
@@ -131,18 +154,9 @@ const ResetPasswordForm: React.FC = () => {
     }
   })
 
-  const showAltBackground = step === 2
-
   return (
     <>
-      {showAltBackground && (
-        <div
-          aria-hidden
-          className="fixed inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: "url('/vacas_4.webp')" }}
-        />
-      )}
-      <CardContent className="flex flex-col px-0">
+      <CardContent className="relative z-10 flex flex-col px-0">
         {step === 1 && (
           <form
             onSubmit={handleRequestReset}
@@ -196,6 +210,37 @@ const ResetPasswordForm: React.FC = () => {
                 >
                   Volver al inicio
                 </Link>
+              </div>
+            </div>
+          </form>
+        )}
+
+        {step === 2 && (
+          <form
+            onSubmit={onResetSubmit}
+            className="flex flex-1 flex-col justify-between gap-4 py-5"
+            noValidate
+            data-testid="reset-password-form"
+          >
+            <div className="space-y-4">
+              <RecoverAccountHeader
+                title={'Revisa tu email'}
+                description={`Enviamos un enlace al email ${userEmail} para reestablecer tu cuenta y comenzar a usar Tambo360`}
+              />
+              <div className="w-full space-y-4 pb-7">
+                <Button
+                  type="button"
+                  className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1]"
+                  onClick={handleResend}
+                  disabled={secondsLeft > 0 || isSendingEmail}
+                  data-testid="resend-link-button"
+                >
+                  {isSendingEmail
+                    ? 'Enviando...'
+                    : secondsLeft > 0
+                      ? `Reenviar enlace (${Math.floor(secondsLeft / 60)}:${(secondsLeft % 60).toString().padStart(2, '0')})`
+                      : 'Reenviar enlace'}
+                </Button>
               </div>
             </div>
           </form>
