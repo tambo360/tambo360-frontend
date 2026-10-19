@@ -35,11 +35,11 @@ define(['./workbox-62888b14'], function (e) {
     e.precacheAndRoute(
       [
         {
-          url: '/_next/static/4BkHESJpZdCiwcUp2IAk7/_buildManifest.js',
+          url: '/_next/static/ZSvCMdsyvk-rLOjAJN_Jv/_buildManifest.js',
           revision: '58928cbb12234c44d3c3e1758d210086',
         },
         {
-          url: '/_next/static/4BkHESJpZdCiwcUp2IAk7/_ssgManifest.js',
+          url: '/_next/static/ZSvCMdsyvk-rLOjAJN_Jv/_ssgManifest.js',
           revision: 'b6652df95db52feb4daf4eca35380933',
         },
         {
@@ -135,8 +135,8 @@ define(['./workbox-62888b14'], function (e) {
           revision: '9625fb4867347ddc',
         },
         {
-          url: '/_next/static/chunks/460.9716e760f15175de.js',
-          revision: '9716e760f15175de',
+          url: '/_next/static/chunks/460.e70fcc916d94adb0.js',
+          revision: 'e70fcc916d94adb0',
         },
         {
           url: '/_next/static/chunks/4635-7b8f8d66df8192e9.js',
@@ -219,8 +219,8 @@ define(['./workbox-62888b14'], function (e) {
           revision: 'a143b6f71ceeb41a',
         },
         {
-          url: '/_next/static/chunks/app/(auth)/recuperar-contrasena/page-0c33768d54770980.js',
-          revision: '0c33768d54770980',
+          url: '/_next/static/chunks/app/(auth)/recuperar-contrasena/page-9bb5f9c956cd10a8.js',
+          revision: '9bb5f9c956cd10a8',
         },
         {
           url: '/_next/static/chunks/app/(auth)/registrarse/page-8de15cab216b1e4b.js',
@@ -263,8 +263,8 @@ define(['./workbox-62888b14'], function (e) {
           revision: '70904f0e47a6f966',
         },
         {
-          url: '/_next/static/chunks/app/(onboard)/bienvenida/page-f5bca0a92bae12d6.js',
-          revision: 'f5bca0a92bae12d6',
+          url: '/_next/static/chunks/app/(onboard)/bienvenida/page-bace7c3ea8f1dda0.js',
+          revision: 'bace7c3ea8f1dda0',
         },
         {
           url: '/_next/static/chunks/app/(onboard)/invitaciones/page-67b961e4fba7a329.js',
@@ -383,12 +383,12 @@ define(['./workbox-62888b14'], function (e) {
           revision: '846118c33b2c0e922d7b3a7676f81f6f',
         },
         {
-          url: '/_next/static/chunks/webpack-12b2d6a10f9a69de.js',
-          revision: '12b2d6a10f9a69de',
+          url: '/_next/static/chunks/webpack-87c984115959b116.js',
+          revision: '87c984115959b116',
         },
         {
-          url: '/_next/static/css/5e6804051fd67902.css',
-          revision: '5e6804051fd67902',
+          url: '/_next/static/css/5223572f0adea0b2.css',
+          revision: '5223572f0adea0b2',
         },
         {
           url: '/_next/static/css/c50624e23d0abf09.css',
