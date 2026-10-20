@@ -128,7 +128,31 @@ export const configurationSchema = baseSchema.extend({
         'Completá al menos un rodeo con costo de ración y una raza para finalizar',
     })
     .optional(),
-  animales: z.array(animalSchema).optional(),
+  animales: z
+    .array(animalSchema)
+    .superRefine((lista, ctx) => {
+      const vistos = new Map<string, number>()
+      ;(lista ?? []).forEach((a, i) => {
+        const key = (a.codigo ?? '').trim()
+        if (!key) return
+        const primero = vistos.get(key)
+        if (primero !== undefined) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [i, 'codigo'],
+            message: 'Este RP/N° ya está usado en otra fila',
+          })
+          ctx.addIssue({
+            code: 'custom',
+            path: [primero, 'codigo'],
+            message: 'Este RP/N° ya está usado en otra fila',
+          })
+        } else {
+          vistos.set(key, i)
+        }
+      })
+    })
+    .optional(),
 })
 
 export type ConfigurationData = z.infer<typeof configurationSchema>
