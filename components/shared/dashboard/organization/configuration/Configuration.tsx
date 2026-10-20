@@ -110,8 +110,8 @@ const handleInvalidSubmit = (errs: FieldErrors<ConfigurationFormInput>) => {
     console.warn('Revisá el formulario: hay campos pendientes')
     return
   }
-  const [first, ...rest] = messages
-  console.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first)
+  //const [first, ...rest] = messages
+  // console.error(rest.length > 0 ? `${first} (+${rest.length} más)` : first)
 }
 
 const Configuration = () => {
@@ -158,6 +158,20 @@ const Configuration = () => {
   const animales = watch('animales')
   const promLitros = watch('promLitros')
   const rodeos = watch('rodeos')
+
+  const codigosDuplicados = useMemo(() => {
+    const conteo = new Map<string, number>()
+    for (const a of animales ?? []) {
+      const key = (a?.codigo ?? '').trim()
+      if (!key) continue
+      conteo.set(key, (conteo.get(key) ?? 0) + 1)
+    }
+    const duplicados = new Set<string>()
+    for (const [key, n] of conteo) {
+      if (n > 1) duplicados.add(key)
+    }
+    return duplicados
+  }, [animales])
 
   const totalVacasGeneral =
     rodeos?.reduce(
@@ -735,6 +749,12 @@ const Configuration = () => {
                           `animales.${idx}.categoria` as const
                         )
                         const soloSano = a?.categoria === CategoriaAnimal.ORDENE
+                        const codigoValue = (a?.codigo ?? '').toString().trim()
+                        const codigoDuplicado =
+                          codigoValue !== '' &&
+                          codigosDuplicados.has(codigoValue)
+                        const codigoError =
+                          errors.animales?.[idx]?.codigo?.message
                         return (
                           <div
                             key={idx}
@@ -746,6 +766,12 @@ const Configuration = () => {
                                 {...register(`animales.${idx}.codigo` as const)}
                                 defaultValue={a.codigo}
                               />
+                              {(codigoError || codigoDuplicado) && (
+                                <p className="mt-1 text-[11px] leading-4 text-red-500">
+                                  {codigoError ??
+                                    'Este RP/N° ya está usado en otra fila'}
+                                </p>
+                              )}
                             </div>
                             <div className="col-span-2">
                               <Input

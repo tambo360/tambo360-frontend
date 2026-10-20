@@ -55,11 +55,11 @@ const RecoverAccountHeader: React.FC<{
 
 const ResetPasswordForm: React.FC = () => {
   const searchParams = useSearchParams()
-  const token = searchParams.get('token')
   const navigate = useRouter()
   const { showErrorMessage } = useErrorMessage()
 
-  const [step, setStep] = useState(token ? 3 : 1)
+  const [resetToken] = useState(() => searchParams.get('token'))
+  const [step, setStep] = useState(resetToken ? 3 : 1)
   const [showPass, setShowPass] = useState(false)
   const [showConfirmPass, setShowConfirmPass] = useState(false)
   const [userEmail, setUserEmail] = useState('')
@@ -68,6 +68,11 @@ const ResetPasswordForm: React.FC = () => {
   const { mutateAsync: sendEmail, isPending: isSendingEmail } =
     useForgotPassword()
   const { mutateAsync: resetPass, isPending: isResetting } = useResetPassword()
+
+  useEffect(() => {
+    if (!searchParams.get('token')) return
+    navigate.replace('/recuperar-contrasena', { scroll: false })
+  }, [searchParams, navigate])
 
   useEffect(() => {
     if (secondsLeft <= 0) return
@@ -142,9 +147,9 @@ const ResetPasswordForm: React.FC = () => {
   }
 
   const onResetSubmit = passForm.handleSubmit(async (data) => {
-    if (!token) return
+    if (!resetToken) return
     try {
-      await resetPass({ token, password: data.contraseña })
+      await resetPass({ token: resetToken, password: data.contraseña })
       setStep(4)
     } catch (err) {
       const error = err as AxiosError<{ message?: string }>
