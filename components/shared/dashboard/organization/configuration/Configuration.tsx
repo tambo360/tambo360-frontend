@@ -4,6 +4,7 @@ import {
   ConfigurationData,
   ConfigurationFormInput,
   esRodeoCompleto,
+  MSG_CODIGO_DUPLICADO,
 } from '@/types/establishment/configuration'
 import {
   CategoriaAnimal,
@@ -38,8 +39,10 @@ import { Input } from '@/components/ui/input'
 import RodeoCategoriaCard, {
   RAZA_LABELS,
   blockNegativeKeys,
+  blockLeadingZeroKeyDown,
 } from '@/components/shared/dashboard/organization/configuration/RodeoCategoriaCard'
 import { toast } from 'sonner'
+import { useAuth } from '@/context/AuthContext'
 
 const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
   { value: TipoOrdenie.BALDE, Label: 'Balde' },
@@ -123,6 +126,7 @@ const Configuration = () => {
   const pathname = usePathname()
   const params = useParams()
   const router = useRouter()
+  const { setCuestionarioCompletado } = useAuth()
 
   const {
     register,
@@ -159,10 +163,17 @@ const Configuration = () => {
   const promLitros = watch('promLitros')
   const rodeos = watch('rodeos')
 
+  // watch('animales') devuelve SIEMPRE el mismo ref de array (RHF muta los
+  // valores in-place al tipear), así que el memo se keyea por una clave
+  // primitiva con los códigos: si no, el Set quedaba stale al corregir un
+  // RP/N° repetido en vivo.
+  const codigosKey = (animales ?? [])
+    .map((a: any) => (a?.codigo ?? '').toString().trim())
+    .join('\u0000')
+
   const codigosDuplicados = useMemo(() => {
     const conteo = new Map<string, number>()
-    for (const a of animales ?? []) {
-      const key = (a?.codigo ?? '').trim()
+    for (const key of codigosKey.split('\u0000')) {
       if (!key) continue
       conteo.set(key, (conteo.get(key) ?? 0) + 1)
     }
@@ -171,7 +182,7 @@ const Configuration = () => {
       if (n > 1) duplicados.add(key)
     }
     return duplicados
-  }, [animales])
+  }, [codigosKey])
 
   const totalVacasGeneral =
     rodeos?.reduce(
@@ -296,6 +307,7 @@ const Configuration = () => {
           position: 'top-center',
           duration: 5000,
         })
+        setCuestionarioCompletado(true)
         const orgId = params?.orgId as string
         const estId = params?.id as string
         const dashboardUrl =
@@ -518,12 +530,13 @@ const Configuration = () => {
               <div className="relative w-full max-w-4xl">
                 <Input
                   type="number"
-                  step={0.1}
+                  step={1.1}
                   min={1}
                   placeholder="000"
                   {...promLitrosField}
                   onKeyDown={(e) => {
                     blockNegativeKeys(e)
+                    blockLeadingZeroKeyDown(e)
                     limitDecimalDigitsKeyDown(e, refPromLitro, 4, 4)
                   }}
                   onChange={(e) => {
@@ -599,6 +612,7 @@ const Configuration = () => {
                     )
                       e.preventDefault()
                     blockNegativeKeys(e)
+                    blockLeadingZeroKeyDown(e, false)
                   }}
                   className={cn(
                     'w-full max-w-4xl no-spinner pr-16! p-4 border-2 rounded-xl outline-none bg-slate-50/50 transition-colors',
@@ -623,12 +637,13 @@ const Configuration = () => {
                 </span>
                 <Input
                   type="number"
-                  step={0.1}
+                  step={1.1}
                   min={1}
                   placeholder="0.00"
                   {...precioLitroField}
                   onKeyDown={(e) => {
                     blockNegativeKeys(e)
+                    blockLeadingZeroKeyDown(e)
                     limitDecimalDigitsKeyDown(e, refPrecioLitro, 4, 4)
                   }}
                   onChange={(e) => {
@@ -755,6 +770,17 @@ const Configuration = () => {
                           codigosDuplicados.has(codigoValue)
                         const codigoError =
                           errors.animales?.[idx]?.codigo?.message
+                        // El Set vivo es la fuente única de verdad del
+                        // duplicado: al corregir una fila, RHF solo revalida
+                        // el campo editado y el mensaje zod de duplicado de la
+                        // fila hermana queda stale (otro mensaje de zod, p. ej.
+                        // "El código es requerido", sí se muestra tal cual).
+                        const mensajeCodigo =
+                          codigoError && codigoError !== MSG_CODIGO_DUPLICADO
+                            ? codigoError
+                            : codigoDuplicado
+                              ? MSG_CODIGO_DUPLICADO
+                              : undefined
                         return (
                           <div
                             key={idx}
@@ -766,10 +792,9 @@ const Configuration = () => {
                                 {...register(`animales.${idx}.codigo` as const)}
                                 defaultValue={a.codigo}
                               />
-                              {(codigoError || codigoDuplicado) && (
+                              {mensajeCodigo && (
                                 <p className="mt-1 text-[11px] leading-4 text-red-500">
-                                  {codigoError ??
-                                    'Este RP/N° ya está usado en otra fila'}
+                                  {mensajeCodigo}
                                 </p>
                               )}
                             </div>
