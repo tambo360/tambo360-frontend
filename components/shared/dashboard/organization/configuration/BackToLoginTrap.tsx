@@ -17,7 +17,6 @@ const BackToLoginTrap = () => {
   const hasUser = !!user
 
   const pushedRef = useRef(false)
-  const interceptedRef = useRef(false)
 
   useEffect(() => {
     if (loading) return
@@ -27,18 +26,27 @@ const BackToLoginTrap = () => {
 
     // Entrada dummy para interceptar el pop ANTES de salir del cuestionario.
     // Sin dummy, el back navegaría a `/` y el listener ya estaría desmontado.
-    if (!pushedRef.current) {
+    // Solo se arma una vez por montaje (logout no está memoizado y el efecto
+    // puede re-ejecutarse sin desmontar).
+    const arm = () => {
       window.history.pushState(
         { 'tambo-back-trap': true },
         '',
         window.location.href
       )
+    }
+    if (!pushedRef.current) {
+      arm()
       pushedRef.current = true
     }
 
+    // Se intercepta SIEMPRE que el usuario esté en el cuestionario incompleto.
+    // Antes solo se interceptaba el primer pop (interceptedRef); un segundo
+    // back rápido escapaba a la entrada anterior del historial (p. ej.
+    // /recuperar-contrasena) con la sesión todavía viva. Tras cada pop se
+    // re-arma el dummy para que el stack no se agote con backs rápidos.
     const onPopState = () => {
-      if (interceptedRef.current) return
-      interceptedRef.current = true
+      arm()
       // `logout` limpia user/token + caché local de forma síncrona y dispara
       // `POST /auth/logout` en background; no se espera para navegar.
       void logout()

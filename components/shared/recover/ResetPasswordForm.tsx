@@ -230,12 +230,13 @@ const ResetPasswordForm: React.FC = () => {
             <div className="space-y-4">
               <RecoverAccountHeader
                 title={'Revisa tu email'}
-                description={`Enviamos un enlace al email ${userEmail} para reestablecer tu cuenta y comenzar a usar Tambo360`}
+                description={`Enviamos un enlace  para restablecer tu contrasña a ${userEmail}. Hacé click en el enlace para  cambiar tu clave.`}
               />
               <div className="w-full space-y-4 pb-7">
                 <Button
                   type="button"
-                  className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-[#FFFBF1]"
+                  variant="outline"
+                  className="w-full h-14 border-[#D1CFCA] text-[#0B1001] hover:bg-[#F2F1EC]"
                   onClick={handleResend}
                   disabled={secondsLeft > 0 || isSendingEmail}
                   data-testid="resend-link-button"
@@ -260,8 +261,8 @@ const ResetPasswordForm: React.FC = () => {
           >
             <div className="space-y-4">
               <RecoverAccountHeader
-                title={'Nueva contraseña'}
-                description={'Ingresa tu nueva clave de acceso.'}
+                title={'Actualizar contraseña'}
+                description={'Ingresa una nueva contraseña para tu cuenta'}
               />
               <div className="space-y-2">
                 <Label
@@ -289,6 +290,15 @@ const ResetPasswordForm: React.FC = () => {
                       <EyeOff className="size-5" />
                     )}
                   </button>
+                  {!(
+                    passForm.formState.submitCount > 0 &&
+                    passForm.formState.errors.contraseña
+                  ) && (
+                    <p className="text-xs text-[#626059]">
+                      Requisitos: 8 caracteres, mayuscula (A-Z), miniscula (a-z)
+                      y caracter especial.
+                    </p>
+                  )}
                 </div>
                 {passForm.formState.submitCount > 0 &&
                   passForm.formState.errors.contraseña && (
@@ -342,17 +352,17 @@ const ResetPasswordForm: React.FC = () => {
                 className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
                 data-testid="update-password-button"
               >
-                {isResetting ? 'Guardando...' : 'Restablecer contraseña'}{' '}
+                {isResetting ? 'Guardando...' : 'Actualizar contraseña'}{' '}
                 <ArrowRight className="w-5 h-5" />
               </Button>
               <div className="text-center py-6 border-t border-[#F2F1EC]">
                 <button
                   type="button"
-                  onClick={() => setStep(1)}
+                  onClick={() => navigate.push('/iniciar-sesion')}
                   className="text-sm font-bold text-[#0B1001] hover:underline"
                   data-testid="request-new-link-button"
                 >
-                  ¿El enlace venció? Solicita uno nuevo
+                  Volver a Inicio de Sesión
                 </button>
               </div>
             </div>
@@ -369,15 +379,16 @@ const ResetPasswordForm: React.FC = () => {
               />
             </div>
             <div className="">
-              <div className="w-full flex flex-col gap-4 pb-5 pt-20">
-                <div className="space-y-2 text-center">
+              <div className="w-full flex flex-col items-center gap-4 pb-5 pt-20">
+                <img src="/successIcon.svg" alt="success" className="size-32" />
+                <div className="flex flex-col items-center space-y-2 text-center">
                   <h1
                     className="text-3xl font-bold tracking-tight text-[#0B1001]"
                     data-testid="register-title"
                   >
                     ¡Contraseña Actualizada!
                   </h1>
-                  <p className="text-sm text-[#626059]">
+                  <p className="text-sm text-[#626059] max-w-75">
                     Tu contraseña ha sido restablecida con éxito. Ya puedes
                     iniciar sesión con tus nuevas credenciales.
                   </p>
@@ -387,7 +398,8 @@ const ResetPasswordForm: React.FC = () => {
                   className="w-full h-14 bg-[#0B1001] text-white rounded-lg font-bold"
                   data-testid="go-to-login-after-reset"
                 >
-                  Ir al inicio de sesión
+                  Ir a Iniciar Sesión{' '}
+                  <ArrowRight className="w-6 h-6" strokeWidth={2} />
                 </Button>
               </div>
             </div>

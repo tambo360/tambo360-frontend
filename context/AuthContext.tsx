@@ -142,9 +142,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       clearLastUser()
       clearCuestionarioCompletado()
       await mutateAsync()
-      Cookies.remove('token')
     } catch (error) {
       console.warn(error)
+    } finally {
+      // Siempre limpiar la cookie: si el POST falla (red caída, 500), una
+      // recarga posterior volvería a hidratar la sesión vía /auth/me y
+      // PublicLayout rebotaría al cuestionario.
+      Cookies.remove('token')
     }
   }
 

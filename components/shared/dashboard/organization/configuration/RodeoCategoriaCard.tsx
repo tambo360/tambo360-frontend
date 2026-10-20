@@ -43,6 +43,15 @@ export const blockNegativeKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault()
 }
 
+export function blockLeadingZeroKeyDown(
+  e: React.KeyboardEvent<HTMLInputElement>,
+  bloquearDecimal = true
+) {
+  if (e.currentTarget.value !== '') return
+  if (e.key === '0') e.preventDefault()
+  if (bloquearDecimal && (e.key === '.' || e.key === ',')) e.preventDefault()
+}
+
 const RAZAS_OPTIONS: { value: RazasVacas; label: string }[] = Object.values(
   RazasVacas
 ).map((value) => ({ value, label: RAZA_LABELS[value] }))

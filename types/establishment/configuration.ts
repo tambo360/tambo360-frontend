@@ -103,6 +103,8 @@ const baseSchema = z.object({
   ),
 })
 
+export const MSG_CODIGO_DUPLICADO = 'Este RP/N° ya está usado en otra fila'
+
 const animalSchema = z.object({
   codigo: z.string().nonempty('El código es requerido'),
   nombre: z.string().optional(),
@@ -140,12 +142,12 @@ export const configurationSchema = baseSchema.extend({
           ctx.addIssue({
             code: 'custom',
             path: [i, 'codigo'],
-            message: 'Este RP/N° ya está usado en otra fila',
+            message: MSG_CODIGO_DUPLICADO,
           })
           ctx.addIssue({
             code: 'custom',
             path: [primero, 'codigo'],
-            message: 'Este RP/N° ya está usado en otra fila',
+            message: MSG_CODIGO_DUPLICADO,
           })
         } else {
           vistos.set(key, i)
