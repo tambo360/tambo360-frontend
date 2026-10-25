@@ -153,6 +153,7 @@ export default function RodeoCategoriaCard({
               {...costoRacionField}
               onKeyDown={(e) => {
                 blockNegativeKeys(e)
+                blockLeadingZeroKeyDown(e)
                 limitDecimalDigitsKeyDown(e, conPunto, 4, 4)
               }}
               onChange={(e) => {

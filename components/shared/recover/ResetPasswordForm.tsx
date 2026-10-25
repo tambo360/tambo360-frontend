@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { toast } from 'sonner'
 import { ArrowRight, EyeOff, EyeIcon } from 'lucide-react'
 import { CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,7 +26,7 @@ const PasswordsSchema = z
     confirmarContraseña: z.string(),
   })
   .refine((data) => data.contraseña === data.confirmarContraseña, {
-    message: 'Las contraseñas no coinciden',
+    message: 'Las contraseñas no coinciden. Verificá que ambas sean iguales',
     path: ['confirmarContraseña'],
   })
 
@@ -127,7 +126,6 @@ const ResetPasswordForm: React.FC = () => {
       setUserEmail(data.email)
       setStep(2)
       setSecondsLeft(180)
-      toast.success('Correo enviado con éxito')
     } catch (err) {
       const error = err as AxiosError<{ message?: string }>
       showErrorMessage(
@@ -348,7 +346,7 @@ const ResetPasswordForm: React.FC = () => {
             <div>
               <Button
                 type="submit"
-                disabled={isResetting || !passForm.formState.isValid}
+                disabled={isResetting}
                 className="w-full h-14 bg-[#0B1001] hover:bg-[#2F3427] text-white rounded-lg font-bold flex gap-2"
                 data-testid="update-password-button"
               >
