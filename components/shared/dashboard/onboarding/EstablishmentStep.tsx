@@ -19,7 +19,7 @@ function EstablishmentStep() {
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isValid },
   } = useForm({
     defaultValues: { name: '' },
     resolver: zodResolver(createOrganization),
@@ -55,7 +55,7 @@ function EstablishmentStep() {
         <img src="/successIcon.svg" alt="success" className="size-32" />
         <div className="grid place-items-center text-center space-y-2">
           <h2 className="text-3xl text-center w-full font-bold tracking-tight text-[#0B1001] max-w-81.25">
-            Establecimiento creado correctamente!
+            ¡Establecimiento creado correctamente!
           </h2>
           <p className="text-sm">
             Ya puedes comenzar a configurar tu establencimiento
@@ -116,7 +116,7 @@ function EstablishmentStep() {
                 variant="darkGreen"
                 className="w-33.25 h-12.5"
                 type="submit"
-                disabled={isPending}
+                disabled={isPending || isValid}
               >
                 {isPending ? 'Creando...' : 'Aceptar'}
               </Button>

@@ -23,53 +23,29 @@ export const esRodeoCompleto = (rodeo?: RodeoCompletoInput | null) => {
   return costoOk && razasOk
 }
 
-const rodeoSchema = z
-  .object({
-    tipoRodeo: z.nativeEnum(TipoRodeo),
-    costoRacion: z.preprocess(
-      (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
-      z
-        .number('El costo de la ración debe ser un número')
-        .positive('El costo de la ración debe ser un número positivo')
-        .optional()
-    ),
-    razas: z
-      .array(
-        z.object({
-          raza: z.nativeEnum(RazasVacas, {
-            error: 'Seleccioná una raza válida',
-          }),
-          cantVacas: z
-            .number('La cantidad debe ser un número')
-            .int('La cantidad debe ser un número entero')
-            .positive('La cantidad debe ser mayor que 0'),
-        })
-      )
-      .optional(),
-  })
-  .superRefine((rodeo, ctx) => {
-    const costoPresente = rodeo.costoRacion !== undefined
-    const tieneRazas = !!rodeo.razas?.length
-    // Vacío: válido, se ignora al enviar
-    if (!costoPresente && !tieneRazas) return
-    // Completo: válido
-    if (esRodeoCompleto(rodeo)) return
-    // Parcial: exigir completar el grupo con errores inline
-    if (!costoPresente) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['costoRacion'],
-        message: 'Completá el costo de la ración con un valor mayor que 0',
+const rodeoSchema = z.object({
+  tipoRodeo: z.nativeEnum(TipoRodeo),
+  costoRacion: z.preprocess(
+    (v) => (typeof v === 'number' && Number.isNaN(v) ? undefined : v),
+    z
+      .number('El costo de la ración debe ser un número')
+      .min(1, 'El costo de la ración debe ser un número mayor o igual a 1')
+      .optional()
+  ),
+  razas: z
+    .array(
+      z.object({
+        raza: z.nativeEnum(RazasVacas, {
+          error: 'Seleccioná una raza válida',
+        }),
+        cantVacas: z
+          .number('La cantidad debe ser un número')
+          .int('La cantidad debe ser un número entero')
+          .positive('La cantidad debe ser mayor que 0'),
       })
-    }
-    if (!tieneRazas) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['razas'],
-        message: 'Agregá al menos una raza con cantidad mayor que 0',
-      })
-    }
-  })
+    )
+    .optional(),
+})
 
 const baseSchema = z.object({
   cantOrdenie: z.coerce

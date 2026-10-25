@@ -280,7 +280,7 @@ const Configuration = () => {
         const costoRacion =
           typeof r.costoRacion === 'number' && Number.isFinite(r.costoRacion)
             ? r.costoRacion
-            : 0
+            : 1
         const razas = (r.razas ?? [])
           .filter((item) => item?.raza && Number(item?.cantVacas) > 0)
           .map((item) => ({
@@ -290,7 +290,10 @@ const Configuration = () => {
         return {
           tipoRodeo: r.tipoRodeo,
           costoRacion,
-          ...(razas.length > 0 ? { razas } : {}),
+          razas:
+            razas.length > 0
+              ? razas
+              : [{ raza: RazasVacas.HOLANDO_ARGENTINO, cantVacas: 5 }],
         }
       })
       payload = {
