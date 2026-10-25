@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -28,6 +28,7 @@ import {
   LayoutDashboard,
   Loader2,
   Calendar,
+  Clock,
 } from 'lucide-react'
 import { Lote } from '@/types/batch'
 import { TipoDestino, TipoSeguimiento } from '@/types/enums'
@@ -43,7 +44,10 @@ import { currentScope } from '@/lib/offlineId'
 import type { TransferAnimalPayload } from '@/types/transfer'
 import { useQueryClient } from '@tanstack/react-query'
 import { baseKeys } from '@/utils/queryKeys'
-import { blockNegativeKeys } from '../organization/configuration/RodeoCategoriaCard'
+import {
+  blockLeadingZeroKeyDown,
+  blockNegativeKeys,
+} from '../organization/configuration/RodeoCategoriaCard'
 
 const ESTADO_LABELS: Record<string, string> = {
   SANO: 'Sana',
@@ -57,6 +61,16 @@ const formatDestino = (destino: string) =>
     .replace(/_/g, ' ')
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase())
+
+const dmyToIso = (dmy: string) => {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(dmy)
+  return m ? `${m[3]}-${m[2]}-${m[1]}` : ''
+}
+
+const isoToDmy = (iso: string) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso)
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : ''
+}
 
 interface ChangeBatchProps {
   open: boolean
@@ -100,6 +114,18 @@ const ChangeBatch = ({
     tipoSeguimiento === TipoSeguimiento.RODEO_UNICO
 
   const queryClient = useQueryClient()
+
+  const fechaRef = useRef<HTMLInputElement>(null)
+
+  const openFechaPicker = () => {
+    const input = fechaRef.current
+    if (!input) return
+    try {
+      input.showPicker?.()
+    } catch {
+      input.focus()
+    }
+  }
 
   // Overlay offline: las transferencias encoladas mandan sobre el caché.
   const pendingTransfers = useTransferOutbox((s) => s.ops)
@@ -244,13 +270,26 @@ const ChangeBatch = ({
                 <Label className="font-bold text-xs">Fecha</Label>
                 <div className="relative">
                   <Input
-                    type="text"
-                    placeholder="dd/mm/aaaa"
-                    className="rounded-xl border-gray-200 bg-gray-50/50 pr-10"
-                    {...register('fechaProduccion')}
-                    disabled
+                    type="date"
+                    ref={fechaRef}
+                    value={dmyToIso(watch('fechaProduccion') ?? '')}
+                    // La fecha elegida vive en el form como dd/mm/aaaa; se
+                    // valida al instante para mostrar el mensaje del schema.
+                    onChange={(e) =>
+                      setValue('fechaProduccion', isoToDmy(e.target.value), {
+                        shouldValidate: true,
+                      })
+                    }
+                    className="rounded-xl border-gray-200 bg-gray-50/50 pr-10 cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0 [&::-webkit-calendar-picker-indicator]:hidden"
                   />
-                  <Calendar className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <button
+                    type="button"
+                    aria-label="Abrir calendario"
+                    onClick={openFechaPicker}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center justify-center rounded text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D53]"
+                  >
+                    <Calendar className="w-4 h-4" />
+                  </button>
                 </div>
                 {errors.fechaProduccion && (
                   <span className="text-xs text-red-600">
@@ -261,11 +300,15 @@ const ChangeBatch = ({
 
               <div className="space-y-2">
                 <Label className="font-bold text-xs">Hora</Label>
-                <Input
-                  type="time"
-                  className="rounded-xl border-gray-200 bg-gray-50/50 [&::-webkit-calendar-picker-indicator]:size-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-40"
-                  {...register('horaProduccion')}
-                />
+                <div className="relative">
+                  <Input
+                    type="time"
+                    className="rounded-xl border-gray-200 bg-gray-50/50 [&::-webkit-calendar-picker-indicator]:size-4 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-40"
+                    {...register('horaProduccion')}
+                    disabled
+                  />
+                  <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
               </div>
             </div>
 
@@ -321,11 +364,19 @@ const ChangeBatch = ({
                     Volumen Total Bruto (Litros)
                   </Label>
                   <Input
-                    type="text"
+                    type="number"
                     inputMode="decimal"
+                    // "any": sin esto el navegador exige múltiplos de `step`
+                    // medidos desde `min` y bloquea el submit antes de zod.
+                    step="any"
+                    min={1}
                     placeholder="Ej: 2450"
-                    className="rounded-xl border-gray-200 bg-gray-50/50"
+                    className="no-spinner rounded-xl border-gray-200 bg-gray-50/50"
                     {...register('cantidad')}
+                    onKeyDown={(e) => {
+                      blockNegativeKeys(e)
+                      blockLeadingZeroKeyDown(e)
+                    }}
                   />
                   {errors.cantidad && (
                     <span className="text-xs text-red-600">

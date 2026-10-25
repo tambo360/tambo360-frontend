@@ -34,16 +34,17 @@ const DeleteBatch = ({ batch, onSuccess }: DeleteBatchProps) => {
   return (
     <>
       <DropdownMenuItem
+        className="cursor-pointer"
         onSelect={(e) => {
           e.preventDefault()
           setShowDialog(true)
         }}
-        disabled={
-          isPending ||
-          batch.costosDirectos != undefined ||
-          (batch.mermas?.length ?? 0) > 0 ||
-          batch.estado
-        }
+        // disabled={
+        //   isPending ||
+        //   batch.costosDirectos != undefined ||
+        //   (batch.mermas?.length ?? 0) > 0 ||
+        //   batch.estado
+        // }
       >
         <Trash className="h-4 w-4" />
         Eliminar

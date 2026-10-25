@@ -64,8 +64,7 @@ const baseFields = {
         return fechaIngresada >= haceUnaSemana && fechaIngresada <= hoy
       },
       {
-        message:
-          'La fecha debe estar entre hoy y 7 días atrás (formato: dd/mm/aaaa)',
+        message: 'La fecha debe estar entre hoy y 7 días atrás',
       }
     ),
 }

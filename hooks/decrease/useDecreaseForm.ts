@@ -40,11 +40,14 @@ const getNowParts = () => {
 }
 
 export function useDecreaseForm({ onSave, initialData }: UseDecreaseFormProps) {
-  const [{ fecha, hora }] = useState(getNowParts)
+  const [{ fecha, hora }, setFechaHora] = useState(getNowParts)
   const [tipo, setTipo] = useState(initialData?.tipo ?? '')
   const [cantidad, setCantidad] = useState(String(initialData?.cantidad ?? ''))
   const [observacion, setObservacion] = useState(initialData?.observacion || '')
   const [errors, setErrors] = useState<FieldErrors>({})
+
+  const setFecha = (value: string) =>
+    setFechaHora((prev) => ({ ...prev, fecha: value }))
 
   const { data: typesData, isLoading: typesLoading } = useDecreaseType()
 
@@ -86,6 +89,7 @@ export function useDecreaseForm({ onSave, initialData }: UseDecreaseFormProps) {
     types,
     typesLoading,
     fecha,
+    setFecha,
     hora,
     tipo,
     setTipo,
