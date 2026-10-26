@@ -4,12 +4,20 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useCreateOrganization } from '@/hooks/organization/useCreateOrganization'
-import { createOrganization } from '@/types/organization'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { ArrowRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
+import { z } from 'zod'
+
+const establishmentSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, 'El nombre debe tener al menos 3 caracteres')
+    .max(30, 'El nombre no puede exceder los 30 caracteres'),
+})
 
 function EstablishmentStep() {
   const { mutate, isPending, error, isSuccess } = useCreateOrganization()
@@ -19,11 +27,16 @@ function EstablishmentStep() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
+    watch,
+    formState: { errors, submitCount },
   } = useForm({
     defaultValues: { name: '' },
-    resolver: zodResolver(createOrganization),
+    resolver: zodResolver(establishmentSchema),
+    mode: 'onChange',
   })
+
+  const name = watch('name')
+  const isNameEmpty = !name?.trim()
 
   const onSubmit = handleSubmit((data) => {
     mutate(data.name, {
@@ -96,10 +109,11 @@ function EstablishmentStep() {
               <Input
                 id="org-name"
                 placeholder="Ingrese el nombre del establecimiento"
+                maxLength={30}
                 {...register('name')}
                 disabled={isPending}
               />
-              {errors.name && (
+              {submitCount > 0 && errors.name && (
                 <p className="text-sm text-red-500">{errors.name.message}</p>
               )}
             </div>
@@ -116,7 +130,7 @@ function EstablishmentStep() {
                 variant="darkGreen"
                 className="w-33.25 h-12.5"
                 type="submit"
-                disabled={isPending || isValid}
+                disabled={isPending || isNameEmpty}
               >
                 {isPending ? 'Creando...' : 'Aceptar'}
               </Button>
