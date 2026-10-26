@@ -4,8 +4,9 @@ import {
   Milk,
   Cpu,
   Settings,
-  ArrowLeft,
   Wallet,
+  User,
+  LogOut,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -21,6 +22,12 @@ import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/context/AuthContext'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
 
 interface AppSidebarProps {
   forcedCollapsed?: boolean
@@ -77,7 +84,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   ]
 
   return (
-    <Sidebar className="w-full border-none h-full bg-[#F1F5F9]">
+    <Sidebar className="w-full border-none h-full bg-[#F1F5F9]/20">
       <SidebarHeader
         className={`transition-all duration-300 ${isCollapsed ? 'p-4' : 'p-8'}`}
       >
@@ -143,28 +150,30 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
         </SidebarMenu>
 
         <SidebarMenu>
-          <Button
-            variant="ghost"
-            onClick={logout}
-            className={`w-full ${isCollapsed ? 'justify-center' : ''}`}
-          >
-            {!isCollapsed ? (
-              <Link
-                href="/iniciar-sesion"
-                className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                className={`w-full ${isCollapsed ? 'justify-center' : 'justify-start gap-3 text-gray-400 hover:bg-gray-100 hover:text-gray-500'}`}
               >
-                <ArrowLeft className="h-5 w-5 shrink-0" />
-                Cerrar Sesion
-              </Link>
-            ) : (
-              <Link
-                href="/iniciar-sesion"
-                className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
+                <User className="h-5 w-5 shrink-0" />
+                {!isCollapsed && <span className="font-semibold">Perfil</span>}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="top"
+              align="start"
+              className={`bg-white z-80 ${isCollapsed ? 'w-full' : 'w-61.75'}`}
+            >
+              <DropdownMenuItem
+                onClick={logout}
+                className="cursor-pointer text-gray-600"
               >
-                <ArrowLeft className="h-5 w-5 shrink-0" />
-              </Link>
-            )}
-          </Button>
+                <LogOut className="h-4 w-4" />
+                Cerrar sesión
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </SidebarMenu>
       </SidebarContent>
     </Sidebar>
