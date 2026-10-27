@@ -288,16 +288,16 @@ const ResetPasswordForm: React.FC = () => {
                       <EyeOff className="size-5" />
                     )}
                   </button>
-                  {!(
-                    passForm.formState.submitCount > 0 &&
-                    passForm.formState.errors.contraseña
-                  ) && (
-                    <p className="text-xs text-[#626059]">
-                      Requisitos: 8 caracteres, mayuscula (A-Z), miniscula (a-z)
-                      y caracter especial.
-                    </p>
-                  )}
                 </div>
+                {!(
+                  passForm.formState.submitCount > 0 &&
+                  passForm.formState.errors.contraseña
+                ) && (
+                  <p className="text-xs text-[#626059]">
+                    Requisitos: 8 caracteres, mayuscula (A-Z), miniscula (a-z) y
+                    caracter especial.
+                  </p>
+                )}
                 {passForm.formState.submitCount > 0 &&
                   passForm.formState.errors.contraseña && (
                     <p className="text-xs font-medium text-[#B91C1C]">
