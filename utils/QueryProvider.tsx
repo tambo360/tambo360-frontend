@@ -15,7 +15,7 @@ export const OFFLINE_QUERY_CACHE_KEY = 'tambo360-rq-cache'
  * Persister IndexedDB manual (idb-keyval). Sin dependencias extra:
  */
 function createIdbPersister(throttleTime = 1000): Persister {
-  // En SSR no hay ventana: persister neutro que no rompe la hidratación.
+  // En SSR no existe las funciones de indexDB.
   if (typeof window === 'undefined') {
     return {
       persistClient: async () => undefined,
@@ -23,15 +23,18 @@ function createIdbPersister(throttleTime = 1000): Persister {
       removeClient: async () => undefined,
     }
   }
+
   let lastWrite = 0
   let pending: PersistedClient | undefined
   let timer: ReturnType<typeof setTimeout> | undefined
+
   const flush = () => {
     timer = undefined
     if (pending === undefined) return
     const client = pending
     pending = undefined
     lastWrite = Date.now()
+
     set(OFFLINE_QUERY_CACHE_KEY, client).catch(() => undefined)
   }
 
@@ -64,17 +67,14 @@ function createIdbPersister(throttleTime = 1000): Persister {
 }
 
 /**
- * Solo se persiste lo visitado que permite sobrevivir offline:
- * lotes + mermas + catálogos chicos (productos, tipos de merma) +
- * datos del establecimiento (configuración, opciones, form de transferencia).
- * Auth, dashboard y mutaciones NO se persisten.
+ * Datos que pueden ser persistidos en modo offline.
  */
 function shouldDehydrateQuery(query: { queryKey: unknown }) {
   const key = query.queryKey as unknown[]
-  if (key[0] === 'batch') return true
-  if (key[0] === 'mermas') return true
-  if (key[0] === 'decrease') return true
-  if (key[0] === 'product') return true
+  if (key[0] === 'batch') return true //lote
+  if (key[0] === 'mermas') return true //mermas
+
+  // establecimientos y sus datos para trasnferencia.
   if (key[0] === 'establishment') {
     if (key[1] === 'configuration' || key[1] === 'list') return true
     if (

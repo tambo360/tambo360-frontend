@@ -5,6 +5,8 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import type { BatchData, Lote } from '@/types/batch'
 import { toISODate } from '@/lib/offlineId'
 
+const LECHE_PRODUCTO_ID = '01a1838f-6023-79d0-abfc-3816e8a998e9'
+
 /**
  * La respuesta de `/lote/listar` es `{ data: { lotes: [{ lote } | Lote], ... } }`.
  * Estos helpers aplican cambios optimistas sobre TODAS las páginas/filtros
@@ -23,28 +25,65 @@ interface ListEnvelope {
 const readLote = (item: { lote?: Lote } | Lote): Lote =>
   (item as { lote?: Lote }).lote ?? (item as Lote)
 
-const FILTERS_PREFIX = [...baseKeys.batch, 'filters'] as const
+export function getOfflineProduct(idProducto: string) {
+  if (idProducto.toLowerCase() !== LECHE_PRODUCTO_ID) return undefined
 
-function forEachFiltersCache(
+  return {
+    idProducto,
+    nombre: 'Leche Entera',
+    categoria: 'leches' as const,
+  }
+}
+
+export function isLoteFromToday(lote: Lote): boolean {
+  const date = new Date(lote.fechaProduccion)
+  const today = new Date()
+  return (
+    !Number.isNaN(date.getTime()) &&
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  )
+}
+
+// Solo LISTAS (envelopes con data.lotes)
+const BATCH_LIST_PREFIXES = [
+  [...baseKeys.batch, 'filters'], // ['batch','filters',*]
+  [...baseKeys.batch, 'today'], // ['batch','today']
+] as const
+
+function forEachBatchListCache(
   qc: QueryClient,
   fn: (
     key: readonly unknown[],
     envelope: ListEnvelope
   ) => ListEnvelope | undefined
 ) {
-  // Prefijo: matchea `['batch', 'filters', filtros]`. `exact: false` explícito
-  // para que el default nunca decida si el parche optimista aplica.
-  const entries = qc
-    .getQueryCache()
-    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
-  for (const entry of entries) {
-    const current = entry.state.data as ListEnvelope | undefined
-    if (!current?.data?.lotes) continue
-    const next = fn(entry.queryKey, current)
-    if (next) qc.setQueryData(entry.queryKey, next)
+  for (const prefix of BATCH_LIST_PREFIXES) {
+    const entries = qc
+      .getQueryCache()
+      .findAll({ queryKey: prefix, exact: false })
+    for (const entry of entries) {
+      const current = entry.state.data as ListEnvelope | undefined
+      if (!current?.data?.lotes) continue
+      const next = fn(entry.queryKey, current)
+      if (next) qc.setQueryData(entry.queryKey, next)
+    }
   }
 }
-
+export function applyOptimisticDashboardCurrent(qc: QueryClient, lote: Lote) {
+  qc.setQueryData(queryKeys.dashboard.current(), (prev: any) => {
+    if (!prev?.data) return prev
+    return {
+      ...prev,
+      data: {
+        ...prev.data,
+        totalLitros: (prev.data.totalLitros ?? 0) + Number(lote.cantidad ?? 0),
+        totalLotes: (prev.data.totalLotes ?? 0) + 1,
+      },
+    }
+  })
+}
 /**
  * Resuelve display del rodeo desde cachés (config → opciones).
  * El `idRodeo` del payload siempre salió de esas listas, así que acierta.
@@ -119,10 +158,9 @@ function mapAnimalesToProducciones(
 }
 
 /** Construye el `Lote` visible al instante tras un create offline. */
-export function buildOptimisticLote(
+export function createLoteOffline(
   qc: QueryClient,
-  payload: BatchData & { idLote: string },
-  numeroLote: number
+  payload: BatchData & { idLote: string; numeroLote: number }
 ): Lote {
   const anyPayload = payload as unknown as {
     idRodeo?: string
@@ -140,10 +178,10 @@ export function buildOptimisticLote(
 
   return {
     idLote: payload.idLote,
-    numeroLote,
-    fechaProduccion: toISODate(payload.fechaProduccion),
+    numeroLote: payload.numeroLote,
+    fechaProduccion: new Date().toISOString(),
     idProducto: payload.idProducto,
-    producto: undefined,
+    producto: getOfflineProduct(payload.idProducto),
     cantidad: Number(payload.cantidad),
     unidad: payload.unidad,
     // Sin esto la lista muestra '—' en vez del rodeo (getRodeoDisplay).
@@ -162,23 +200,36 @@ export function buildOptimisticLote(
 }
 
 /** Próximo número de lote provisional (máximo local + 1). */
-export function nextProvisionalNumero(qc: QueryClient): number {
+export function nextNumberProvisionalLote(
+  qc: QueryClient,
+  pendingNumbers: readonly (number | undefined)[] = []
+): number {
   let max = 0
-  const entries = qc
-    .getQueryCache()
-    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
-  for (const entry of entries) {
-    const current = entry.state.data as ListEnvelope | undefined
-    for (const item of current?.data?.lotes ?? []) {
-      const n = Number(readLote(item).numeroLote)
-      if (!Number.isNaN(n) && n > max) max = n
+  for (const prefix of BATCH_LIST_PREFIXES) {
+    const entries = qc
+      .getQueryCache()
+      .findAll({ queryKey: prefix, exact: false })
+    for (const entry of entries) {
+      const current = entry.state.data as ListEnvelope | undefined
+      for (const item of current?.data?.lotes ?? []) {
+        const n = Number(readLote(item).numeroLote)
+        if (Number.isFinite(n) && n > max) max = n
+      }
     }
   }
+
+  for (const number of pendingNumbers) {
+    if (number !== undefined && Number.isFinite(number) && number > max) {
+      max = number
+    }
+  }
+
   return max + 1
 }
 
 export function applyOptimisticCreate(qc: QueryClient, lote: Lote) {
-  forEachFiltersCache(qc, (_key, envelope) => {
+  forEachBatchListCache(qc, (key, envelope) => {
+    if (key[1] === 'today' && !isLoteFromToday(lote)) return undefined
     const lotes = envelope.data?.lotes ?? []
     // Evita duplicados si ya existe (reintento del mismo tempId)
     if (lotes.some((i) => readLote(i).idLote === lote.idLote)) return undefined
@@ -191,6 +242,12 @@ export function applyOptimisticCreate(qc: QueryClient, lote: Lote) {
       },
     }
   })
+
+  if (isLoteFromToday(lote) && !qc.getQueryData(queryKeys.batch.day())) {
+    qc.setQueryData(queryKeys.batch.day(), {
+      data: { lotes: [{ lote }], totalLotes: 1 },
+    })
+  }
 }
 
 export function applyOptimisticUpdate(
@@ -211,7 +268,7 @@ export function applyOptimisticUpdate(
   const animalesPatch = Array.isArray(anyValues.animales)
     ? mapAnimalesToProducciones(anyValues.animales)
     : null
-  forEachFiltersCache(qc, (_key, envelope) => ({
+  forEachBatchListCache(qc, (_key, envelope) => ({
     ...envelope,
     data: {
       ...envelope.data,
@@ -260,7 +317,7 @@ export function applyOptimisticUpdate(
 }
 
 export function removeOptimistic(qc: QueryClient, id: string) {
-  forEachFiltersCache(qc, (_key, envelope) => {
+  forEachBatchListCache(qc, (_key, envelope) => {
     const lotes = envelope.data?.lotes ?? []
     if (!lotes.some((i) => readLote(i).idLote === id)) return undefined
     const next = lotes.filter((i) => readLote(i).idLote !== id)
@@ -281,7 +338,7 @@ export function removeOptimistic(qc: QueryClient, id: string) {
 
 export function markCompleteOptimistic(qc: QueryClient, id: string) {
   let touched = false
-  forEachFiltersCache(qc, (_key, envelope) => {
+  forEachBatchListCache(qc, (_key, envelope) => {
     const lotes = envelope.data?.lotes ?? []
     if (lotes.some((item) => readLote(item).idLote === id)) touched = true
     return {
@@ -356,7 +413,7 @@ export function replaceTempLote(
   real: Partial<Lote> & { idLote?: string; id?: string }
 ) {
   const realId = real.idLote ?? real.id ?? tempId
-  forEachFiltersCache(qc, (_key, envelope) => ({
+  forEachBatchListCache(qc, (_key, envelope) => ({
     ...envelope,
     data: {
       ...envelope.data,
@@ -383,7 +440,7 @@ export function findCachedLote(
 ): Lote | undefined {
   const entries = qc
     .getQueryCache()
-    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
+    .findAll({ queryKey: BATCH_LIST_PREFIXES, exact: false })
   for (const entry of entries) {
     const current = entry.state.data as ListEnvelope | undefined
     for (const item of current?.data?.lotes ?? []) {

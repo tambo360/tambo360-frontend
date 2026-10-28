@@ -7,7 +7,7 @@ import type {
   TransferRodeoPayload,
 } from '@/types/transfer'
 import { useTransferOutbox } from '@/stores/useTransferOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { applyOptimisticTransfer } from '@/hooks/transfer/offlineTransferCache'
 
@@ -39,7 +39,7 @@ export function useTransferRodeo() {
         applyOptimisticTransfer(queryClient, payload)
         useTransferOutbox
           .getState()
-          .enqueue({ type: 'transfer', scope: currentScope(), payload })
+          .enqueue({ type: 'transfer', scope: currentEstablisment(), payload })
         return { offline: true }
       }
       const { data } = await transferRodeoRequest(

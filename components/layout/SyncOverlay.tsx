@@ -4,8 +4,8 @@ import { useEffect } from 'react'
 import { CheckCircle2, Loader2 } from 'lucide-react'
 import { useSyncStatus } from '@/stores/useSyncStatus'
 
-/** Tiempo mínimo visible aunque el drain termine antes (pedido: 5s). */
-const MIN_VISIBLE_MS = 5000
+/** Tiempo mínimo visible aunque el drain termine antes (pedido: 3s). */
+const MIN_VISIBLE_MS = 3000
 /** Gracia extra tras terminar para leer el "¡Listo!". */
 const DONE_GRACE_MS = 800
 

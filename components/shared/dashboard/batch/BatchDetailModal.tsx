@@ -48,7 +48,7 @@ import {
 import RegisterMermaModal from '@/components/shared/dashboard/organization/configuration/modals/RegisterMermaidModal'
 import { CompleteBatchModal } from '@/components/shared/dashboard/batch/CompleteBatchModal'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
 
 interface LoteConDetalles extends Lote {
@@ -101,7 +101,7 @@ const BatchDetailModal = ({
   const queryClient = useQueryClient()
   const isOnline = useOnlineStatus()
   const batchOps = useBatchOutbox((s) => s.ops)
-  const scope = currentScope()
+  const scope = currentEstablisment()
 
   const { data: batchData, isLoading, error } = useBatch({ id: batchId })
   const { isLoading: configLoading } = useConfiguration()

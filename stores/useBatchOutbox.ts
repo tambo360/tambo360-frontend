@@ -3,18 +3,23 @@
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import type { BatchData } from '@/types/batch'
+import type { Product } from '@/types/product'
 
 export type BatchOpType = 'create' | 'update' | 'delete' | 'complete'
 
+type OfflineProduct = Pick<Product, 'idProducto' | 'nombre' | 'categoria'>
+
 export interface BatchOutboxOp {
-  opId: string
-  type: BatchOpType
-  /** `orgId/estId` capturado al encolar: la cola nunca mezcla establecimientos. */
-  scope: string
-  payload?: BatchData & { idLote?: string }
-  /** Para update/delete/complete: id objetivo (real o temporal). */
-  targetId?: string
-  createdAt: number
+  opId: string // id unico del lote
+  type: BatchOpType // tipo de operacion
+  scope: string // (orgId/estId) a qué establecimiento pertenece
+  payload?: BatchData & {
+    idLote?: string
+    producto?: OfflineProduct
+    numeroLote?: number
+  }
+  targetId?: string // a qué lote apunta (para update/delete/complete)
+  createdAt: number // cuándo se encoló
   tries: number
   lastError?: string
 }
@@ -22,11 +27,12 @@ export interface BatchOutboxOp {
 interface BatchOutboxState {
   ops: BatchOutboxOp[]
   failed: BatchOutboxOp[]
+  // encolar operacion
   enqueue: (op: Omit<BatchOutboxOp, 'opId' | 'createdAt' | 'tries'>) => void
+  // remover operacion
   removeOp: (opId: string) => void
   bumpTries: (opId: string, message?: string) => void
   moveToFailed: (opId: string, message?: string) => void
-  /** ¿Hay un `create` pendiente para este id? (detecta ids temporales). */
   hasPendingCreate: (scope: string, id: string) => boolean
   clear: () => void
 }

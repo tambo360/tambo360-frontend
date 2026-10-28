@@ -40,7 +40,7 @@ import {
 } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
 import { refreshAnimalCategoria } from '@/hooks/transfer/offlineTransferCache'
 import { useTransferOutbox } from '@/stores/useTransferOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import type { TransferAnimalPayload } from '@/types/transfer'
 import { useQueryClient } from '@tanstack/react-query'
 import { baseKeys } from '@/utils/queryKeys'
@@ -129,7 +129,8 @@ const ChangeBatch = ({
 
   // Overlay offline: las transferencias encoladas mandan sobre el caché.
   const pendingTransfers = useTransferOutbox((s) => s.ops)
-  const scope = currentScope()
+
+  const scope = currentEstablisment()
   const animalesConEstado = useMemo(() => {
     const byAnimal = new Map<string, { destino: string; createdAt: number }>()
     for (const op of pendingTransfers) {

@@ -19,7 +19,7 @@ export function randomLoteId(): string {
 }
 
 /** `orgId/estId` actuales desde el pathname (misma fuente que el interceptor). */
-export function currentScope(): string {
+export function currentEstablisment(): string {
   if (typeof window === 'undefined') return 'unknown/unknown'
   const parts = window.location.pathname.split('/')
   if (parts[1] === 'organizaciones' && parts[2] && parts[3]) {

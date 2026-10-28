@@ -55,7 +55,7 @@ import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMat
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
 import { useQueryClient } from '@tanstack/react-query'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
 
 // Modales
@@ -109,7 +109,7 @@ const Produccion: React.FC = () => {
   // muestra Completado aunque el caché diga otra cosa (recarga sin red o
   // refetch stale). Al drenar, la op sale y el servidor manda lo real.
   const batchOps = useBatchOutbox((s) => s.ops)
-  const scope = currentScope()
+  const scope = currentEstablisment()
 
   // Transformación de datos + overlay offline (todo dentro del memo para no
   // invalidarlo en cada render con un array recién creado).
