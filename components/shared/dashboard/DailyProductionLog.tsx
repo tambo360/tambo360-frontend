@@ -154,7 +154,7 @@ const DailyProductionLog = () => {
           </div>
         ) : null}
 
-        {error ? (
+        {error && !hasLotes ? (
           <div className="w-full h-36 flex justify-center items-center border border-dashed rounded-md">
             <p className="text-center text-sm text-red-500">
               No pudimos cargar la producción de hoy

@@ -3,7 +3,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { baseKeys } from '@/utils/queryKeys'
 import { useTransferOutbox } from '@/stores/useTransferOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import type {
   TransferAnimalPayload,
   TransferRodeoPayload,
@@ -308,6 +308,6 @@ export function submitTransferOffline(
   applyOptimisticTransfer(qc, payload)
   useTransferOutbox
     .getState()
-    .enqueue({ type: 'transfer', scope: currentScope(), payload })
+    .enqueue({ type: 'transfer', scope: currentEstablisment(), payload })
   return { offline: true }
 }

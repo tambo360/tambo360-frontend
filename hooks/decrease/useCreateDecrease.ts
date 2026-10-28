@@ -4,7 +4,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useDecreaseOutbox } from '@/stores/useDecreaseOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import {
   applyOptimisticMermaCreate,
@@ -27,7 +27,7 @@ export function useCreateDecrease() {
         applyOptimisticMermaCreate(queryClient, merma)
         useDecreaseOutbox.getState().enqueue({
           type: 'create',
-          scope: currentScope(),
+          scope: currentEstablisment(),
           idLote: values.idLote,
           targetId: tempIdMerma,
           payload: { ...values },
