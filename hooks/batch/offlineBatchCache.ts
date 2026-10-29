@@ -430,22 +430,24 @@ export function replaceTempLote(
 }
 
 /**
- * Busca un lote en las listas paginadas cacheadas (para el modal de detalle
- * offline cuando el `detail` nunca se visitó). Lectura no suscrita: llamarla
- * durante el render es suficiente porque el modal se remonta por `batchId`.
+ * Busca un lote en las listas cacheadas cuando el `detail` nunca se visitó.
+ * La consulta no está suscrita; el consumidor se actualiza al resolverse
+ * `useBatch` y vuelve a leer la caché en ese render.
  */
 export function findCachedLote(
   qc: QueryClient,
   idLote: string
 ): Lote | undefined {
-  const entries = qc
-    .getQueryCache()
-    .findAll({ queryKey: BATCH_LIST_PREFIXES, exact: false })
-  for (const entry of entries) {
-    const current = entry.state.data as ListEnvelope | undefined
-    for (const item of current?.data?.lotes ?? []) {
-      const lote = readLote(item)
-      if (lote.idLote === idLote) return lote
+  for (const prefix of BATCH_LIST_PREFIXES) {
+    const entries = qc
+      .getQueryCache()
+      .findAll({ queryKey: prefix, exact: false })
+    for (const entry of entries) {
+      const current = entry.state.data as ListEnvelope | undefined
+      for (const item of current?.data?.lotes ?? []) {
+        const lote = readLote(item)
+        if (lote.idLote === idLote) return lote
+      }
     }
   }
   return undefined
