@@ -26,7 +26,9 @@ interface Props {
 }
 
 const LABEL = 'text-xs font-bold text-slate-900'
-const TRIGGER = 'h-9 w-full rounded-lg text-sm'
+// `data-[size=default]:h-9` es necesario: el SelectTrigger define su altura
+// con esa variante (h-12.5) y un `h-9` suelto no la reemplaza.
+const TRIGGER = 'h-9 w-full rounded-lg data-[size=default]:h-9 text-sm'
 const TEXTAREA =
   'w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm'
 
