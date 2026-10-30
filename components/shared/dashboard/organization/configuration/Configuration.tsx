@@ -54,7 +54,6 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 ]
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
-  { value: VentaLeche.USINA, label: 'Usina' },
   { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
   { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
   { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
