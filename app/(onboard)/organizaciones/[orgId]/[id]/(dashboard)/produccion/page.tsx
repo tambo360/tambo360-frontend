@@ -53,7 +53,6 @@ import DeleteBatch from '@/components/shared/dashboard/batch/DeleteBatch'
 import { useDebounce } from 'use-debounce'
 import { HighlightMatch } from '@/components/shared/dashboard/batch/HighlightMatch'
 import { WeatherIndicator } from '@/components/weather/WeatherIndicator'
-import { useQueryClient } from '@tanstack/react-query'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
 import { currentEstablisment } from '@/lib/offlineId'
 import { hasPendingComplete } from '@/hooks/batch/offlineBatchCache'
@@ -69,8 +68,6 @@ const TIPO_RODEO: { value: TipoRodeo; label: string }[] = [
 ]
 
 const Produccion: React.FC = () => {
-  const queryClient = useQueryClient()
-
   // Estados de modales
   const [isChangeBatchOpen, setIsChangeBatchOpen] = useState(false)
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
@@ -114,7 +111,7 @@ const Produccion: React.FC = () => {
   // Transformación de datos + overlay offline (todo dentro del memo para no
   // invalidarlo en cada render con un array recién creado).
   const lotes = useMemo(() => {
-    const base = (data?.data?.lotes?.map((item: any) => item.lote) ??
+    const base = (data?.data?.lotes?.map((item: any) => item?.lote ?? item) ??
       []) as Lote[]
     if (!batchOps.some((o) => o.type === 'complete' && o.scope === scope))
       return base
@@ -154,12 +151,7 @@ const Produccion: React.FC = () => {
     try {
       await createDecrease({ ...data, idLote: selectedBatch.idLote })
       setIsRegisterMermaOpen(false)
-      // ✅ Invalidar las mermas del lote para que el próximo fetch las traiga
-      queryClient.invalidateQueries({
-        queryKey: ['mermas', 'lote', selectedBatch.idLote],
-      })
       setSelectedBatch(null)
-      refetch()
     } catch {
       showErrorMessage(
         'No se pudo registrar la merma. Verifica los datos e intenta de nuevo.'
