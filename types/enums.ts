@@ -20,7 +20,7 @@ export enum CategoriaAnimal {
 }
 
 export enum EstadoAnimal {
-  MATITIS = 'MASTITIS',
+  MASTITIS = 'MASTITIS',
   TRATAMIENTO = 'TRATAMIENTO',
   PREPARTO = 'PREPARTO',
   SANO = 'SANO',
