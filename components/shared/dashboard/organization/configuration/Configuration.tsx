@@ -54,6 +54,7 @@ const TIPO_ORDENIE_OPTIONS: { value: TipoOrdenie; Label: string }[] = [
 ]
 
 const DESTINO_PRODUCTO_OPTIONS: { value: VentaLeche; label: string }[] = [
+  { value: VentaLeche.USINA, label: 'Usina' },
   { value: VentaLeche.COOPERATIVA, label: 'Cooperativa' },
   { value: VentaLeche.ELABORACION_PROPIA, label: 'Elaboración propia' },
   { value: VentaLeche.VENTA_DIRECTA_MERCADO_LOCAL, label: 'Mercado Local' },
@@ -66,7 +67,7 @@ const CATEGORIA_ANIMAL_OPTIONS: { value: CategoriaAnimal; label: string }[] = [
 
 const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
   { value: EstadoAnimal.SANO, label: 'Sano' },
-  { value: EstadoAnimal.MATITIS, label: 'Mastitis' },
+  { value: EstadoAnimal.MASTITIS, label: 'Mastitis' },
   { value: EstadoAnimal.TRATAMIENTO, label: 'Tratamiento' },
   { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
 ]
@@ -915,13 +916,6 @@ const Configuration = () => {
             )}
           </div>
         )}
-
-        {error?.response?.data?.message && (
-          <p className="text-xs text-red-500 text-center">
-            {error.response.data.message}
-          </p>
-        )}
-
         {/* Footer de Navegación */}
         <footer className="flex flex-col sm:flex-row items-stretch justify-end sm:items-center gap-4 pt-8 border-t border-slate-100 max-w-393">
           <div className="flex flex-col sm:flex-row gap-4 justify-end w-full sm:w-auto sm:items-center">
