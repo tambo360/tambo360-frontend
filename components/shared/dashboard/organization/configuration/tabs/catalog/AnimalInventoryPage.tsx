@@ -40,6 +40,8 @@ import {
 import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
 import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
 import { EditAnimalModal } from '@/components/shared/dashboard/organization/configuration/modals/EditAnimalModal'
+import { TransferenciasTable } from '@/components/shared/dashboard/organization/configuration/TransferenciasTable'
+import { useInventarioRodeos } from '@/hooks/establishment/useInventarioRodeos'
 
 import {
   useInventarioAnimales,
@@ -89,6 +91,9 @@ export default function AnimalInventoryPage() {
   } = useInventarioAnimales()
 
   const { deleteAnimal, isDeleting } = useAnimalMutations()
+
+  // Reutilizamos useInventarioRodeos para obtener el historial de movimientos
+  const { transferencias } = useInventarioRodeos()
 
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [selectedAnimal, setSelectedAnimal] = useState<AnimalRow | null>(null)
@@ -143,7 +148,6 @@ export default function AnimalInventoryPage() {
           </Button>
         </div>
       </div>
-
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="flex flex-col gap-1.5 rounded-xl bg-[#DDECE2] p-5 shadow-md">
@@ -174,7 +178,6 @@ export default function AnimalInventoryPage() {
           <p className="text-xs text-slate-800">Vacas en ordeñe</p>
         </div>
       </div>
-
       {/* Filtros */}
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div className="relative w-full sm:w-52">
@@ -205,7 +208,6 @@ export default function AnimalInventoryPage() {
           </Select>
         </div>
       </div>
-
       {/* Tabla */}
       <div className="flex flex-col gap-4 relative">
         {isDeleting && (
@@ -370,9 +372,14 @@ export default function AnimalInventoryPage() {
           </div>
         </div>
       </div>
-
+      {/* Historial de movimientos */}
+      <TransferenciasTable transferencias={transferencias} />
       <AltaModal open={isAltaOpen} onClose={cerrarAlta} onSuccess={refetch} />
-      <BajaModal open={isBajaOpen} onClose={cerrarBaja} onSuccess={refetch} />
+      <BajaModal
+        open={isBajaOpen}
+        onClose={cerrarBaja}
+        onSuccess={refetch}
+      />{' '}
       <EditAnimalModal
         open={isEditOpen}
         onClose={() => setIsEditOpen(false)}
