@@ -1,7 +1,6 @@
 'use client'
 
 import {
-  Pencil,
   ArrowRight,
   ArrowUpRight,
   Plus,
@@ -78,7 +77,7 @@ export default function InventarioRodeosTab() {
         </button>
       </div>
 
-      {/* 2. Tarjetas de Rodeos (3 Columnas) */}
+      {/* Tarjetas de Rodeos (3 columnas) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
         {rodeos.map((rodeo: any) => (
           <div
@@ -87,13 +86,6 @@ export default function InventarioRodeosTab() {
           >
             <div className="flex items-start justify-between">
               {getRodeoIcon(rodeo.value)}
-              <button
-                type="button"
-                className="text-slate-800 hover:text-slate-600 transition-colors"
-                aria-label="Editar rodeo"
-              >
-                <Pencil size={16} />
-              </button>
             </div>
 
             <div>
@@ -138,21 +130,10 @@ export default function InventarioRodeosTab() {
           </div>
           <div className="flex flex-col gap-2.5">
             <button
-              onClick={() => abrirAlta('INGRESO_NACIMIENTO')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#0A5C36]">
-                Nacimientos
-              </span>
-              <ArrowRight size={14} className="text-[#0A5C36]" />
-            </button>
-            <button
               onClick={() => abrirAlta('INGRESO_COMPRA')}
               className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
             >
-              <span className="text-xs font-bold text-[#0A5C36]">
-                Compras Externas
-              </span>
+              <span className="text-xs font-bold text-[#0A5C36]">Compras</span>
               <ArrowRight size={14} className="text-[#0A5C36]" />
             </button>
           </div>
@@ -173,15 +154,6 @@ export default function InventarioRodeosTab() {
             >
               <span className="text-xs font-bold text-[#E53935]">
                 Venta de Animales
-              </span>
-              <ArrowRight size={14} className="text-[#E53935]" />
-            </button>
-            <button
-              onClick={() => abrirBaja('EGRESO_MUERTE')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#E53935]">
-                Otras Causas
               </span>
               <ArrowRight size={14} className="text-[#E53935]" />
             </button>
@@ -208,7 +180,7 @@ export default function InventarioRodeosTab() {
         </div>
       </div>
 
-      {/* Tabla de transferencias */}
+      {/* Historial de movimientos */}
       <TransferenciasTable transferencias={transferencias} />
 
       {/* Modales */}
