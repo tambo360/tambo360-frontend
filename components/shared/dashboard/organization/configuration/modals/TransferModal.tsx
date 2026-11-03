@@ -96,6 +96,16 @@ const formatLabel = (s: string) =>
     .toLowerCase()
     .replace(/\b\w/g, (c) => c.toUpperCase())
 
+const MS_POR_DIA = 24 * 60 * 60 * 1000
+
+/**
+ * Convierte los días de retorno que escribe el usuario en la fecha ISO que
+ * espera el backend. Si no hay días (vacío o 0) devuelve null: el backend
+ * exige que el campo `retorno` viaje siempre, aunque sea null.
+ */
+const calcularRetorno = (dias: number): string | null =>
+  dias > 0 ? new Date(Date.now() + dias * MS_POR_DIA).toISOString() : null
+
 // ─────────────────────────────────────────────────────────────
 // Wrapper
 // ─────────────────────────────────────────────────────────────
@@ -254,6 +264,9 @@ const RodeoTransferModal = ({
     if (!causa) return setError('Elegí una causa')
 
     try {
+      // Días de retorno escritos para la raza elegida (vacío o 0 => null)
+      const dias = Number(plazos[razaId] || 0)
+
       const rodeoPayload = {
         tipo: 'TRANSFERENCIA',
         motivo: motivo as any,
@@ -262,9 +275,8 @@ const RodeoTransferModal = ({
         origen: origenId,
         destino: destinoId,
         animal: { raza: razaId, cantVacas: cant },
-        // Bug backend: el validador rechaza string ISO para `retorno`.
-        // Cuando lo arreglen, agregar:
-        // retorno: dias > 0 ? new Date(Date.now() + dias*864e5).toISOString() : null,
+        // El backend exige que `retorno` viaje siempre (fecha ISO o null).
+        retorno: calcularRetorno(dias),
         observacion: observacion || undefined,
       } as any
       // offline
