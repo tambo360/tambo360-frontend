@@ -1,6 +1,6 @@
-import { DecreaseWithLote } from '@/types/decrease'
+import { DecreaseWithLote, OfflineDecreaseCreate } from '@/types/decrease'
 import { createDecrease } from '@/utils/api/decrease.api'
-import { baseKeys, queryKeys } from '@/utils/queryKeys'
+import { queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useDecreaseOutbox } from '@/stores/useDecreaseOutbox'
@@ -8,7 +8,7 @@ import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import {
   applyOptimisticMermaCreate,
-  buildOptimisticMerma,
+  createMermaOffline,
 } from '@/hooks/decrease/offlineDecreaseCache'
 
 export function useCreateDecrease() {
@@ -23,14 +23,18 @@ export function useCreateDecrease() {
       // offline
       if (!isCurrentlyOnline()) {
         const tempIdMerma = crypto.randomUUID()
-        const merma = buildOptimisticMerma(values, tempIdMerma)
-        applyOptimisticMermaCreate(queryClient, merma)
+        const payload: OfflineDecreaseCreate = {
+          ...values,
+          idMerma: tempIdMerma,
+          fechaCreacion: new Date().toISOString(),
+        }
+        applyOptimisticMermaCreate(queryClient, createMermaOffline(payload))
         useDecreaseOutbox.getState().enqueue({
           type: 'create',
           scope: currentEstablisment(),
           idLote: values.idLote,
           targetId: tempIdMerma,
-          payload: { ...values },
+          payload,
         })
         return { idMerma: tempIdMerma, offline: true }
       }
@@ -40,6 +44,7 @@ export function useCreateDecrease() {
     },
 
     onSuccess: (_, variables) => {
+      if (!isCurrentlyOnline()) return
       queryClient.invalidateQueries({ queryKey: queryKeys.decrease.lists() })
       queryClient.invalidateQueries({
         queryKey: ['mermas', 'lote', variables.idLote],
@@ -47,9 +52,7 @@ export function useCreateDecrease() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.batch.detail(variables.idLote),
       })
-      queryClient.invalidateQueries({
-        queryKey: [...baseKeys.batch, 'filters'],
-      })
+      queryClient.invalidateQueries({ queryKey: queryKeys.batch.all })
     },
   })
 }

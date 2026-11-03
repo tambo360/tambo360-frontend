@@ -38,6 +38,11 @@ export type DecreaseWithLote = DecreaseData & {
   idLote: string
 }
 
+export type OfflineDecreaseCreate = DecreaseWithLote & {
+  idMerma: string
+  fechaCreacion: string
+}
+
 export interface Merma {
   idMerma: string
   tipo: TipoMerma

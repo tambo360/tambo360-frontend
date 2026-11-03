@@ -13,12 +13,14 @@ import DecreaseTable from '@/components/shared/dashboard/decrease/DecreaseTable'
 import { StatCard } from '@/components/shared/StatCard'
 import { AlertCardBatch } from '@/components/shared/dashboard/batch/AlertCardBatch'
 import { useBatch } from '@/hooks/batch/useBatch'
+import { findCachedLote } from '@/hooks/batch/offlineBatchCache'
 import { useDeleteBatch } from '@/hooks/batch/useDeleteBatch'
 import { Alert } from '@/types/alerts'
 import { Droplet, Factory, TrendingDown, ChevronLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useQueryClient } from '@tanstack/react-query'
 
 interface BatchDetailsProps {
   id: string
@@ -31,7 +33,18 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
   const [isCompleteBatchOpen, setIsCompleteBatchOpen] = useState(false)
   const [deleteDialog, setDeleteDialog] = useState(false)
 
-  const { data: batch, isPending, refetch } = useBatch({ id: id })
+  const queryClient = useQueryClient()
+  const {
+    data: queriedBatch,
+    isPending,
+    refetch,
+    error: batchError,
+  } = useBatch({ id })
+  const fallbackLote =
+    !queriedBatch?.data && id ? findCachedLote(queryClient, id) : undefined
+  const batch =
+    queriedBatch ?? (fallbackLote ? { data: fallbackLote } : undefined)
+  const isBatchPending = isPending && !batch
   const { mutateAsync, isPending: isPendingDelete, error } = useDeleteBatch()
   const navigate = useRouter()
   const params = useParams()
@@ -44,7 +57,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
 
   useEffect(() => {
     const hash = window.location.hash
-    if (isPending || !hash) return
+    if (isBatchPending || !hash) return
 
     const target = hash.replace('#', '')
     const timeout = setTimeout(() => {
@@ -54,7 +67,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
     }, 100)
 
     return () => clearTimeout(timeout)
-  }, [isPending])
+  }, [isBatchPending])
 
   const handleDelete = async () => {
     try {
@@ -66,7 +79,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
     }
   }
 
-  if (isPending) {
+  if (isBatchPending) {
     return (
       <div className="min-h-screen space-y-6 animate-pulse w-full">
         <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -120,7 +133,16 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
     )
   }
 
-  const alertas: Alert[] = batch!.data?.alertas ?? []
+  if (!batch?.data) {
+    return (
+      <div className="flex min-h-64 flex-col items-center justify-center gap-2 text-gray-500">
+        <p>No se pudo cargar el lote</p>
+        <p className="text-sm">{batchError?.message || 'ID inválido'}</p>
+      </div>
+    )
+  }
+
+  const alertas: Alert[] = batch.data.alertas ?? []
 
   return (
     <div className="min-h-screen space-y-6 w-full">
@@ -252,7 +274,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
               </Button>
             </div>
           </div>
-          <DecreaseTable batch={batch!.data} isPending={isPending} />
+          <DecreaseTable batch={batch.data} isPending={isBatchPending} />
         </Card>
 
         <Card className="py-2" id="costos">
@@ -274,7 +296,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
             changeCost={() => setIsChangeCostOpen(true)}
             batch={batch!.data}
             disabled={batch!.data?.estado}
-            isPending={isPending}
+            isPending={isBatchPending}
           />
         </Card>
 
@@ -303,7 +325,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
         open={isChangeBatchOpen}
         onOpen={() => setIsChangeBatchOpen(true)}
         onClose={() => setIsChangeBatchOpen(false)}
-        batch={batch!.data != undefined ? batch!.data : undefined}
+        batch={batch.data}
       />
 
       <ChangeDecrease
@@ -322,7 +344,7 @@ export default function BatchDetails({ id }: BatchDetailsProps) {
         open={isCompleteBatchOpen}
         onClose={() => setIsCompleteBatchOpen(false)}
         batchId={id}
-        batch={batch!.data}
+        batch={batch.data}
         refetch={refetch}
       />
     </div>

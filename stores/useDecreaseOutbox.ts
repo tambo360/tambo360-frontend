@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
-import type { DecreaseData } from '@/types/decrease'
+import type { OfflineDecreaseCreate } from '@/types/decrease'
 
 export type DecreaseOpType = 'create' | 'update' | 'delete'
 
@@ -15,7 +15,7 @@ export interface DecreaseOutboxOp {
   idLote: string
   /** Para update/delete (y create): id de merma objetivo (real o temporal). */
   targetId: string
-  payload?: DecreaseData & { idLote: string }
+  payload?: OfflineDecreaseCreate
   createdAt: number
   tries: number
   lastError?: string

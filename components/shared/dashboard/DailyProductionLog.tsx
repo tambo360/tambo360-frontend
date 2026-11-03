@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/table'
 import { useState } from 'react'
 import ChangeBatch from '@/components/shared/dashboard/batch/ChangeBatch'
+import BatchDetailModal from '@/components/shared/dashboard/batch/BatchDetailModal'
 import { Lote } from '@/types/batch'
 import { useBatchesDay } from '@/hooks/batch/useBatchesDay'
 
@@ -54,6 +55,8 @@ const calcularCostoTotal = (batch: Lote) => {
 
 const DailyProductionLog = () => {
   const [open, setOpen] = useState(false)
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [selectedBatchId, setSelectedBatchId] = useState('')
   const { data, error, isLoading } = useBatchesDay()
 
   // ✅ El array está en data.data.lotes (o data.data dependiendo del hook)
@@ -167,6 +170,16 @@ const DailyProductionLog = () => {
         open={open}
         onOpen={() => setOpen(true)}
         onClose={() => setOpen(false)}
+        onViewDetail={(id) => {
+          setSelectedBatchId(id)
+          setDetailOpen(true)
+        }}
+      />
+
+      <BatchDetailModal
+        open={detailOpen}
+        onClose={() => setDetailOpen(false)}
+        batchId={selectedBatchId}
       />
     </Card>
   )
