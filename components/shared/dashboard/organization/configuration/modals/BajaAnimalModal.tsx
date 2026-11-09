@@ -25,8 +25,18 @@ interface Props {
   motivoInicial?: string
 }
 
-const LABEL = 'text-xs font-bold text-slate-900'
-const TRIGGER = 'h-9 w-full rounded-lg text-sm'
+// Estilos según el diseño de Figma: fondo gris, campos blancos con borde
+// suave, etiquetas normales y botones del mismo ancho.
+const LABEL = 'text-xs text-slate-900'
+const TRIGGER =
+  'h-9 w-full rounded-lg border-slate-200 bg-white text-sm data-[size=default]:h-9'
+const INPUT = 'h-9 rounded-lg border-slate-200 bg-white'
+const TEXTAREA =
+  'w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm'
+// `[&>button]:hidden` oculta la X del Dialog (el diseño no la tiene).
+// Escape y clic fuera del modal siguen cerrándolo.
+const CONTENT =
+  'max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto bg-[#F0F0F0] p-5 sm:max-w-md [&>button]:hidden'
 
 export function BajaAnimalModal({
   open,
@@ -45,10 +55,10 @@ export function BajaAnimalModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto p-4 sm:max-w-xl sm:p-5">
+      <DialogContent className={CONTENT}>
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-slate-900">
-            Registro de Baja
+            Registro de baja
           </DialogTitle>
         </DialogHeader>
 
@@ -88,10 +98,10 @@ export function BajaAnimalModal({
             {/* VISTA INDIVIDUAL: Selector de Animales */}
             {f.esIndividual && (
               <div className="flex flex-col gap-1 sm:col-span-2">
-                <label className={LABEL}>Seleccionar Animal</label>
+                <label className={LABEL}>Seleccionar animal</label>
                 <Select value={f.animalId} onValueChange={f.setAnimalId}>
                   <SelectTrigger className={TRIGGER}>
-                    <SelectValue placeholder="Seleccionar animal" />
+                    <SelectValue placeholder="Seleccionar" />
                   </SelectTrigger>
                   <SelectContent>
                     {f.animales.map((a) => (
@@ -107,8 +117,8 @@ export function BajaAnimalModal({
             {/* VISTA RODEO: Rodeo, Raza, Cantidad */}
             {!f.esIndividual && (
               <>
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL}>Rodeo Origen</label>
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className={LABEL}>Seleccionar rodeo</label>
                   <Select value={f.origen} onValueChange={f.cambiarOrigen}>
                     <SelectTrigger className={TRIGGER}>
                       <SelectValue placeholder="Seleccionar" />
@@ -150,7 +160,7 @@ export function BajaAnimalModal({
                     inputMode="numeric"
                     min={1}
                     max={f.maxCantidad}
-                    className="h-9 rounded-lg"
+                    className={INPUT}
                     value={f.cantidad}
                     onChange={(e) => f.setCantidad(e.target.value)}
                     disabled={!f.idRaza}
@@ -161,10 +171,10 @@ export function BajaAnimalModal({
 
             {/* Observación */}
             <div className="flex flex-col gap-1 sm:col-span-2">
-              <label className={LABEL}>Observación (opcional)</label>
+              <label className={LABEL}>Observación</label>
               <textarea
-                rows={2}
-                className="w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+                rows={4}
+                className={TEXTAREA}
                 value={f.observacion}
                 onChange={(e) => f.setObservacion(e.target.value)}
               />
@@ -179,10 +189,10 @@ export function BajaAnimalModal({
               {f.error}
             </p>
           )}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="h-9 rounded-full"
+              className="h-10 rounded-md border-slate-900 bg-white text-xs font-bold text-slate-900 hover:bg-slate-50"
               onClick={onClose}
               disabled={f.submitting}
             >
@@ -191,12 +201,12 @@ export function BajaAnimalModal({
             <Button
               onClick={f.submit}
               disabled={bloqueado}
-              className="h-9 rounded-full bg-[#E53935] text-white hover:bg-[#c62828]"
+              className="h-10 rounded-md bg-[#E53935] text-xs font-bold text-white hover:bg-[#c62f2c]"
             >
               {f.submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Guardar Baja'
+                'Baja'
               )}
             </Button>
           </div>
