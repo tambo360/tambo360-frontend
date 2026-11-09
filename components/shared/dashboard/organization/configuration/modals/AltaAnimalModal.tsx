@@ -1,6 +1,6 @@
 'use client'
 
-import { Loader2, Plus, X } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
@@ -25,12 +25,20 @@ interface Props {
   motivoInicial?: string
 }
 
-const LABEL = 'text-xs font-bold text-slate-900'
+// Estilos según el diseño de Figma: fondo gris, campos blancos con borde
+// suave, etiquetas normales y botones del mismo ancho.
+const LABEL = 'text-xs text-slate-900'
 // `data-[size=default]:h-9` es necesario: el SelectTrigger define su altura
 // con esa variante (h-12.5) y un `h-9` suelto no la reemplaza.
-const TRIGGER = 'h-9 w-full rounded-lg data-[size=default]:h-9 text-sm'
+const TRIGGER =
+  'h-9 w-full rounded-lg border-slate-200 bg-white text-sm data-[size=default]:h-9'
+const INPUT = 'h-9 rounded-lg border-slate-200 bg-white'
 const TEXTAREA =
-  'w-full resize-none rounded-lg border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm'
+  'w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm'
+// `[&>button]:hidden` oculta la X del Dialog (el diseño no la tiene).
+// Escape y clic fuera del modal siguen cerrándolo.
+const CONTENT =
+  'max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto bg-[#F0F0F0] p-5 sm:max-w-md [&>button]:hidden'
 
 export function AltaAnimalModal({
   open,
@@ -43,12 +51,9 @@ export function AltaAnimalModal({
   const bloqueado =
     f.submitting || f.loadingForm || !!f.formError || f.sinOpciones
 
-  // No se puede repetir raza, así que no hay más filas que razas disponibles
-  const puedeAgregarRaza = f.filas.length < f.razas.length
-
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto p-4 sm:max-w-xl sm:p-5">
+      <DialogContent className={CONTENT}>
         <DialogHeader>
           <DialogTitle className="text-base font-bold text-slate-900">
             Registro de Alta
@@ -57,7 +62,7 @@ export function AltaAnimalModal({
 
         {f.loadingForm ? (
           <div className="flex h-32 items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#2E7D53]" />
+            <Loader2 className="w-6 h-6 animate-spin text-[#659711]" />
           </div>
         ) : f.formError ? (
           <p className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
@@ -73,11 +78,7 @@ export function AltaAnimalModal({
             )}
 
             {/* Motivo */}
-            <div
-              className={`flex flex-col gap-1 ${
-                f.esIndividual ? 'sm:col-span-2' : ''
-              }`}
-            >
+            <div className="flex flex-col gap-1 sm:col-span-2">
               <label className={LABEL}>Motivo</label>
               <Select value={f.motivo} onValueChange={f.setMotivo}>
                 <SelectTrigger className={TRIGGER}>
@@ -99,7 +100,7 @@ export function AltaAnimalModal({
                 <div className="flex flex-col gap-1">
                   <label className={LABEL}>Código / RP</label>
                   <Input
-                    className="h-9 rounded-lg"
+                    className={INPUT}
                     placeholder="Ej: 1234"
                     value={f.animal.codigo}
                     onChange={(e) => f.setCampoAnimal('codigo', e.target.value)}
@@ -109,7 +110,7 @@ export function AltaAnimalModal({
                 <div className="flex flex-col gap-1">
                   <label className={LABEL}>Nombre</label>
                   <Input
-                    className="h-9 rounded-lg"
+                    className={INPUT}
                     placeholder="Ej: Lola"
                     value={f.animal.nombre}
                     onChange={(e) => f.setCampoAnimal('nombre', e.target.value)}
@@ -136,7 +137,7 @@ export function AltaAnimalModal({
                 </div>
 
                 <div className="flex flex-col gap-1">
-                  <label className={LABEL}>Estado Sanitario</label>
+                  <label className={LABEL}>Estado</label>
                   <Select
                     value={f.animal.estado}
                     onValueChange={(v) => f.setCampoAnimal('estado', v)}
@@ -177,7 +178,7 @@ export function AltaAnimalModal({
                   <label className={LABEL}>Fecha de nacimiento</label>
                   <Input
                     type="date"
-                    className="h-9 rounded-lg"
+                    className={INPUT}
                     value={f.animal.fechaNacimiento}
                     onChange={(e) =>
                       f.setCampoAnimal('fechaNacimiento', e.target.value)
@@ -186,9 +187,9 @@ export function AltaAnimalModal({
                 </div>
 
                 <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={LABEL}>Observación (opcional)</label>
+                  <label className={LABEL}>Observación</label>
                   <textarea
-                    rows={2}
+                    rows={4}
                     className={TEXTAREA}
                     value={f.observacion}
                     onChange={(e) => f.setObservacion(e.target.value)}
@@ -197,12 +198,12 @@ export function AltaAnimalModal({
               </>
             )}
 
-            {/* ───── MODO RODEO ───── */}
+            {/* ───── MODO RODEO / RODEO ÚNICO (diseño de Figma) ───── */}
             {!f.esIndividual && (
               <>
-                {/* Rodeo destino */}
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL}>Rodeo Destino</label>
+                {/* Destino */}
+                <div className="flex flex-col gap-1 sm:col-span-2">
+                  <label className={LABEL}>Destino</label>
                   <Select value={f.destino} onValueChange={f.setDestino}>
                     <SelectTrigger className={TRIGGER}>
                       <SelectValue placeholder="Seleccionar" />
@@ -217,87 +218,90 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
+                {/* Categoría */}
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Categoría</label>
+                  <Select
+                    value={f.rodeoAnimal.categoria}
+                    onValueChange={(v) => f.setCampoRodeo('categoria', v)}
+                  >
+                    <SelectTrigger className={TRIGGER}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f.categorias.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Estado */}
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Estado</label>
+                  <Select
+                    value={f.rodeoAnimal.estado}
+                    onValueChange={(v) => f.setCampoRodeo('estado', v)}
+                  >
+                    <SelectTrigger className={TRIGGER}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f.estadosSanitarios.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Raza */}
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Raza</label>
+                  <Select
+                    value={f.rodeoAnimal.raza}
+                    onValueChange={(v) => f.setCampoRodeo('raza', v)}
+                  >
+                    <SelectTrigger className={TRIGGER}>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {f.razas.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Peso */}
+                <div className="flex flex-col gap-1">
+                  <label className={LABEL}>Peso</label>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    placeholder="Ej: 450"
+                    className={INPUT}
+                    value={f.rodeoAnimal.peso}
+                    onChange={(e) => f.setCampoRodeo('peso', e.target.value)}
+                  />
+                </div>
+
                 {/* Observación */}
                 <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={LABEL}>Observación (opcional)</label>
+                  <label className={LABEL}>Observación</label>
                   <textarea
-                    rows={2}
+                    rows={4}
                     className={TEXTAREA}
                     value={f.observacion}
                     onChange={(e) => f.setObservacion(e.target.value)}
                   />
-                </div>
-
-                {/* Razas y cantidades */}
-                <div className="flex flex-col gap-1.5 sm:col-span-2">
-                  <div className="flex items-center justify-between">
-                    <label className={LABEL}>Razas y Cantidades</label>
-                    {puedeAgregarRaza && (
-                      <button
-                        type="button"
-                        onClick={f.agregarFila}
-                        className="flex items-center gap-1 text-xs font-bold text-[#2E7D53] hover:underline"
-                      >
-                        <Plus size={14} /> Agregar raza
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                    {f.filas.map((fila, i) => {
-                      // Oculta las razas que ya se eligieron en otras filas
-                      const opciones = f.razas.filter(
-                        (r) =>
-                          r.value === fila.raza ||
-                          !f.filas.some((x) => x.raza === r.value)
-                      )
-
-                      return (
-                        <div key={i} className="flex items-center gap-2">
-                          <div className="min-w-0 flex-1">
-                            <Select
-                              value={fila.raza}
-                              onValueChange={(v) =>
-                                f.actualizarFila(i, 'raza', v)
-                              }
-                            >
-                              <SelectTrigger className={TRIGGER}>
-                                <SelectValue placeholder="Raza" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {opciones.map((r) => (
-                                  <SelectItem key={r.value} value={r.value}>
-                                    {r.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <Input
-                            type="number"
-                            inputMode="numeric"
-                            min={1}
-                            placeholder="Cant."
-                            className="h-9 w-20 rounded-lg"
-                            value={fila.cantidad}
-                            onChange={(e) =>
-                              f.actualizarFila(i, 'cantidad', e.target.value)
-                            }
-                          />
-                          {f.filas.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => f.quitarFila(i)}
-                              className="text-slate-400 hover:text-slate-600"
-                              aria-label="Quitar raza"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
                 </div>
               </>
             )}
@@ -311,10 +315,10 @@ export function AltaAnimalModal({
               {f.error}
             </p>
           )}
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:justify-end sm:gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               variant="outline"
-              className="h-9 rounded-full"
+              className="h-10 rounded-md border-slate-900 bg-white text-xs font-bold text-slate-900 hover:bg-slate-50"
               onClick={onClose}
               disabled={f.submitting}
             >
@@ -323,12 +327,12 @@ export function AltaAnimalModal({
             <Button
               onClick={f.submit}
               disabled={bloqueado}
-              className="h-9 rounded-full bg-[#2E7D53] text-white hover:bg-[#236342]"
+              className="h-10 rounded-md bg-[#659711] text-xs font-bold text-white hover:bg-[#537d0d]"
             >
               {f.submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
               ) : (
-                'Guardar Alta'
+                'Alta'
               )}
             </Button>
           </div>

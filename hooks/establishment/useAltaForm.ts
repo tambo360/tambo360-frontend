@@ -13,9 +13,12 @@ export interface RodeoDestino {
   label: string
 }
 
-export interface FilaRaza {
+// Campos del alta en modo RODEO / RODEO_UNICO (diseño de Figma)
+export interface AnimalRodeoForm {
+  categoria: string
+  estado: string
   raza: string
-  cantidad: string
+  peso: string
 }
 
 export interface AnimalForm {
@@ -33,6 +36,15 @@ interface Params {
   onSuccess?: () => void
   motivoInicial?: string
 }
+
+/**
+ * PENDIENTE DE BACKEND (Facu):
+ * Mientras no confirme que `POST /conf/animal` acepta `categoria`, `estado`
+ * y `peso` en modo rodeo, esos campos se muestran en el modal pero NO se
+ * envían, para no recibir un 400 por campos desconocidos. Cuando lo
+ * confirme, pasa esta constante a `true` y ajusta los nombres en `submit`.
+ */
+const ENVIAR_CAMPOS_DEL_DISENO = false
 
 // ─── Helpers ───────────────────────────────────
 
@@ -54,7 +66,12 @@ function aOpciones(lista: any): Opcion[] {
   }))
 }
 
-const FILA_VACIA: FilaRaza = { raza: '', cantidad: '' }
+const ANIMAL_RODEO_VACIO: AnimalRodeoForm = {
+  categoria: '',
+  estado: '',
+  raza: '',
+  peso: '',
+}
 
 const ANIMAL_VACIO: AnimalForm = {
   codigo: '',
@@ -89,9 +106,11 @@ export function useAltaForm({
   const [motivo, setMotivo] = useState('')
   const [observacion, setObservacion] = useState('')
 
-  // Valores del formulario (modo rodeo)
+  // Valores del formulario (modo rodeo / rodeo único)
   const [destino, setDestino] = useState('')
-  const [filas, setFilas] = useState<FilaRaza[]>([{ ...FILA_VACIA }])
+  const [rodeoAnimal, setRodeoAnimal] = useState<AnimalRodeoForm>({
+    ...ANIMAL_RODEO_VACIO,
+  })
 
   // Valores del formulario (modo individual)
   const [animal, setAnimal] = useState<AnimalForm>({ ...ANIMAL_VACIO })
@@ -137,7 +156,7 @@ export function useAltaForm({
         )
         setObservacion('')
         setDestino('')
-        setFilas([{ ...FILA_VACIA }])
+        setRodeoAnimal({ ...ANIMAL_RODEO_VACIO })
         setAnimal({ ...ANIMAL_VACIO })
       } catch (e) {
         if (activo)
@@ -153,18 +172,9 @@ export function useAltaForm({
     }
   }, [open, motivoInicial])
 
-  // ─── Filas de razas (modo rodeo) ───────────────
-  const agregarFila = () => setFilas((prev) => [...prev, { ...FILA_VACIA }])
-
-  const quitarFila = (i: number) =>
-    setFilas((prev) =>
-      prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev
-    )
-
-  const actualizarFila = (i: number, campo: keyof FilaRaza, valor: string) =>
-    setFilas((prev) =>
-      prev.map((fila, idx) => (idx === i ? { ...fila, [campo]: valor } : fila))
-    )
+  // ─── Campos del animal (modo rodeo / rodeo único) ───
+  const setCampoRodeo = (campo: keyof AnimalRodeoForm, valor: string) =>
+    setRodeoAnimal((prev) => ({ ...prev, [campo]: valor }))
 
   // ─── Campos del animal (modo individual) ───────
   const setCampoAnimal = (campo: keyof AnimalForm, valor: string) =>
@@ -213,27 +223,17 @@ export function useAltaForm({
       }
     } else {
       if (!destino) {
-        setError('Seleccioná el rodeo de destino.')
+        setError('Seleccioná el destino.')
+        return
+      }
+      if (!rodeoAnimal.raza) {
+        setError('Seleccioná la raza.')
         return
       }
 
-      const razasPayload: { raza: string; cantVacas: number }[] = []
-      for (const fila of filas) {
-        const cant = Number(fila.cantidad)
-        if (!fila.raza) {
-          setError('Seleccioná la raza en todas las filas.')
-          return
-        }
-        if (!Number.isInteger(cant) || cant < 1) {
-          setError('Las cantidades deben ser números enteros mayores a 0.')
-          return
-        }
-        razasPayload.push({ raza: fila.raza, cantVacas: cant })
-      }
-
-      const repetidas = new Set(razasPayload.map((r) => r.raza))
-      if (repetidas.size !== razasPayload.length) {
-        setError('Hay una raza repetida. Usá una sola fila por raza.')
+      const peso = rodeoAnimal.peso.trim()
+      if (peso && !(Number(peso) > 0)) {
+        setError('El peso debe ser un número mayor a 0.')
         return
       }
 
@@ -242,8 +242,16 @@ export function useAltaForm({
         tipo: tipoMovimiento,
         motivo,
         destino,
-        razas: razasPayload,
+        // El diseño no tiene cantidad: cada alta es de un animal.
+        // (Pendiente de confirmar con Lorena y backend.)
+        razas: [{ raza: rodeoAnimal.raza, cantVacas: 1 }],
         observacion: observacion.trim() || undefined,
+      }
+
+      if (ENVIAR_CAMPOS_DEL_DISENO) {
+        payload.categoria = rodeoAnimal.categoria || undefined
+        payload.estado = rodeoAnimal.estado || undefined
+        payload.peso = peso ? Number(peso) : undefined
       }
     }
 
@@ -263,7 +271,7 @@ export function useAltaForm({
     esIndividual,
     animal,
     destino,
-    filas,
+    rodeoAnimal,
     tipoSeguimiento,
     tipoMovimiento,
     onSuccess,
@@ -291,13 +299,11 @@ export function useAltaForm({
     observacion,
     setObservacion,
 
-    // rodeo
+    // rodeo / rodeo único
     destino,
     setDestino,
-    filas,
-    agregarFila,
-    quitarFila,
-    actualizarFila,
+    rodeoAnimal,
+    setCampoRodeo,
 
     // individual
     animal,
