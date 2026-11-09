@@ -1,17 +1,6 @@
 'use client'
 
-import {
-  ArrowRight,
-  ArrowRightLeft,
-  ArrowUpRight,
-  Droplet,
-  Loader2,
-  Minus,
-  Pencil,
-  Plus,
-  Sun,
-  UserPlus,
-} from 'lucide-react'
+import { Loader2, Plus, UserMinus, UserPlus } from 'lucide-react'
 import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
 import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
 import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
@@ -27,11 +16,28 @@ function getTipoVisual(value?: string): TipoVisual {
   return 'alto'
 }
 
+// Orden de las tarjetas según el diseño: Alto, Bajo, Secas
+const ORDEN: Record<TipoVisual, number> = {
+  alto: 0,
+  bajo: 1,
+  secas: 2,
+}
+
+// Títulos según Figma (comentario de Lorena: "Rodeo en seca")
+const TITULOS: Record<TipoVisual, string> = {
+  alto: 'Rodeo Alto',
+  bajo: 'Rodeo Bajo',
+  secas: 'Rodeo en seca',
+}
+
 const SUBTITULOS: Record<TipoVisual, string> = {
   alto: 'Producción Intensiva',
   bajo: 'Recria y Mantenimiento',
   secas: 'Período de Reposo',
 }
+
+const BTN_BASE =
+  'flex items-center gap-2 rounded-md px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors'
 
 export default function HerdInventoryPage() {
   const {
@@ -60,58 +66,31 @@ export default function HerdInventoryPage() {
     )
   }
 
+  const rodeosOrdenados = [...rodeos].sort(
+    (a: any, b: any) =>
+      ORDEN[getTipoVisual(a.value)] - ORDEN[getTipoVisual(b.value)]
+  )
+
   return (
     <div className="flex flex-col gap-8 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold tracking-tight text-slate-900">
-          Inventario de Rodeos
-        </h1>
-        <button
-          onClick={() => abrirAlta()}
-          className="flex items-center gap-2 rounded-lg bg-[#659711] px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-[#537d0d]"
-        >
-          <UserPlus size={18} />
-          <span>Registrar Alta</span>
-        </button>
-      </div>
-
       {/* Tarjetas de rodeos */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {rodeos.length === 0 && (
+        {rodeosOrdenados.length === 0 && (
           <div className="col-span-full rounded-xl bg-white p-6 text-center text-sm text-slate-400 shadow-md">
             No hay rodeos cargados todavía.
           </div>
         )}
 
-        {rodeos.map((rodeo: any) => {
+        {rodeosOrdenados.map((rodeo: any) => {
           const tipo = getTipoVisual(rodeo.value)
           return (
             <div
               key={rodeo.idRodeo}
-              className="relative flex min-h-[170px] flex-col justify-between rounded-xl bg-white p-6 shadow-md"
+              className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-md"
             >
-              <div className="flex items-start justify-between">
-                {tipo === 'alto' && (
-                  <ArrowUpRight className="w-4 h-4 text-[#659711]" />
-                )}
-                {tipo === 'bajo' && (
-                  <Droplet className="w-4 h-4 text-[#2E8B57] fill-[#2E8B57]" />
-                )}
-                {tipo === 'secas' && <Sun className="w-4 h-4 text-[#2E8B57]" />}
-
-                <button
-                  type="button"
-                  className="text-slate-800 transition-colors hover:text-slate-600"
-                  aria-label="Editar rodeo"
-                >
-                  <Pencil size={16} />
-                </button>
-              </div>
-
               <div>
                 <h3 className="text-base font-bold leading-tight text-slate-900">
-                  {rodeo.label}
+                  {TITULOS[tipo]}
                 </h3>
                 <p className="mt-0.5 text-[11px] text-slate-700">
                   {SUBTITULOS[tipo]}
@@ -129,90 +108,44 @@ export default function HerdInventoryPage() {
         })}
       </div>
 
-      {/* Accesos directos */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-        {/* Altas */}
-        <div className="flex flex-col gap-4 rounded-xl bg-[#D0E4D8] p-5">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#2E8B57] text-[#2E8B57]">
-              <Plus size={10} strokeWidth={3} />
-            </div>
-            <span>Registro de Altas</span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => abrirAlta('INGRESO_NACIMIENTO')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#0A5C36]">
-                Nacimientos
-              </span>
-              <ArrowRight size={14} className="text-[#0A5C36]" />
-            </button>
-            <button
-              onClick={() => abrirAlta('INGRESO_COMPRA')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#0A5C36]">
-                Compras Externas
-              </span>
-              <ArrowRight size={14} className="text-[#0A5C36]" />
-            </button>
-          </div>
-        </div>
+      {/* Acciones */}
+      <div className="flex flex-wrap items-center justify-end gap-4">
+        <button
+          type="button"
+          onClick={() => abrirAlta()}
+          className={`${BTN_BASE} bg-[#659711] hover:bg-[#537d0d]`}
+        >
+          <UserPlus size={16} />
+          <span>Registrar alta</span>
+          <Plus size={16} />
+        </button>
 
-        {/* Bajas */}
-        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#E53935] text-[#E53935]">
-              <Minus size={10} strokeWidth={3} />
-            </div>
-            <span>Registro de Bajas</span>
-          </div>
-          <div className="flex flex-col gap-2.5">
-            <button
-              onClick={() => abrirBaja('EGRESO_VENTA')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#E53935]">
-                Venta de Animales
-              </span>
-              <ArrowRight size={14} className="text-[#E53935]" />
-            </button>
-            <button
-              onClick={() => abrirBaja('EGRESO_MUERTE')}
-              className="flex items-center justify-between rounded-lg bg-white px-5 py-2.5 text-left shadow-sm transition-colors hover:bg-slate-50"
-            >
-              <span className="text-xs font-bold text-[#E53935]">
-                Otras Causas
-              </span>
-              <ArrowRight size={14} className="text-[#E53935]" />
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => abrirBaja()}
+          className={`${BTN_BASE} bg-[#E53935] hover:bg-[#c62f2c]`}
+        >
+          <UserMinus size={16} />
+          <span>Registrar baja</span>
+        </button>
 
-        {/* Transferencia */}
-        <div className="flex flex-col gap-4 rounded-xl bg-[#EBEBEB] p-5">
-          <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
-            <div className="flex h-4 w-4 items-center justify-center rounded-[3px] border border-[#F5A623] text-[#F5A623]">
-              <ArrowRightLeft size={10} strokeWidth={2.5} />
-            </div>
-            <span>Transferencia de Rodeo</span>
-          </div>
-          <div className="mt-2">
-            <button
-              onClick={abrirTransferencia}
-              className="flex items-center justify-center gap-2 rounded-lg bg-[#659711] px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-[#537d0d]"
-            >
-              <span>Nueva Transferencia</span>
-              <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={abrirTransferencia}
+          className={`${BTN_BASE} bg-[#D4A12A] hover:bg-[#b98a21]`}
+        >
+          <Plus size={16} />
+          <span>Transferencias</span>
+        </button>
       </div>
 
       {/* Historial de movimientos */}
-      <TransferenciasTable transferencias={transferencias} />
+      <div className="flex flex-col gap-4">
+        <h2 className="text-base font-bold text-slate-900">
+          Historial de Movimientos
+        </h2>
+        <TransferenciasTable transferencias={transferencias} />
+      </div>
 
       {/* Modales */}
       <AltaModal
