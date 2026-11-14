@@ -8,7 +8,7 @@ export type DestinoProduccion = 'TANQUE' | 'DESCARTE'
 
 export interface AnimalLoteField {
   idAnimal: string
-  litros: number | undefined
+  litros: number | string | undefined
   estado: EstadoSanitario | undefined
   destino: DestinoProduccion | undefined
 }
@@ -43,11 +43,19 @@ export function useIndividualLoteForm(
     name: 'cantidad',
     defaultValue: 0,
   })
+  const animales = useWatch({
+    control: form.control,
+    name: 'animales',
+    defaultValue: [],
+  })
 
   // Suma en vivo de los litros
   const totalLitros = useMemo(() => {
-    return fields.reduce((acc, field) => acc + (Number(field.litros) || 0), 0)
-  }, [fields])
+    return animales.reduce(
+      (acc, animal) => acc + (Number(animal.litros) || 0),
+      0
+    )
+  }, [animales])
 
   // Diferencia contra el volumen total
   const diferencia = useMemo(() => {
@@ -60,6 +68,9 @@ export function useIndividualLoteForm(
 
   const isAnimalSelected = (idAnimal: string) =>
     fields.some((f) => f.idAnimal === idAnimal)
+
+  const getLitros = (idAnimal: string) =>
+    animales.find((animal) => animal.idAnimal === idAnimal)?.litros
 
   // Toggle animal
   const toggleAnimal = (idAnimal: string) => {
@@ -76,10 +87,24 @@ export function useIndividualLoteForm(
     }
   }
 
-  const updateLitros = (idAnimal: string, litros: number | undefined) => {
+  const updateLitros = (idAnimal: string, litros: string) => {
     const index = fields.findIndex((f) => f.idAnimal === idAnimal)
     if (index >= 0) {
-      update(index, { ...fields[index], litros })
+      if (litros === '') {
+        remove(index)
+      } else {
+        form.setValue(`animales.${index}.litros`, litros, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
+      }
+    } else if (litros !== '') {
+      append({
+        idAnimal,
+        litros,
+        estado: 'SANO',
+        destino: 'TANQUE',
+      })
     }
   }
 
@@ -110,6 +135,7 @@ export function useIndividualLoteForm(
     diferencia,
     isBalanced,
     isAnimalSelected,
+    getLitros,
     toggleAnimal,
     updateLitros,
     updateEstado,

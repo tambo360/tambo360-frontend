@@ -43,6 +43,15 @@ export const blockNegativeKeys = (e: React.KeyboardEvent<HTMLInputElement>) => {
   if (['-', '+', 'e', 'E'].includes(e.key)) e.preventDefault()
 }
 
+export function blockLeadingZeroKeyDown(
+  e: React.KeyboardEvent<HTMLInputElement>,
+  bloquearDecimal = true
+) {
+  if (e.currentTarget.value !== '') return
+  if (e.key === '0') e.preventDefault()
+  if (bloquearDecimal && (e.key === '.' || e.key === ',')) e.preventDefault()
+}
+
 const RAZAS_OPTIONS: { value: RazasVacas; label: string }[] = Object.values(
   RazasVacas
 ).map((value) => ({ value, label: RAZA_LABELS[value] }))
@@ -77,6 +86,11 @@ export default function RodeoCategoriaCard({
 
   const totalAnimales = useMemo(
     () => razas.reduce((acc, item) => acc + Number(item.cantidad), 0),
+    [razas]
+  )
+
+  const razasAgregadas = useMemo(
+    () => new Set(razas.map((r) => r.raza)),
     [razas]
   )
 
@@ -119,7 +133,7 @@ export default function RodeoCategoriaCard({
   const conPunto = useRef(false)
 
   return (
-    <div className="flex flex-col gap-4 w-full lg:w-fit">
+    <div className="flex flex-col gap-4 w-full lg:max-w-115.75">
       <h3 className="text-[15px] font-semibold text-slate-900">{titulo}</h3>
 
       <div className="grid sm:grid-cols-2 items-start">
@@ -144,6 +158,7 @@ export default function RodeoCategoriaCard({
               {...costoRacionField}
               onKeyDown={(e) => {
                 blockNegativeKeys(e)
+                blockLeadingZeroKeyDown(e)
                 limitDecimalDigitsKeyDown(e, conPunto, 4, 4)
               }}
               onChange={(e) => {
@@ -178,15 +193,23 @@ export default function RodeoCategoriaCard({
               <SelectValue placeholder="Seleccioná una raza" />
             </SelectTrigger>
             <SelectContent className="border-slate-200 bg-white">
-              {RAZAS_OPTIONS.map((o) => (
-                <SelectItem
-                  key={o.value}
-                  value={o.value}
-                  className="text-[13px] text-slate-900 hover:bg-slate-50"
-                >
-                  {o.label}
-                </SelectItem>
-              ))}
+              {razasAgregadas.size === RAZAS_OPTIONS.length ? (
+                <p className="px-2 py-1.5 text-xs text-slate-400">
+                  Todas las razas agregadas
+                </p>
+              ) : (
+                RAZAS_OPTIONS.filter((o) => !razasAgregadas.has(o.value)).map(
+                  (o) => (
+                    <SelectItem
+                      key={o.value}
+                      value={o.value}
+                      className="text-[13px] text-slate-900 hover:bg-slate-50"
+                    >
+                      {o.label}
+                    </SelectItem>
+                  )
+                )
+              )}
             </SelectContent>
           </Select>
         </div>

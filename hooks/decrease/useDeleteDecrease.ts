@@ -3,7 +3,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useDecreaseOutbox } from '@/stores/useDecreaseOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { removeOptimisticMerma } from '@/hooks/decrease/offlineDecreaseCache'
 
@@ -24,7 +24,7 @@ export function useDeleteDecrease({ idLote }: DeleteDecreaseProps) {
         removeOptimisticMerma(queryClient, idLote, id)
         useDecreaseOutbox.getState().enqueue({
           type: 'delete',
-          scope: currentScope(),
+          scope: currentEstablisment(),
           idLote,
           targetId: id,
         })

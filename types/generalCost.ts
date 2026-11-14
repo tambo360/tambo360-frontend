@@ -55,10 +55,25 @@ export interface GeneralCostPeriod {
   fechaHasta: string
 }
 
-export const DEFAULT_GENERAL_COST_PERIOD: GeneralCostPeriod = {
-  fechaDesde: '2026-09-01T00:00:00.000Z',
-  fechaHasta: '2026-09-30T00:00:00.000Z',
-}
+// Período de un mes completo (en UTC): del día 1 a las 00:00
+// hasta el último día a las 23:59:59.999. `month` va de 0 (enero) a 11.
+export const getMonthPeriod = (
+  year: number,
+  month: number
+): GeneralCostPeriod => ({
+  fechaDesde: new Date(Date.UTC(year, month, 1, 0, 0, 0, 0)).toISOString(),
+  fechaHasta: new Date(
+    Date.UTC(year, month + 1, 0, 23, 59, 59, 999)
+  ).toISOString(),
+})
+
+const now = new Date()
+
+// Mes actual (ya no está fijo en septiembre)
+export const DEFAULT_GENERAL_COST_PERIOD: GeneralCostPeriod = getMonthPeriod(
+  now.getUTCFullYear(),
+  now.getUTCMonth()
+)
 
 export interface EconomicSummary {
   periodo: GeneralCostPeriod

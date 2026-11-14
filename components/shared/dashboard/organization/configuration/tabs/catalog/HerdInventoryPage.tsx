@@ -15,6 +15,7 @@ import {
 import { AltaAnimalModal as AltaModal } from '@/components/shared/dashboard/organization/configuration/modals/AltaAnimalModal'
 import { BajaAnimalModal as BajaModal } from '@/components/shared/dashboard/organization/configuration/modals/BajaAnimalModal'
 import { TransferModal } from '@/components/shared/dashboard/organization/configuration/modals/TransferModal'
+import { TransferenciasTable } from '@/components/shared/dashboard/organization/configuration/TransferenciasTable'
 import { useInventarioRodeos } from '@/hooks/establishment/useInventarioRodeos'
 
 type TipoVisual = 'alto' | 'bajo' | 'secas'
@@ -26,16 +27,11 @@ function getTipoVisual(value?: string): TipoVisual {
   return 'alto'
 }
 
-const SUBTITULOS: Record<TipoVisual, string> = {
-  alto: 'Producción Intensiva',
-  bajo: 'Recria y Mantenimiento',
-  secas: 'Período de Reposo',
-}
-
 export default function HerdInventoryPage() {
   const {
     loading,
     rodeos,
+    transferencias,
     refetch,
     isAltaOpen,
     isBajaOpen,
@@ -111,9 +107,6 @@ export default function HerdInventoryPage() {
                 <h3 className="text-base font-bold leading-tight text-slate-900">
                   {rodeo.label}
                 </h3>
-                <p className="mt-0.5 text-[11px] text-slate-700">
-                  {SUBTITULOS[tipo]}
-                </p>
               </div>
 
               <div className="flex items-baseline gap-3">
@@ -208,6 +201,9 @@ export default function HerdInventoryPage() {
           </div>
         </div>
       </div>
+
+      {/* Historial de movimientos */}
+      <TransferenciasTable transferencias={transferencias} />
 
       {/* Modales */}
       <AltaModal

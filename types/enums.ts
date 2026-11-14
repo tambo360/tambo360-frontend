@@ -20,7 +20,7 @@ export enum CategoriaAnimal {
 }
 
 export enum EstadoAnimal {
-  MATITIS = 'MASTITIS',
+  MASTITIS = 'MASTITIS',
   TRATAMIENTO = 'TRATAMIENTO',
   PREPARTO = 'PREPARTO',
   SANO = 'SANO',
@@ -101,7 +101,7 @@ export enum TipoOrdenie {
 }
 
 export enum VentaLeche {
-  USINA = 'USINA',
+  INDUSTRIA = 'INDUSTRIA',
   COOPERATIVA = 'COOPERTIVA',
   ELABORACION_PROPIA = 'ELABORACION_PROPIA',
   VENTA_DIRECTA_MERCADO_LOCAL = 'VENTA_DIRECTA_MERCADO_LOCAL',

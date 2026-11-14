@@ -4,7 +4,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { applyOptimisticUpdate } from '@/hooks/batch/offlineBatchCache'
 
@@ -22,7 +22,7 @@ export function useUpdateBatch() {
         applyOptimisticUpdate(queryClient, id, values)
         useBatchOutbox.getState().enqueue({
           type: 'update',
-          scope: currentScope(),
+          scope: currentEstablisment(),
           targetId: id,
           payload: values,
         })

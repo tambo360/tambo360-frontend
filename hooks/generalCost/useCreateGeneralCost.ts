@@ -31,6 +31,9 @@ export function useCreateGeneralCost() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.dashboard.current(),
       })
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.dashboard.freeLiters(),
+      })
     },
   })
 }

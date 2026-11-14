@@ -3,7 +3,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { markCompleteOptimistic } from '@/hooks/batch/offlineBatchCache'
 
@@ -19,9 +19,11 @@ export function useCompleteBatch() {
       // offline
       if (!isCurrentlyOnline()) {
         markCompleteOptimistic(queryClient, id)
-        useBatchOutbox
-          .getState()
-          .enqueue({ type: 'complete', scope: currentScope(), targetId: id })
+        useBatchOutbox.getState().enqueue({
+          type: 'complete',
+          scope: currentEstablisment(),
+          targetId: id,
+        })
         return { offline: true }
       }
 

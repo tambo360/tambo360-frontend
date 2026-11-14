@@ -2,7 +2,11 @@
 
 import type { QueryClient } from '@tanstack/react-query'
 import { baseKeys, queryKeys } from '@/utils/queryKeys'
-import type { DecreaseData, Merma } from '@/types/decrease'
+import type {
+  DecreaseData,
+  Merma,
+  OfflineDecreaseCreate,
+} from '@/types/decrease'
 import type { Lote } from '@/types/batch'
 
 /**
@@ -12,20 +16,20 @@ import type { Lote } from '@/types/batch'
  * - `batch.detail(id)` (envelope `{ data: lote | { lote } }`)
  */
 
-const FILTERS_PREFIX = [...baseKeys.batch, 'filters'] as const
+const BATCH_LIST_PREFIXES = [
+  [...baseKeys.batch, 'filters'],
+  [...baseKeys.batch, 'today'],
+] as const
 
 const mermasKey = (idLote: string) => ['mermas', 'lote', idLote] as const
 
-export function buildOptimisticMerma(
-  values: DecreaseData & { idLote: string },
-  tempIdMerma: string
-): Merma {
+export function createMermaOffline(values: OfflineDecreaseCreate): Merma {
   return {
-    idMerma: tempIdMerma,
+    idMerma: values.idMerma,
     tipo: values.tipo as Merma['tipo'],
     observacion: values.observacion,
     cantidad: Number(values.cantidad),
-    fechaCreacion: new Date().toISOString(),
+    fechaCreacion: values.fechaCreacion,
     idLote: values.idLote,
   }
 }
@@ -35,30 +39,34 @@ function patchBatchEnvelopes(
   idLote: string,
   fn: (mermas: Merma[]) => Merma[]
 ) {
-  const entries = qc
-    .getQueryCache()
-    .findAll({ queryKey: FILTERS_PREFIX, exact: false })
-  for (const entry of entries) {
-    const envelope = entry.state.data as
-      | { data?: { lotes?: Array<{ lote?: Lote } | Lote> } }
-      | undefined
-    const lotes = envelope?.data?.lotes
-    if (!lotes) continue
-    let touched = false
-    const next = lotes.map((item) => {
-      const lote = (item as { lote?: Lote }).lote ?? (item as Lote)
-      if (lote.idLote !== idLote) return item
-      touched = true
-      return {
-        ...(item as object),
-        lote: { ...lote, mermas: fn([...(lote.mermas ?? [])]) },
-      }
-    })
-    if (touched) {
-      qc.setQueryData(entry.queryKey, {
-        ...envelope,
-        data: { ...envelope?.data, lotes: next },
+  for (const prefix of BATCH_LIST_PREFIXES) {
+    const entries = qc
+      .getQueryCache()
+      .findAll({ queryKey: prefix, exact: false })
+    for (const entry of entries) {
+      const envelope = entry.state.data as
+        | { data?: { lotes?: Array<{ lote?: Lote } | Lote> } }
+        | undefined
+      const lotes = envelope?.data?.lotes
+      if (!lotes) continue
+      let touched = false
+      const next = lotes.map((item) => {
+        const wrapper = item as { lote?: Lote }
+        const lote = wrapper.lote ?? (item as Lote)
+        if (lote.idLote !== idLote) return item
+        touched = true
+        const updatedLote = {
+          ...lote,
+          mermas: fn([...(lote.mermas ?? [])]),
+        }
+        return wrapper.lote ? { ...wrapper, lote: updatedLote } : updatedLote
       })
+      if (touched) {
+        qc.setQueryData(entry.queryKey, {
+          ...envelope,
+          data: { ...envelope?.data, lotes: next },
+        })
+      }
     }
   }
   // Detail

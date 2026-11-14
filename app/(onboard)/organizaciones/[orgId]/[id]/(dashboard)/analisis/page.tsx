@@ -3,13 +3,30 @@ import ComparacionHistorica from '@/components/shared/dashboard/ComparacionHisto
 import DailyProductionLog from '@/components/shared/dashboard/DailyProductionLog'
 import AlertsSection from '@/components/shared/dashboard/AlertsSection'
 import { useCurrentMonth } from '@/hooks/dashboard/useCurrentMonth'
+import { useFreeLiters } from '@/hooks/dashboard/useFreeLiters'
+import { useMarketPrice } from '@/hooks/dashboard/useMarketPrice'
 import { useCurrentUser } from '@/hooks/auth/useCurrentUser'
+import { useGeneralCostsSummary } from '@/hooks/generalCost/useGeneralCostsSummary'
+import { useMonthPeriod } from '@/hooks/generalCost/useMonthPeriod'
 import { StatCard } from '@/components/shared/StatCard'
 import { useEstablishment } from '@/hooks/establishment/useEstablishment'
 import { useParams } from 'next/navigation'
 
 const Dashboard = () => {
   const { data, isPending } = useCurrentMonth()
+  const {
+    data: freeLiters,
+    isPending: isFreeLitersPending,
+    error: freeLitersError,
+  } = useFreeLiters()
+  const {
+    data: marketPrice,
+    isPending: isMarketPricePending,
+    error: marketPriceError,
+  } = useMarketPrice()
+  const { period } = useMonthPeriod()
+  const { data: costsSummary, isPending: isCostsPending } =
+    useGeneralCostsSummary(period)
   const params = useParams()
   const estId = params?.id as string
   const { data: establishment } = useEstablishment({
@@ -25,6 +42,24 @@ const Dashboard = () => {
       ? ((data?.data.actual.mermas || 0) / totalProduccion) * 100
       : 0
 
+  // Costos del mes: costos directos de lotes (/dashboard/mes-actual)
+  // + total del resumen de costos generales (alimentación + gastos manuales)
+  const costosTotales =
+    (Number(data?.data.actual.costos) || 0) + (costsSummary?.gastoTotal ?? 0)
+
+  const freeLitersNote = freeLitersError
+    ? (freeLitersError.response?.data?.message ??
+      'No se pudo calcular los litros libres')
+    : undefined
+
+  // 503 = el backend todavía no tiene un precio nacional válido guardado
+  const marketPriceNote = marketPriceError
+    ? marketPriceError.response?.status === 503
+      ? 'Aún no hay un precio de mercado disponible'
+      : (marketPriceError.response?.data?.message ??
+        'No se pudo obtener el precio de mercado')
+    : undefined
+
   return (
     <div className="space-y-6 w-full max-w-full overflow-x-hidden">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b pb-6">
@@ -39,7 +74,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Grid de 5 columnas (se quitó la card "Sólidos") */}
+      {/* Grid de 5 tarjetas, como en el diseño */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard
           title="Líquidos"
@@ -62,10 +97,10 @@ const Dashboard = () => {
           value={porcentajeMermas.toFixed(2)}
           unit="%"
           trend={
-            data?.data.variaciones.costos != null
+            data?.data.variaciones.mermas != null
               ? {
-                  value: data?.data.variaciones.mermas,
-                  isPositive: data?.data.variaciones.mermas <= 0,
+                  value: data.data.variaciones.mermas,
+                  isPositive: data.data.variaciones.mermas <= 0,
                 }
               : null
           }
@@ -75,7 +110,7 @@ const Dashboard = () => {
 
         <StatCard
           title="Costos totales"
-          value={data?.data.actual.costos}
+          value={costosTotales}
           unit="$ "
           trend={
             data?.data.variaciones.costos != null
@@ -86,29 +121,30 @@ const Dashboard = () => {
               : null
           }
           description={'vs ' + data?.data.mesPrevio}
-          isPending={isPending}
+          isPending={isPending || isCostsPending}
         />
 
-        {/*
-          TODO (pendiente de backend): "Litros Libres" y "Precio de mercado"
-          no existen en /dashboard/mes-actual (dashboardService.listarPorMes).
-          Se muestran mockeadas por ahora para respetar el diseño; falta que
-          backend agregue estos 2 datos al endpoint.
-        */}
+        {/* Conectado a GET /dashboard/litros-libres (sin variación en el backend) */}
         <StatCard
           title="Litros Libres (100% Grasa)"
-          value={1850}
+          value={Math.round(freeLiters?.litrosLibres ?? 0)}
           unit="L"
-          trend={{ value: 2.5, isPositive: true }}
-          description="vs ayer (mock)"
-          isPending={false}
+          note={freeLitersNote}
+          isPending={isFreeLitersPending}
         />
 
+        {/* Conectado a GET /dashboard/precio-mercado (precio nacional, ARS/L) */}
         <StatCard
           title="Precio de mercado hoy"
-          value={385.5}
+          value={marketPrice ? marketPrice.precioLitro.toFixed(2) : '—'}
           unit="$ "
-          isPending={false}
+          description={
+            marketPrice
+              ? `Precio nacional ${marketPrice.mes}/${marketPrice.anio}`
+              : undefined
+          }
+          note={marketPriceNote}
+          isPending={isMarketPricePending}
         />
       </div>
 

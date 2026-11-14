@@ -5,11 +5,29 @@ import { getCatalogo, getMovimientos } from '@/utils/api/catalog.api'
 import { getCurrentMonth } from '@/utils/api/dashboard.api'
 import type { Transferencia } from '@/components/shared/dashboard/organization/configuration/TransferenciasTable'
 
-// CAMBIO 1: 'MASTITIS' -> 'Mastitis', 'PROBLEMA_PODAL' -> 'Problema podal'
+// 'MASTITIS' -> 'Mastitis', 'PROBLEMA_PODAL' -> 'Problema podal'
 const formatearValor = (v?: string | null) => {
   if (!v) return '—'
   const t = v.replace(/_/g, ' ').toLowerCase()
   return t.charAt(0).toUpperCase() + t.slice(1)
+}
+
+// El backend etiqueta el movimiento con `tipo`:
+//   INGRESO       -> alta
+//   EGRESO        -> baja
+//   TRANSFERENCIA -> transferencia
+// Cualquier otro valor se muestra como "Movimiento".
+const normalizarTipo = (raw?: string | null): Transferencia['tipo'] => {
+  switch ((raw ?? '').toUpperCase()) {
+    case 'TRANSFERENCIA':
+      return 'TRANSFERENCIA'
+    case 'INGRESO':
+      return 'ALTA'
+    case 'EGRESO':
+      return 'BAJA'
+    default:
+      return 'OTRO'
+  }
 }
 
 export function useInventarioRodeos() {
@@ -89,7 +107,9 @@ export function useInventarioRodeos() {
     return totalLitros / totalVacasOrdenie
   }, [totalVacasOrdenie, totalLitros])
 
-  // ─── Transferencias con UUID → nombre ─────────
+  // ─── Historial de movimientos (transferencias, altas y bajas) ─────────
+  // El nombre `transferencias` se mantiene para no tocar las 3 vistas
+  // del catálogo que ya usan este hook.
   const transferencias: Transferencia[] = useMemo(() => {
     if (!Array.isArray(movimientos)) return []
 
@@ -100,13 +120,16 @@ export function useInventarioRodeos() {
     })
 
     return (
-      movimientos
-        .filter((m: any) => m.tipo === 'TRANSFERENCIA')
-        // CAMBIO 2: más nuevas primero (los ids son UUID v7, ordenados por tiempo)
+      [...movimientos]
+        // Más nuevos primero (los ids son UUID v7, ordenados por tiempo)
         .sort((a: any, b: any) =>
           String(b.idMovimiento).localeCompare(String(a.idMovimiento))
         )
         .map((m: any) => {
+          const tipo = normalizarTipo(m.tipo)
+
+          // `retorno` es la fecha futura en la que el tambero espera que
+          // vuelva el animal; el plazo son los días hasta esa fecha.
           let plazoRetornoDias: number | null = null
           if (m.retorno && m.fechaCreacion) {
             const diffMs =
@@ -120,6 +143,7 @@ export function useInventarioRodeos() {
 
           return {
             id: m.idMovimiento,
+            tipo,
             origen: m.rodeoOrigen
               ? (rodeosById[m.rodeoOrigen] ?? m.rodeoOrigen)
               : '—',
@@ -128,9 +152,10 @@ export function useInventarioRodeos() {
               : '—',
             cantidad: m.cantidad || 0,
             plazoRetornoDias,
-            causa: formatearValor(m.causa), // CAMBIO 1
-            motivo: m.motivo || '',
-            estado: m.estado || 'EN CURSO',
+            causa: formatearValor(m.causa),
+            motivo: formatearValor(m.motivo),
+            // "En curso" solo tiene sentido para transferencias
+            estado: m.estado || (tipo === 'TRANSFERENCIA' ? 'EN CURSO' : '—'),
           }
         })
     )

@@ -4,7 +4,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useDecreaseOutbox } from '@/stores/useDecreaseOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { applyOptimisticMermaUpdate } from '@/hooks/decrease/offlineDecreaseCache'
 
@@ -31,7 +31,7 @@ export function useUpdateDecrease({ idLote }: UpdateDecreaseProps) {
         applyOptimisticMermaUpdate(queryClient, idLote, id, values)
         useDecreaseOutbox.getState().enqueue({
           type: 'update',
-          scope: currentScope(),
+          scope: currentEstablisment(),
           idLote,
           targetId: id,
           payload: { ...values, idLote },

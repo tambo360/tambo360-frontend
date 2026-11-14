@@ -3,7 +3,7 @@ import { baseKeys, queryKeys } from '@/utils/queryKeys'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { AxiosError, AxiosResponse } from 'axios'
 import { useBatchOutbox } from '@/stores/useBatchOutbox'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { isCurrentlyOnline } from '@/hooks/connection/useOnlineStatus'
 import { removeOptimistic } from '@/hooks/batch/offlineBatchCache'
 
@@ -31,9 +31,11 @@ export function useDeleteBatch() {
       // offline
       if (!isCurrentlyOnline()) {
         removeOptimistic(queryClient, id)
-        useBatchOutbox
-          .getState()
-          .enqueue({ type: 'delete', scope: currentScope(), targetId: id })
+        useBatchOutbox.getState().enqueue({
+          type: 'delete',
+          scope: currentEstablisment(),
+          targetId: id,
+        })
         return { offline: true }
       }
 

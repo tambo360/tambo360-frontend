@@ -14,7 +14,7 @@ import {
   type TransferOutboxOp,
 } from '@/stores/useTransferOutbox'
 import { useSyncStatus } from '@/stores/useSyncStatus'
-import { currentScope } from '@/lib/offlineId'
+import { currentEstablisment } from '@/lib/offlineId'
 import { replaceTempLote } from '@/hooks/batch/offlineBatchCache'
 import { replaceTempMerma } from '@/hooks/decrease/offlineDecreaseCache'
 import { baseKeys, queryKeys } from '@/utils/queryKeys'
@@ -50,7 +50,7 @@ function scopeFromParams(
   const orgId = Array.isArray(params?.orgId) ? params?.orgId[0] : params?.orgId
   const estId = Array.isArray(params?.id) ? params?.id[0] : params?.id
   if (orgId && estId) return `${orgId}/${estId}`
-  return currentScope()
+  return currentEstablisment()
 }
 
 function errorMessage(err: unknown): string {
@@ -103,6 +103,11 @@ function invalidateAll(qc: QueryClient) {
   qc.invalidateQueries({ queryKey: [...baseKeys.dashboard, 'graph'] })
 }
 
+function toBackendProductionDate(value: string): string {
+  const isoDate = /^(\d{4})-(\d{2})-(\d{2})T/.exec(value)
+  return isoDate ? `${isoDate[3]}/${isoDate[2]}/${isoDate[1]}` : value
+}
+
 async function replayBatch(
   qc: QueryClient,
   op: BatchOutboxOp,
@@ -115,7 +120,16 @@ async function replayBatch(
     if (!payload?.idLote) {
       throw new Error('Lote sin idLote: el alta debe regenerarse')
     }
-    const { data } = await createBatch({ ...payload, idLote: payload.idLote })
+    const {
+      producto: _producto,
+      numeroLote: _numeroLote,
+      ...batchPayload
+    } = payload
+    const { data } = await createBatch({
+      ...batchPayload,
+      fechaProduccion: toBackendProductionDate(payload.fechaProduccion),
+      idLote: payload.idLote,
+    })
     const real = (data?.data ?? data) as {
       idLote?: string
       id?: string

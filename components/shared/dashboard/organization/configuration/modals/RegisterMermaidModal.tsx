@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -52,10 +53,27 @@ const RegisterMermaModal = ({
 }: RegisterMermaModalProps) => {
   const isEditing = Boolean(initialData)
 
+  const fechaRef = useRef<HTMLInputElement>(null)
+
+  // El icono Calendar es el único disparador del picker nativo: el indicador
+  // por defecto del input[type=date] queda oculto con CSS.
+  const openFechaPicker = () => {
+    const input = fechaRef.current
+    if (!input) return
+    try {
+      // InvalidStateError si el input no es mutable / NotAllowedError sin
+      // interacción del usuario; TypeError en navegadores sin soporte.
+      input.showPicker?.()
+    } catch {
+      input.focus()
+    }
+  }
+
   const {
     types,
     typesLoading,
     fecha,
+    setFecha,
     hora,
     tipo,
     setTipo,
@@ -109,12 +127,23 @@ const RegisterMermaModal = ({
                     <Input
                       id="fecha"
                       type="date"
+                      ref={fechaRef}
                       value={fecha}
-                      readOnly
                       tabIndex={-1}
-                      className={`h-11 ${short}:h-10 w-full bg-gray-50 border-gray-200 rounded-xl text-gray-700 cursor-default focus-visible:ring-0 focus-visible:ring-offset-0 pr-10`}
+                      onClick={openFechaPicker}
+                      // La fecha elegida vive solo en la UI: `POST /mermas` no
+                      // la envía, el backend sigue fijando `fechaCreacion`.
+                      onChange={(e) => setFecha(e.target.value)}
+                      className={`h-11 ${short}:h-10 w-full bg-gray-50 border-gray-200 rounded-xl text-gray-700 cursor-pointer focus-visible:ring-0 focus-visible:ring-offset-0 pr-10 [&::-webkit-calendar-picker-indicator]:hidden`}
                     />
-                    <Calendar className="absolute right-3 w-4 h-4 text-gray-400 pointer-events-none" />
+                    <button
+                      type="button"
+                      aria-label="Abrir calendario"
+                      onClick={openFechaPicker}
+                      className="absolute right-3 flex items-center justify-center rounded text-gray-400 transition-colors hover:text-gray-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#2E7D53]"
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
                 <div className="space-y-2">

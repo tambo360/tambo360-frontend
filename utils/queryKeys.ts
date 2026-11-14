@@ -93,6 +93,7 @@ export const dashboardKeys = {
   graph: (params: GraphParams) =>
     [...baseKeys.dashboard, 'graph', params] as const,
   current: () => [...baseKeys.dashboard, 'current'] as const,
+  freeLiters: () => [...baseKeys.dashboard, 'freeLiters'] as const,
 }
 
 export const organizationKeys = {
