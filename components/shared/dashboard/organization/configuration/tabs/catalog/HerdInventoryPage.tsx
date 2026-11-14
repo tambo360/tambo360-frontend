@@ -27,12 +27,6 @@ function getTipoVisual(value?: string): TipoVisual {
   return 'alto'
 }
 
-const SUBTITULOS: Record<TipoVisual, string> = {
-  alto: 'Producción Intensiva',
-  bajo: 'Recria y Mantenimiento',
-  secas: 'Período de Reposo',
-}
-
 export default function HerdInventoryPage() {
   const {
     loading,
@@ -113,9 +107,6 @@ export default function HerdInventoryPage() {
                 <h3 className="text-base font-bold leading-tight text-slate-900">
                   {rodeo.label}
                 </h3>
-                <p className="mt-0.5 text-[11px] text-slate-700">
-                  {SUBTITULOS[tipo]}
-                </p>
               </div>
 
               <div className="flex items-baseline gap-3">

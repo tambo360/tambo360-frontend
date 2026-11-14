@@ -157,7 +157,7 @@ export function useChangeBatchForm({
       .filter((r) => r.idRodeo && !RODEOS_SIN_PRODUCCION.includes(r.tipoRodeo))
       .map((r) => ({
         idRodeo: r.idRodeo as string,
-        label: `Rodeo ${String(r.tipoRodeo).replace(/_/g, ' ').toLowerCase()} (${r.cantVacas} vacas)`,
+        label: `Rodeo ${String(r.tipoRodeo).replace(/_/g, ' ').toLowerCase()}`,
         cantAnimales: r.cantVacas as number,
       }))
   }, [opcionesData, configData])

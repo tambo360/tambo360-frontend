@@ -706,7 +706,7 @@ const IndividualTransferModal = ({
                 {animales.map((a) => (
                   <SelectItem key={a.idAnimal} value={a.idAnimal}>
                     {a.codigo ? `${a.codigo} · ` : ''}
-                    {a.nombre ?? a.idAnimal}
+                    {a.nombre || 'Sin nombre'}
                   </SelectItem>
                 ))}
               </SelectContent>

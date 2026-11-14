@@ -12,7 +12,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -317,7 +316,18 @@ const ChangeBatch = ({
             {isRodeoMode && (
               <>
                 <div className="space-y-2 w-full">
-                  <Label className="font-bold text-xs">Rodeo Origen</Label>
+                  <div className="flex items-center justify-between gap-2">
+                    <Label className="font-bold text-xs">Rodeo Origen</Label>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="sm"
+                      className="h-7 text-xs bg-green-main hover:bg-[#309c6a] rounded-[7px] px-3 shrink-0"
+                      onClick={() => setIsTransferModalOpen(true)}
+                    >
+                      Transferir
+                    </Button>
+                  </div>
                   {opcionesLoading || configLoading ? (
                     <div className="flex items-center gap-2 py-2">
                       <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
@@ -346,7 +356,7 @@ const ChangeBatch = ({
                               key={rodeo.idRodeo}
                               value={rodeo.idRodeo}
                             >
-                              {rodeo.label}
+                              {rodeo.label} · {rodeo.cantAnimales} cab.
                             </SelectItem>
                           ))}
                         </SelectGroup>
@@ -466,7 +476,7 @@ const ChangeBatch = ({
                 <div className="space-y-3 w-full pt-2">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                     <Label className="font-bold text-xs">
-                      Seleccionar vacas asociadas
+                      Producción por vaca
                     </Label>
                     <Button
                       type="button"
@@ -475,7 +485,7 @@ const ChangeBatch = ({
                       className="h-7 text-xs bg-green-main hover:bg-[#309c6a] rounded-[7px] px-3 shrink-0 w-full sm:w-auto"
                       onClick={() => setIsTransferModalOpen(true)}
                     >
-                      Cambiar estado
+                      Transferir
                     </Button>
                   </div>
 
@@ -493,90 +503,42 @@ const ChangeBatch = ({
                   ) : (
                     <div className="border border-gray-200 rounded-xl divide-y max-h-64 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                       {visibleAnimals.map((animal) => {
-                        const selected = individualLote.isAnimalSelected(
-                          animal.idAnimal
-                        )
-                        const field = individualLote.fields.find(
-                          (f) => f.idAnimal === animal.idAnimal
-                        )
                         return (
-                          <div key={animal.idAnimal} className="p-3 space-y-2">
-                            <div className="flex items-center justify-between gap-2 min-w-0">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <Checkbox
-                                  checked={selected}
-                                  onCheckedChange={() =>
-                                    individualLote.toggleAnimal(animal.idAnimal)
-                                  }
-                                  className="rounded-full shrink-0"
-                                />
-                                <span className="text-sm font-medium flex items-center gap-2 truncate">
-                                  <span className="truncate">
-                                    {animal.codigo && `${animal.codigo} - `}
-                                    {animal.nombre || 'Sin nombre'}
-                                  </span>
-                                  {animal.raza && (
-                                    <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shrink-0">
-                                      {animal.raza
-                                        .replace(/_/g, ' ')
-                                        .toLowerCase()}
-                                    </span>
-                                  )}
-                                  {animal.categoria && (
-                                    <span
-                                      className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold shrink-0 ${
-                                        animal.categoria === 'ORDENE'
-                                          ? 'bg-[#E8F5E9] text-[#2E7D53]'
-                                          : 'bg-slate-100 text-slate-600'
-                                      }`}
-                                    >
-                                      {animal.categoria === 'ORDENE'
-                                        ? 'Ordeñe'
-                                        : animal.categoria === 'SECAS'
-                                          ? 'Secas'
-                                          : animal.categoria
-                                              .replace(/_/g, ' ')
-                                              .toLowerCase()}
-                                    </span>
-                                  )}
+                          <div
+                            key={animal.idAnimal}
+                            className="grid grid-cols-[minmax(0,1fr)_auto_5.25rem] items-center gap-3 px-3 py-2.5"
+                          >
+                            <span className="min-w-0 truncate text-sm font-medium">
+                              {animal.codigo && `${animal.codigo} - `}
+                              {animal.nombre || 'Sin nombre'}
+                              {animal.raza && (
+                                <span className="ml-2 text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                  {animal.raza.replace(/_/g, ' ').toLowerCase()}
                                 </span>
-                              </div>
-                              <span className="text-xs text-gray-500 shrink-0">
-                                {ESTADO_LABELS[animal.estado] || 'Sana'}
-                              </span>
-                            </div>
-
-                            {selected && (
-                              <div className="flex items-center gap-3 ml-8">
-                                <div className="flex-1">
-                                  <Input
-                                    type="number"
-                                    step={0.1}
-                                    inputMode="decimal"
-                                    placeholder="1"
-                                    min={1}
-                                    className="h-8 text-xs rounded-lg no-spinner"
-                                    value={field?.litros ?? ''}
-                                    onKeyDown={(e) => {
-                                      if (
-                                        e.currentTarget.value.length >= 3 &&
-                                        !isNaN(Number(e.key))
-                                      )
-                                        e.preventDefault()
-                                      blockNegativeKeys(e)
-                                    }}
-                                    onChange={(e) =>
-                                      individualLote.updateLitros(
-                                        animal.idAnimal,
-                                        e.target.value === ''
-                                          ? undefined
-                                          : Number(e.target.value)
-                                      )
-                                    }
-                                  />
-                                </div>
-                              </div>
-                            )}
+                              )}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              {ESTADO_LABELS[animal.estado] || 'Sana'}
+                            </span>
+                            <Input
+                              type="number"
+                              step="any"
+                              inputMode="decimal"
+                              placeholder="0.00"
+                              min={0}
+                              aria-label={`Litros de ${animal.nombre || animal.codigo || 'vaca'}`}
+                              className="h-12 rounded-lg border-slate-200 bg-slate-50/80 text-center text-sm no-spinner"
+                              value={
+                                individualLote.getLitros(animal.idAnimal) ?? ''
+                              }
+                              onKeyDown={blockNegativeKeys}
+                              onChange={(e) =>
+                                individualLote.updateLitros(
+                                  animal.idAnimal,
+                                  e.target.value
+                                )
+                              }
+                            />
                           </div>
                         )
                       })}
@@ -756,9 +718,17 @@ const ChangeBatch = ({
       <TransferModal
         open={isTransferModalOpen}
         onClose={() => setIsTransferModalOpen(false)}
-        tipoSeguimiento={TipoSeguimiento.INDIVIDUAL}
-        animales={animalesConEstado}
-        preselectedIds={individualLote.fields.map((f) => f.idAnimal)}
+        tipoSeguimiento={tipoSeguimiento}
+        animales={
+          tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
+            ? animalesConEstado
+            : undefined
+        }
+        preselectedIds={
+          tipoSeguimiento === TipoSeguimiento.INDIVIDUAL
+            ? individualLote.fields.map((f) => f.idAnimal)
+            : undefined
+        }
         onSuccess={handleTransferSuccess}
       />
     </Dialog>
