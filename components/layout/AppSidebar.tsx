@@ -52,7 +52,7 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
 
   const mainMenuItems = [
     {
-      title: 'Dashboard',
+      title: 'Tablero',
       icon: LayoutDashboard,
       url: baseUrl + '/analisis',
       data: "data-test-id='dashboard'",
