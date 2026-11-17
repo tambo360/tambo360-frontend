@@ -12,13 +12,13 @@ function esSeca(value?: string) {
   return v.includes('SECA') || v.includes('REPOSO')
 }
 
-// Título del rodeo: el seco se muestra como "Rodeo en seca" (Figma)
+// Título del rodeo: el seco se muestra como "Rodeo Seca" (Figma)
 function getRodeoTitulo(rodeo: any) {
-  return esSeca(rodeo.value) ? 'Rodeo en seca' : rodeo.label
+  return esSeca(rodeo.value) ? 'Rodeo Secas' : 'Rodeo en Ordeñe' // Ajustado para que coincida con el estilo
 }
 
 const BTN_BASE =
-  'flex items-center gap-2 rounded-md px-4 py-2.5 text-xs font-bold text-white shadow-sm transition-colors'
+  'flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-bold text-white shadow-sm transition-colors'
 
 export default function InventarioRodeosTab() {
   const {
@@ -54,37 +54,50 @@ export default function InventarioRodeosTab() {
   )
 
   return (
-    <div className="flex flex-col gap-8 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
+    <div className="flex flex-col gap-6 w-full font-sans antialiased text-slate-800 animate-in fade-in duration-300">
+      {/* Título Principal */}
+      <h1 className="text-3xl font-bold text-slate-900 mb-2">Catálogo</h1>
+
       {/* Tarjetas: 2 rodeos + producción promedio */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {rodeosOrdenados.map((rodeo: any) => (
           <div
             key={rodeo.idRodeo}
-            className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-md"
+            className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm"
           >
-            <h3 className="text-base font-bold leading-tight text-slate-900">
-              {getRodeoTitulo(rodeo)}
-            </h3>
+            <div>
+              <h3 className="text-base font-bold leading-tight text-slate-900">
+                {getRodeoTitulo(rodeo)}
+              </h3>
+              {/* Subtítulo genérico para mantener el diseño */}
+              <p className="mt-1 text-xs text-slate-500">
+                {esSeca(rodeo.value)
+                  ? 'Período de Reposo'
+                  : 'Producción Intensiva'}
+              </p>
+            </div>
 
-            <div className="flex items-baseline gap-3">
-              <span className="text-xl font-bold text-[#659711]">
+            <div className="flex items-baseline gap-2 mt-2">
+              <span className="text-3xl font-bold text-[#659711]">
                 {rodeo.cantVacas ?? 0}
               </span>
-              <span className="text-xs text-slate-800">cabezas</span>
+              <span className="text-sm font-semibold text-slate-700">
+                cabezas
+              </span>
             </div>
           </div>
         ))}
 
         {/* Prod. Promedio/Vaca */}
-        <div className="flex flex-col gap-4 rounded-xl bg-white p-6 shadow-md">
+        <div className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <div>
             <h3 className="text-base font-bold leading-tight text-slate-900">
               Prod. Promedio/Vaca
             </h3>
-            <p className="mt-0.5 text-[11px] text-slate-700">Vacas en ordeñe</p>
+            <p className="mt-1 text-xs text-slate-500">Vacas en ordeñe</p>
           </div>
 
-          <span className="text-xl font-bold text-[#659711]">
+          <span className="text-3xl font-bold text-[#659711] mt-2">
             {promedioLitros !== null && promedioLitros !== undefined
               ? `${promedioLitros.toFixed(1)} Lts`
               : '—'}
@@ -93,15 +106,15 @@ export default function InventarioRodeosTab() {
       </div>
 
       {/* Acciones */}
-      <div className="flex flex-wrap items-center justify-end gap-4">
+      <div className="flex flex-wrap items-center justify-end gap-4 mt-2 mb-4">
         <button
           type="button"
           onClick={() => abrirAlta()}
           className={`${BTN_BASE} bg-[#659711] hover:bg-[#537d0d]`}
         >
-          <UserPlus size={16} />
+          <UserPlus size={18} />
           <span>Registrar alta</span>
-          <Plus size={16} />
+          <Plus size={18} className="ml-1" />
         </button>
 
         <button
@@ -109,7 +122,7 @@ export default function InventarioRodeosTab() {
           onClick={() => abrirBaja()}
           className={`${BTN_BASE} bg-[#E53935] hover:bg-[#c62f2c]`}
         >
-          <UserMinus size={16} />
+          <UserMinus size={18} />
           <span>Registrar baja</span>
         </button>
 
@@ -118,14 +131,14 @@ export default function InventarioRodeosTab() {
           onClick={abrirTransferencia}
           className={`${BTN_BASE} bg-[#D4A12A] hover:bg-[#b98a21]`}
         >
-          <Plus size={16} />
+          <Plus size={18} />
           <span>Transferencias</span>
         </button>
       </div>
 
       {/* Historial de movimientos */}
       <div className="flex flex-col gap-4">
-        <h2 className="text-base font-bold text-slate-900">
+        <h2 className="text-lg font-bold text-slate-900">
           Historial de Movimientos
         </h2>
         <TransferenciasTable transferencias={transferencias} />

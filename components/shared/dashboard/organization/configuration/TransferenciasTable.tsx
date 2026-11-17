@@ -1,11 +1,10 @@
 'use client'
 
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { usePagination } from '@/hooks/establishment/usePagination'
 
 export type TipoMovimiento = 'TRANSFERENCIA' | 'ALTA' | 'BAJA' | 'OTRO'
 
-// Se mantiene el nombre `Transferencia` porque lo importan las vistas del
-// catálogo; representa cualquier movimiento (transferencia, alta o baja).
 export interface Transferencia {
   id: string
   tipo: TipoMovimiento
@@ -50,24 +49,28 @@ export function TransferenciasTable({ transferencias }: Props) {
   } = usePagination(transferencias, PAGE_SIZE)
 
   return (
-    <div className="w-full rounded-lg border border-slate-100 bg-white">
+    <div className="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
       <div className="w-full overflow-x-auto">
-        <table className="w-full min-w-[720px] text-center">
+        <table className="w-full min-w-[800px] text-sm">
           <thead>
-            <tr className="bg-[#E8EEF5] text-xs font-semibold text-slate-700">
-              {HEADERS.map((h) => (
-                <th key={h} className="px-4 py-4 font-semibold">
-                  {h}
-                </th>
-              ))}
+            <tr className="bg-[#E8EEF5] text-xs font-bold text-slate-700">
+              <th className="px-6 py-4 text-left font-bold">Origen</th>
+              <th className="px-6 py-4 text-left font-bold">Destino</th>
+              <th className="px-6 py-4 text-center font-bold">Cantidad</th>
+              <th className="px-6 py-4 text-center font-bold">
+                Plazo de retorno
+              </th>
+              <th className="px-6 py-4 text-left font-bold">Causa</th>
+              <th className="px-6 py-4 text-left font-bold">Motivo</th>
+              <th className="px-6 py-4 text-center font-bold">Estado</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {total === 0 && (
               <tr>
                 <td
                   colSpan={HEADERS.length}
-                  className="px-4 py-8 text-sm text-slate-400"
+                  className="px-6 py-8 text-center text-sm text-slate-400"
                 >
                   No hay movimientos registrados.
                 </td>
@@ -75,31 +78,24 @@ export function TransferenciasTable({ transferencias }: Props) {
             )}
 
             {pageItems.map((t) => (
-              <tr
-                key={t.id}
-                className="border-b border-slate-100 last:border-0"
-              >
-                <td className="px-4 py-5 text-[11px] font-bold text-slate-900">
+              <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                <td className="px-6 py-5 text-xs font-bold text-slate-900">
                   {t.origen}
                 </td>
-                <td className="px-4 py-5 text-[11px] text-slate-700">
+                <td className="px-6 py-5 text-xs text-slate-700">
                   {t.destino}
                 </td>
-                <td className="px-4 py-5 text-sm font-bold text-slate-900">
+                <td className="px-6 py-5 text-sm font-bold text-slate-900 text-center">
                   {t.cantidad}
                 </td>
-                <td className="px-4 py-5 text-sm font-bold text-slate-900">
+                <td className="px-6 py-5 text-sm font-bold text-slate-900 text-center">
                   {t.plazoRetornoDias !== null
-                    ? `${t.plazoRetornoDias} días`
+                    ? `${t.plazoRetornoDias}dias` // En Figma dice "5dias" junto, sin espacio
                     : '—'}
                 </td>
-                <td className="px-4 py-5 text-[11px] text-slate-700">
-                  {t.causa}
-                </td>
-                <td className="px-4 py-5 text-[11px] text-slate-700">
-                  {t.motivo}
-                </td>
-                <td className="px-4 py-5 text-[11px] uppercase text-slate-700">
+                <td className="px-6 py-5 text-xs text-slate-700">{t.causa}</td>
+                <td className="px-6 py-5 text-xs text-slate-700">{t.motivo}</td>
+                <td className="px-6 py-5 text-xs font-semibold text-slate-500 text-center uppercase">
                   {t.estado}
                 </td>
               </tr>
@@ -109,30 +105,27 @@ export function TransferenciasTable({ transferencias }: Props) {
       </div>
 
       {total > 0 && (
-        <div className="flex items-center justify-between gap-3 border-t border-slate-100 px-4 py-3">
-          <p className="text-[11px] text-slate-500">
-            Mostrando {from}–{to} de {total} registros
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200 bg-white px-6 py-3">
+          <p className="text-xs text-slate-500">
+            Mostrando {from} de {total} registros
           </p>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={prev}
               disabled={!hasPrev}
-              className="rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Anterior
+              <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-[11px] text-slate-500">
-              {page} / {totalPages}
-            </span>
             <button
               type="button"
               onClick={next}
               disabled={!hasNext}
-              className="rounded-md border border-slate-200 px-3 py-1 text-xs text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-7 w-7 items-center justify-center rounded border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Siguiente
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         </div>

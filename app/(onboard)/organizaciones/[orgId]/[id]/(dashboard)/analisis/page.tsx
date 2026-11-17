@@ -100,7 +100,7 @@ const Dashboard = () => {
             data?.data.variaciones.mermas != null
               ? {
                   value: data.data.variaciones.mermas,
-                  isPositive: data.data.variaciones.mermas <= 0,
+                  isPositive: data.data.variaciones.mermas <= 0, // Mermas: si baja es positivo (verde)
                 }
               : null
           }
@@ -116,7 +116,7 @@ const Dashboard = () => {
             data?.data.variaciones.costos != null
               ? {
                   value: data.data.variaciones.costos,
-                  isPositive: data.data.variaciones.costos <= 0,
+                  isPositive: data.data.variaciones.costos <= 0, // Costos: si baja es positivo (verde)
                 }
               : null
           }
@@ -142,6 +142,14 @@ const Dashboard = () => {
             marketPrice
               ? `Precio nacional ${marketPrice.mes}/${marketPrice.anio}`
               : undefined
+          }
+          trend={
+            marketPrice?.variacion != null
+              ? {
+                  value: marketPrice.variacion,
+                  isPositive: marketPrice.variacion >= 0, // Si sube o se mantiene, verde. Si baja, rojo.
+                }
+              : null
           }
           note={marketPriceNote}
           isPending={isMarketPricePending}

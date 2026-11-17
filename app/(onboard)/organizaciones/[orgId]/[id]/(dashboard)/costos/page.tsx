@@ -1,15 +1,14 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  Utensils,
-  FileText,
-  TrendingUp,
   Loader2,
   CloudOff,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -27,6 +26,13 @@ import { useGeneralCostsSummary } from '@/hooks/generalCost/useGeneralCostsSumma
 import { useMonthPeriod } from '@/hooks/generalCost/useMonthPeriod'
 import { GeneralCost } from '@/types/generalCost'
 import { formatShortDate } from '@/utils/formatDate'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const capitalize = (text: string): string => {
   if (!text) return text
@@ -34,8 +40,6 @@ const capitalize = (text: string): string => {
   return lower.charAt(0).toUpperCase() + lower.slice(1)
 }
 
-// Busca la lista de costos sin importar si el backend la devuelve
-// directo, dentro de `data`, o dentro de otro campo de `data`.
 const extractCosts = (payload: unknown): GeneralCost[] => {
   if (Array.isArray(payload)) return payload as GeneralCost[]
   const inner = (payload as { data?: unknown } | undefined)?.data
@@ -53,6 +57,7 @@ export interface GeneralCostRow {
   costType: string
   description: string
   amount: number
+  isAutomatic?: boolean
 }
 
 const GeneralCosts = () => {
@@ -61,12 +66,11 @@ const GeneralCosts = () => {
   const { data: costsData, isPending: isCostsPending } = useGeneralCosts(period)
   const { data: summary } = useGeneralCostsSummary(period)
 
-  // TEMPORAL: borrar cuando confirmemos la forma de la respuesta
-  console.log('costsData:', costsData)
+  // Paginación Local
+  const [page, setPage] = useState(1)
+  const ITEMS_PER_PAGE = 5
 
-  const onNewCostClick = () => {
-    setOpenRegister(true)
-  }
+  const onNewCostClick = () => setOpenRegister(true)
 
   const rawCosts: GeneralCost[] = extractCosts(costsData)
 
@@ -76,12 +80,32 @@ const GeneralCosts = () => {
     costType: c.tipoCosto,
     description: c.descripcion ?? '-',
     amount: Number(c.monto),
+    isAutomatic:
+      c.tipoCosto === 'ALIMENTACION' || c.idCostoGeneral === 'alimentacion',
   }))
+
+  // Lógica de paginación
+  const totalPages = Math.ceil(rows.length / ITEMS_PER_PAGE)
+  const currentRows = useMemo(() => {
+    const start = (page - 1) * ITEMS_PER_PAGE
+    return rows.slice(start, start + ITEMS_PER_PAGE)
+  }, [rows, page])
 
   const loading = isCostsPending
   const foodCostValue = summary?.gastoAlimentacion ?? 0
   const prorrateoValue = summary?.prorrateoPromedio ?? 0
   const generalCostsValue = summary?.gastoCostosGenerales ?? 0
+
+  // Handlers para Editar y Eliminar
+  const handleEdit = (id: string) => {
+    alert(`Editar gasto ID: ${id}`)
+  }
+
+  const handleDelete = (id: string) => {
+    if (confirm('¿Seguro que querés eliminar este gasto?')) {
+      alert(`Eliminar gasto ID: ${id}`)
+    }
+  }
 
   return (
     <div className="flex flex-col w-full gap-6 sm:gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-4 sm:p-8 rounded-2xl">
@@ -95,7 +119,7 @@ const GeneralCosts = () => {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 rounded-lg border-gray-200"
+            className="h-8 w-8 rounded-lg border-gray-200 bg-white"
             onClick={goPrev}
             aria-label="Mes anterior"
           >
@@ -107,7 +131,7 @@ const GeneralCosts = () => {
           <Button
             variant="outline"
             size="icon"
-            className="h-8 w-8 rounded-lg border-gray-200"
+            className="h-8 w-8 rounded-lg border-gray-200 bg-white"
             onClick={goNext}
             disabled={isCurrentMonth}
             aria-label="Mes siguiente"
@@ -119,61 +143,40 @@ const GeneralCosts = () => {
 
       {/* TARJETAS SUPERIORES DINÁMICAS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Tarjeta 1: Gasto Alimentación */}
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between relative">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2.5 bg-gray-50 rounded-xl text-gray-700">
-              <Utensils className="w-5 h-5" />
-            </div>
-            <TrendingUp className="w-4 h-4 text-gray-400" />
-          </div>
-          <div>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Gasto Alimentación
-            </span>
-            <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
-              $ {foodCostValue.toLocaleString('es-AR')}
-            </h2>
-          </div>
+        <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <span className="text-xs font-semibold text-gray-500">
+            Costos de alimentación
+          </span>
+          <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
+            $ {foodCostValue.toLocaleString('es-AR')}
+          </h2>
+          <span className="text-xs text-green-600 font-medium mt-2">
+            +12% vs mes anterior
+          </span>
         </div>
 
-        {/* Tarjeta 2: Otros costos */}
-        <div className="bg-white border border-gray-200/80 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-4">
-            <div className="p-2.5 bg-gray-50 rounded-xl text-gray-700">
-              <FileText className="w-5 h-5" />
-            </div>
-          </div>
-          <div>
-            <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">
-              Otros costos (fijos/var)
-            </span>
-            <h2 className="text-2xl font-extrabold text-gray-900 mt-1">
-              $ {generalCostsValue.toLocaleString('es-AR')}
-            </h2>
-          </div>
+        <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <span className="text-xs font-semibold text-gray-500">
+            Otros costos
+          </span>
+          <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
+            $ {generalCostsValue.toLocaleString('es-AR')}
+          </h2>
+          <span className="text-xs text-green-600 font-medium mt-2">
+            Fijos 65% · Var 35%
+          </span>
         </div>
 
-        {/* Tarjeta 3: Costo Prorrateo (Verde) */}
-        <div className="bg-[#1B4D3E] border border-[#1B4D3E] rounded-2xl p-6 shadow-sm flex flex-col text-white relative overflow-hidden">
-          <div className="flex items-center justify-between mb-3">
-            <TrendingUp className="w-8 h-8 text-white" />
-            <span className="bg-[#80B718] text-white text-[14px] font-bold px-3 py-1 rounded-full">
-              Cálculo en vivo
-            </span>
-          </div>
-          <div className="mt-4">
-            <span className="font-semibold">Costo Prorrateo/Lote</span>
-            <h2 className="text-xl font-semibold text-white mt-3">
-              ${prorrateoValue.toFixed(2)}/ Lt
-            </h2>
-          </div>
-          <div className="absolute right-5 bottom-4 flex items-end gap-1 opacity-20 pointer-events-none">
-            <div className="w-5 h-14 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-10 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-22 bg-white rounded-t rounded-b"></div>
-            <div className="w-5 h-22 bg-white rounded-t rounded-b"></div>
-          </div>
+        <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
+          <span className="text-xs font-semibold text-gray-500">
+            Costo Prorrateo/Lote
+          </span>
+          <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
+            ${prorrateoValue.toFixed(2)}/Lt
+          </h2>
+          <span className="text-xs text-green-600 font-medium mt-2">
+            +12% vs mes anterior
+          </span>
         </div>
       </div>
 
@@ -187,13 +190,41 @@ const GeneralCosts = () => {
 
             <Button
               onClick={onNewCostClick}
-              className="bg-[#1B4D3E] hover:bg-[#153c31] text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm transition-all"
+              className="bg-[#659711] hover:bg-[#537d0d] text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
-              Nuevo Gasto
+              Nuevo costo
             </Button>
           </div>
         </CardHeader>
+
+        {/* FILTROS */}
+        <div className="flex flex-wrap gap-3 p-6 bg-white border-b border-gray-100">
+          <Select>
+            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+              <SelectValue placeholder="Todas las fechas" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las fechas</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select>
+            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+              <SelectValue placeholder="Todos los valores" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los valores</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select>
+            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+              <SelectValue placeholder="Todas las categorías" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas las categorías</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         <CardContent className="p-0">
           {loading ? (
@@ -209,25 +240,28 @@ const GeneralCosts = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <Table className="min-w-155">
-                <TableHeader className="bg-gray-50/70">
+              <Table className="min-w-full">
+                <TableHeader className="bg-[#E8EEF5]">
                   <TableRow>
-                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider py-4 pl-6">
+                    <TableHead className="text-left font-bold text-gray-600 text-xs py-4 pl-6">
                       Fecha
                     </TableHead>
-                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
-                      Tipo de Gasto
+                    <TableHead className="text-left font-bold text-gray-600 text-xs">
+                      Tipo de gasto
                     </TableHead>
-                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider">
+                    <TableHead className="text-left font-bold text-gray-600 text-xs">
                       Descripción
                     </TableHead>
-                    <TableHead className="text-left font-bold text-gray-400 uppercase text-xs tracking-wider pr-6">
+                    <TableHead className="text-right font-bold text-gray-600 text-xs">
                       Valor
+                    </TableHead>
+                    <TableHead className="text-center font-bold text-gray-600 text-xs pr-6">
+                      Acciones
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((g) => (
+                  {currentRows.map((g) => (
                     <TableRow
                       key={g.id}
                       className="border-b border-gray-100 hover:bg-gray-50/50"
@@ -236,23 +270,78 @@ const GeneralCosts = () => {
                         {g.date}
                       </TableCell>
                       <TableCell className="text-xs">
-                        <span className="inline-block bg-[#29845A80] text-black font-semibold px-3 py-1 rounded-full text-[11px]">
+                        <span className="inline-block bg-[#29845A]/10 text-[#29845A] font-semibold px-3 py-1 rounded-full text-[11px]">
                           {capitalize(g.costType)}
                         </span>
                       </TableCell>
                       <TableCell
-                        className="text-xs font-medium text-gray-600 max-w-60 truncate"
+                        className="text-xs font-medium text-gray-600 max-w-50 truncate"
                         title={g.description}
                       >
                         {g.description}
                       </TableCell>
-                      <TableCell className="text-xs font-extrabold text-gray-900 pr-6">
+                      <TableCell className="text-xs font-extrabold text-gray-900 text-right">
                         $ {g.amount.toLocaleString('es-AR')}
+                      </TableCell>
+                      <TableCell className="text-center pr-6">
+                        {!g.isAutomatic ? (
+                          <div className="flex items-center justify-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleEdit(g.id)}
+                            >
+                              <Pencil className="w-4 h-4 text-gray-500 hover:text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleDelete(g.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <span className="text-[10px] text-gray-400 font-medium">
+                            Automático
+                          </span>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+
+          {/* PAGINACIÓN */}
+          {rows.length > 0 && (
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+              <span className="text-xs text-gray-500">
+                Página {page} de {totalPages || 1}
+              </span>
+              <div className="flex gap-1.5">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 rounded border-gray-200"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft className="w-4 h-4 text-gray-500" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-7 w-7 rounded border-gray-200"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
+                  <ChevronRight className="w-4 h-4 text-gray-500" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

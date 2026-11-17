@@ -18,5 +18,6 @@ export interface MarketPrice {
   precioLitro: number
   mes: number
   anio: number
+  variacion: number | null // <-- AGREGADO: Para las flechitas de subió/bajó
   ultimaConsulta: string
 }

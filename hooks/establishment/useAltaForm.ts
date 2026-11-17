@@ -37,15 +37,6 @@ interface Params {
   motivoInicial?: string
 }
 
-/**
- * PENDIENTE DE BACKEND (Facu):
- * Mientras no confirme que `POST /conf/animal` acepta `categoria`, `estado`
- * y `peso` en modo rodeo, esos campos se muestran en el modal pero NO se
- * envían, para no recibir un 400 por campos desconocidos. Cuando lo
- * confirme, pasa esta constante a `true` y ajusta los nombres en `submit`.
- */
-const ENVIAR_CAMPOS_DEL_DISENO = false
-
 // ─── Helpers ───────────────────────────────────
 
 function leerLabel(x: any, fallback = ''): string {
@@ -231,27 +222,15 @@ export function useAltaForm({
         return
       }
 
-      const peso = rodeoAnimal.peso.trim()
-      if (peso && !(Number(peso) > 0)) {
-        setError('El peso debe ser un número mayor a 0.')
-        return
-      }
-
+      // NOTA BACKEND: Facu indicó que "peso" no se guarda en DB, así que no se envía.
+      // NOTA BACKEND: "destino" es lo mismo que "categoria", y el back espera la key "categoria".
       payload = {
         tipoSeguimiento,
         tipo: tipoMovimiento,
         motivo,
-        destino,
-        // El diseño no tiene cantidad: cada alta es de un animal.
-        // (Pendiente de confirmar con Lorena y backend.)
+        categoria: destino, // Enviamos el valor de "destino" en la key "categoria"
         razas: [{ raza: rodeoAnimal.raza, cantVacas: 1 }],
         observacion: observacion.trim() || undefined,
-      }
-
-      if (ENVIAR_CAMPOS_DEL_DISENO) {
-        payload.categoria = rodeoAnimal.categoria || undefined
-        payload.estado = rodeoAnimal.estado || undefined
-        payload.peso = peso ? Number(peso) : undefined
       }
     }
 

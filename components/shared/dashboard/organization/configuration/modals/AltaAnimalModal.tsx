@@ -25,20 +25,16 @@ interface Props {
   motivoInicial?: string
 }
 
-// Estilos según el diseño de Figma: fondo gris, campos blancos con borde
-// suave, etiquetas normales y botones del mismo ancho.
-const LABEL = 'text-xs text-slate-900'
-// `data-[size=default]:h-9` es necesario: el SelectTrigger define su altura
-// con esa variante (h-12.5) y un `h-9` suelto no la reemplaza.
+// Estilos visuales idénticos al Figma
+const LABEL = 'text-sm font-medium text-slate-900 mb-1.5 block'
 const TRIGGER =
-  'h-9 w-full rounded-lg border-slate-200 bg-white text-sm data-[size=default]:h-9'
-const INPUT = 'h-9 rounded-lg border-slate-200 bg-white'
+  'h-10 w-full rounded-lg border-none bg-white text-sm text-slate-500 placeholder:text-slate-400 focus:ring-2 focus:ring-[#659711]'
+const INPUT =
+  'h-10 w-full rounded-lg border-none bg-white text-sm text-slate-900 placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-[#659711]'
 const TEXTAREA =
-  'w-full resize-none rounded-lg border border-slate-200 bg-white px-3 py-2 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm'
-// `[&>button]:hidden` oculta la X del Dialog (el diseño no la tiene).
-// Escape y clic fuera del modal siguen cerrándolo.
+  'w-full resize-none rounded-lg border-none bg-white px-3 py-3 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus-visible:ring-2 focus-visible:ring-[#659711]'
 const CONTENT =
-  'max-h-[calc(100dvh-1rem)] gap-3 overflow-y-auto bg-[#F0F0F0] p-5 sm:max-w-md [&>button]:hidden'
+  'max-h-[calc(100dvh-2rem)] gap-5 overflow-y-auto bg-[#F0F0F0] p-6 sm:max-w-[480px] [&>button]:hidden rounded-xl'
 
 export function AltaAnimalModal({
   open,
@@ -55,7 +51,7 @@ export function AltaAnimalModal({
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className={CONTENT}>
         <DialogHeader>
-          <DialogTitle className="text-base font-bold text-slate-900">
+          <DialogTitle className="text-lg font-bold text-slate-900">
             Registro de Alta
           </DialogTitle>
         </DialogHeader>
@@ -69,16 +65,15 @@ export function AltaAnimalModal({
             {f.formError}
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {f.sinOpciones && (
               <p className="rounded-lg bg-amber-50 p-2.5 text-xs text-amber-800 sm:col-span-2">
-                El backend no devolvió motivos para este formulario. Revisá la
-                respuesta de <code>/conf/animal/alta/form-data</code>.
+                El backend no devolvió motivos para este formulario.
               </p>
             )}
 
-            {/* Motivo */}
-            <div className="flex flex-col gap-1 sm:col-span-2">
+            {/* Motivo (Común para ambos) */}
+            <div className="sm:col-span-2">
               <label className={LABEL}>Motivo</label>
               <Select value={f.motivo} onValueChange={f.setMotivo}>
                 <SelectTrigger className={TRIGGER}>
@@ -97,27 +92,27 @@ export function AltaAnimalModal({
             {/* ───── MODO INDIVIDUAL ───── */}
             {f.esIndividual && (
               <>
-                <div className="flex flex-col gap-1">
-                  <label className={LABEL}>Código / RP</label>
+                <div>
+                  <label className={LABEL}>ID / RP</label>
                   <Input
                     className={INPUT}
-                    placeholder="Ej: 1234"
+                    placeholder="Seleccionar"
                     value={f.animal.codigo}
                     onChange={(e) => f.setCampoAnimal('codigo', e.target.value)}
                   />
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Nombre</label>
                   <Input
                     className={INPUT}
-                    placeholder="Ej: Lola"
+                    placeholder="Seleccionar"
                     value={f.animal.nombre}
                     onChange={(e) => f.setCampoAnimal('nombre', e.target.value)}
                   />
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Categoría</label>
                   <Select
                     value={f.animal.categoria}
@@ -136,7 +131,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Estado</label>
                   <Select
                     value={f.animal.estado}
@@ -155,7 +150,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Raza</label>
                   <Select
                     value={f.animal.raza}
@@ -174,7 +169,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Fecha de nacimiento</label>
                   <Input
                     type="date"
@@ -185,24 +180,13 @@ export function AltaAnimalModal({
                     }
                   />
                 </div>
-
-                <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={LABEL}>Observación</label>
-                  <textarea
-                    rows={4}
-                    className={TEXTAREA}
-                    value={f.observacion}
-                    onChange={(e) => f.setObservacion(e.target.value)}
-                  />
-                </div>
               </>
             )}
 
-            {/* ───── MODO RODEO / RODEO ÚNICO (diseño de Figma) ───── */}
+            {/* ───── MODO RODEO / RODEO ÚNICO ───── */}
             {!f.esIndividual && (
               <>
-                {/* Destino */}
-                <div className="flex flex-col gap-1 sm:col-span-2">
+                <div className="sm:col-span-2">
                   <label className={LABEL}>Destino</label>
                   <Select value={f.destino} onValueChange={f.setDestino}>
                     <SelectTrigger className={TRIGGER}>
@@ -218,8 +202,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                {/* Categoría */}
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Categoría</label>
                   <Select
                     value={f.rodeoAnimal.categoria}
@@ -238,8 +221,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                {/* Estado */}
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Estado</label>
                   <Select
                     value={f.rodeoAnimal.estado}
@@ -258,8 +240,7 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                {/* Raza */}
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Raza</label>
                   <Select
                     value={f.rodeoAnimal.raza}
@@ -278,47 +259,43 @@ export function AltaAnimalModal({
                   </Select>
                 </div>
 
-                {/* Peso */}
-                <div className="flex flex-col gap-1">
+                <div>
                   <label className={LABEL}>Peso</label>
                   <Input
                     type="number"
-                    inputMode="decimal"
-                    min={0}
-                    step="any"
-                    placeholder="Ej: 450"
                     className={INPUT}
+                    placeholder="Seleccionar"
                     value={f.rodeoAnimal.peso}
                     onChange={(e) => f.setCampoRodeo('peso', e.target.value)}
                   />
                 </div>
-
-                {/* Observación */}
-                <div className="flex flex-col gap-1 sm:col-span-2">
-                  <label className={LABEL}>Observación</label>
-                  <textarea
-                    rows={4}
-                    className={TEXTAREA}
-                    value={f.observacion}
-                    onChange={(e) => f.setObservacion(e.target.value)}
-                  />
-                </div>
               </>
             )}
+
+            {/* Observación (Común para ambos) */}
+            <div className="sm:col-span-2 mt-2">
+              <label className={LABEL}>Observación</label>
+              <textarea
+                rows={4}
+                className={TEXTAREA}
+                value={f.observacion}
+                onChange={(e) => f.setObservacion(e.target.value)}
+              />
+            </div>
           </div>
         )}
 
-        {/* Error + botones */}
-        <div className="flex flex-col gap-2">
+        {/* Error + Botones */}
+        <div className="flex flex-col gap-3 mt-2">
           {f.error && !f.loadingForm && (
             <p className="rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
               {f.error}
             </p>
           )}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-4">
             <Button
               variant="outline"
-              className="h-10 rounded-md border-slate-900 bg-white text-xs font-bold text-slate-900 hover:bg-slate-50"
+              className="h-11 rounded-lg border-2 border-slate-900 bg-white text-sm font-bold text-slate-900 hover:bg-slate-50"
               onClick={onClose}
               disabled={f.submitting}
             >
@@ -327,10 +304,10 @@ export function AltaAnimalModal({
             <Button
               onClick={f.submit}
               disabled={bloqueado}
-              className="h-10 rounded-md bg-[#659711] text-xs font-bold text-white hover:bg-[#537d0d]"
+              className="h-11 rounded-lg bg-[#659711] text-sm font-bold text-white hover:bg-[#537d0d]"
             >
               {f.submitting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
               ) : (
                 'Alta'
               )}
