@@ -13,9 +13,12 @@ export interface RodeoDestino {
   label: string
 }
 
-export interface FilaRaza {
+// Campos del alta en modo RODEO / RODEO_UNICO (diseño de Figma)
+export interface AnimalRodeoForm {
+  categoria: string
+  estado: string
   raza: string
-  cantidad: string
+  peso: string
 }
 
 export interface AnimalForm {
@@ -54,7 +57,12 @@ function aOpciones(lista: any): Opcion[] {
   }))
 }
 
-const FILA_VACIA: FilaRaza = { raza: '', cantidad: '' }
+const ANIMAL_RODEO_VACIO: AnimalRodeoForm = {
+  categoria: '',
+  estado: '',
+  raza: '',
+  peso: '',
+}
 
 const ANIMAL_VACIO: AnimalForm = {
   codigo: '',
@@ -89,9 +97,11 @@ export function useAltaForm({
   const [motivo, setMotivo] = useState('')
   const [observacion, setObservacion] = useState('')
 
-  // Valores del formulario (modo rodeo)
+  // Valores del formulario (modo rodeo / rodeo único)
   const [destino, setDestino] = useState('')
-  const [filas, setFilas] = useState<FilaRaza[]>([{ ...FILA_VACIA }])
+  const [rodeoAnimal, setRodeoAnimal] = useState<AnimalRodeoForm>({
+    ...ANIMAL_RODEO_VACIO,
+  })
 
   // Valores del formulario (modo individual)
   const [animal, setAnimal] = useState<AnimalForm>({ ...ANIMAL_VACIO })
@@ -137,7 +147,7 @@ export function useAltaForm({
         )
         setObservacion('')
         setDestino('')
-        setFilas([{ ...FILA_VACIA }])
+        setRodeoAnimal({ ...ANIMAL_RODEO_VACIO })
         setAnimal({ ...ANIMAL_VACIO })
       } catch (e) {
         if (activo)
@@ -153,18 +163,9 @@ export function useAltaForm({
     }
   }, [open, motivoInicial])
 
-  // ─── Filas de razas (modo rodeo) ───────────────
-  const agregarFila = () => setFilas((prev) => [...prev, { ...FILA_VACIA }])
-
-  const quitarFila = (i: number) =>
-    setFilas((prev) =>
-      prev.length > 1 ? prev.filter((_, idx) => idx !== i) : prev
-    )
-
-  const actualizarFila = (i: number, campo: keyof FilaRaza, valor: string) =>
-    setFilas((prev) =>
-      prev.map((fila, idx) => (idx === i ? { ...fila, [campo]: valor } : fila))
-    )
+  // ─── Campos del animal (modo rodeo / rodeo único) ───
+  const setCampoRodeo = (campo: keyof AnimalRodeoForm, valor: string) =>
+    setRodeoAnimal((prev) => ({ ...prev, [campo]: valor }))
 
   // ─── Campos del animal (modo individual) ───────
   const setCampoAnimal = (campo: keyof AnimalForm, valor: string) =>
@@ -213,36 +214,22 @@ export function useAltaForm({
       }
     } else {
       if (!destino) {
-        setError('Seleccioná el rodeo de destino.')
+        setError('Seleccioná el destino.')
+        return
+      }
+      if (!rodeoAnimal.raza) {
+        setError('Seleccioná la raza.')
         return
       }
 
-      const razasPayload: { raza: string; cantVacas: number }[] = []
-      for (const fila of filas) {
-        const cant = Number(fila.cantidad)
-        if (!fila.raza) {
-          setError('Seleccioná la raza en todas las filas.')
-          return
-        }
-        if (!Number.isInteger(cant) || cant < 1) {
-          setError('Las cantidades deben ser números enteros mayores a 0.')
-          return
-        }
-        razasPayload.push({ raza: fila.raza, cantVacas: cant })
-      }
-
-      const repetidas = new Set(razasPayload.map((r) => r.raza))
-      if (repetidas.size !== razasPayload.length) {
-        setError('Hay una raza repetida. Usá una sola fila por raza.')
-        return
-      }
-
+      // NOTA BACKEND: Facu indicó que "peso" no se guarda en DB, así que no se envía.
+      // NOTA BACKEND: "destino" es lo mismo que "categoria", y el back espera la key "categoria".
       payload = {
         tipoSeguimiento,
         tipo: tipoMovimiento,
         motivo,
-        destino,
-        razas: razasPayload,
+        categoria: destino, // Enviamos el valor de "destino" en la key "categoria"
+        razas: [{ raza: rodeoAnimal.raza, cantVacas: 1 }],
         observacion: observacion.trim() || undefined,
       }
     }
@@ -263,7 +250,7 @@ export function useAltaForm({
     esIndividual,
     animal,
     destino,
-    filas,
+    rodeoAnimal,
     tipoSeguimiento,
     tipoMovimiento,
     onSuccess,
@@ -291,13 +278,11 @@ export function useAltaForm({
     observacion,
     setObservacion,
 
-    // rodeo
+    // rodeo / rodeo único
     destino,
     setDestino,
-    filas,
-    agregarFila,
-    quitarFila,
-    actualizarFila,
+    rodeoAnimal,
+    setCampoRodeo,
 
     // individual
     animal,

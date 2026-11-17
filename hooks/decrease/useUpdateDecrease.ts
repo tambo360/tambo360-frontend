@@ -34,7 +34,12 @@ export function useUpdateDecrease({ idLote }: UpdateDecreaseProps) {
           scope: currentEstablisment(),
           idLote,
           targetId: id,
-          payload: { ...values, idLote },
+          payload: {
+            ...values,
+            idLote,
+            idMerma: crypto.randomUUID(), // Genera un ID único
+            fechaCreacion: new Date().toISOString(), // Fecha actual
+          },
         })
         return { offline: true }
       }

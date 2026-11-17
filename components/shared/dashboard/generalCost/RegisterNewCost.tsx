@@ -37,6 +37,12 @@ interface RegisterNewCostProps {
   onOpen?: () => void
 }
 
+// Helpers para las fechas
+const today = new Date().toISOString().split('T')[0]
+const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+  .toISOString()
+  .split('T')[0]
+
 const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
   const { mutateAsync, isPending } = useCreateGeneralCost()
   const { showErrorMessage } = useErrorMessage()
@@ -50,6 +56,7 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
     closeParentDialog: onClose,
     openParentDialog: onOpen,
   })
+
   const {
     register,
     control,
@@ -62,7 +69,7 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
       tipoCosto: undefined,
       descripcion: '',
       monto: '',
-      fecha: '',
+      fecha: today,
     },
   })
 
@@ -71,7 +78,7 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
   const closeDialog = () => {
     onClose()
     setTimeout(() => {
-      reset({ tipoCosto: undefined, descripcion: '', monto: '', fecha: '' })
+      reset({ tipoCosto: undefined, descripcion: '', monto: '', fecha: today })
     }, 200)
   }
 
@@ -91,108 +98,90 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
   return (
     <>
       <Dialog open={open} onOpenChange={closeDialog}>
-        <DialogContent className="w-full max-w-162 bg-white rounded-lg p-0 overflow-hidden gap-0 border-gray-200">
-          <DialogHeader className="px-4 sm:px-8 pt-7 pb-2 text-center">
-            <DialogTitle className="text-xl font-extrabold tracking-tight text-gray-900 text-center">
-              NUEVO GASTO
+        {/* Corregí el max-w-[500px] por max-w-125 para sacar la advertencia de Tailwind */}
+        <DialogContent className="w-full max-w-125 bg-white rounded-xl p-0 overflow-hidden gap-0 border-gray-200">
+          <DialogHeader className="px-6 pt-6 pb-2 text-left">
+            <DialogTitle className="text-2xl font-bold text-gray-900">
+              Nuevo costo
             </DialogTitle>
           </DialogHeader>
 
-          <form
-            onSubmit={onFormSubmit}
-            className="px-4 sm:px-8 pb-6 sm:pb-8 pt-4 space-y-5"
-          >
-            <div className="grid grid-cols-1 sm:grid-cols-[1fr_142px] gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-900">
-                  Tipo de gasto
-                </Label>
-                <Controller
-                  name="tipoCosto"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value ?? ''}
-                      onValueChange={field.onChange}
-                      disabled={busy}
-                    >
-                      <SelectTrigger className="w-full rounded-xl bg-white border-transparent shadow-[0px_4px_4px_0px_#00000040]">
-                        <SelectValue placeholder="Seleccionar tipo de gasto" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectGroup>
-                          {Object.values(GeneralCostType).map((costType) => (
-                            <SelectItem key={costType} value={costType}>
-                              {GENERAL_COST_TYPE_LABELS[costType]}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      </SelectContent>
-                    </Select>
-                  )}
-                />
-                {errors.tipoCosto && (
-                  <span className="text-xs text-red-main">
-                    {errors.tipoCosto.message}
-                  </span>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label
-                  htmlFor="fecha"
-                  className="text-sm font-medium text-gray-900"
-                >
+          <form onSubmit={onFormSubmit} className="px-6 pb-6 pt-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-700">
                   Fecha
                 </Label>
                 <Input
                   id="fecha"
                   type="date"
-                  max={new Date().toISOString().split('T')[0]}
-                  className="relative rounded-xl bg-white border-transparent shadow-[0px_4px_4px_0px_#00000040] pl-3 pr-9 text-xs [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-2 [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-60"
+                  min={sevenDaysAgo}
+                  max={today}
+                  className="h-10 rounded-lg border-slate-200 bg-white"
                   {...register('fecha')}
                   disabled={busy}
                 />
                 {errors.fecha && (
-                  <span className="text-xs text-red-main">
+                  <span className="text-[11px] text-red-500 font-medium">
                     {errors.fecha.message}
                   </span>
                 )}
               </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-gray-700">
+                  Hora (Opcional)
+                </Label>
+                <Input
+                  type="time"
+                  className="h-10 rounded-lg border-slate-200 bg-white"
+                  disabled={busy}
+                />
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="descripcion"
-                className="text-sm font-medium text-gray-900"
-              >
-                Descripcion
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700">
+                Tipo de costo
               </Label>
-              <Textarea
-                id="descripcion"
-                placeholder="Ej:Compra balanceado alta proteina (20 tn)"
-                rows={3}
-                maxLength={500}
-                className="rounded-xl bg-white border-transparent shadow-[0px_4px_4px_0px_#00000040] resize-none min-h-23.5"
-                {...register('descripcion')}
-                disabled={busy}
+              <Controller
+                name="tipoCosto"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value ?? ''}
+                    onValueChange={field.onChange}
+                    disabled={busy}
+                  >
+                    <SelectTrigger className="w-full h-10 rounded-lg border-slate-200 bg-white">
+                      <SelectValue placeholder="Seleccionar tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        {/* Mapeamos directo el enum, ya que ALIMENTACION es automático */}
+                        {Object.values(GeneralCostType).map((costType) => (
+                          <SelectItem key={costType} value={costType}>
+                            {GENERAL_COST_TYPE_LABELS[costType] || costType}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                )}
               />
-              {errors.descripcion && (
-                <span className="text-xs text-red-main">
-                  {errors.descripcion.message}
+              {errors.tipoCosto && (
+                <span className="text-[11px] text-red-500 font-medium">
+                  {errors.tipoCosto.message}
                 </span>
               )}
             </div>
 
-            <div className="space-y-2">
-              <Label
-                htmlFor="monto"
-                className="text-sm font-medium text-gray-900"
-              >
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700">
                 Valor
               </Label>
               <div className="relative">
-                <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-500 font-medium">
                   $
                 </span>
                 <Input
@@ -200,24 +189,44 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
                   type="number"
                   step="0.01"
                   min="0"
-                  placeholder=""
-                  className="rounded-xl bg-white border-transparent shadow-[0px_4px_4px_0px_#00000040] pl-8"
+                  placeholder="0.00"
+                  className="h-10 rounded-lg border-slate-200 bg-white pl-8"
                   {...register('monto')}
                   disabled={busy}
                 />
               </div>
               {errors.monto && (
-                <span className="text-xs text-red-main">
+                <span className="text-[11px] text-red-500 font-medium">
                   {errors.monto.message}
                 </span>
               )}
             </div>
 
-            <div className="flex gap-4 pt-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-gray-700">
+                Observaciones
+              </Label>
+              <Textarea
+                id="descripcion"
+                placeholder="Ej: Compra balanceado alta proteína (20 tn)"
+                rows={3}
+                maxLength={500}
+                className="rounded-lg border-slate-200 bg-white resize-none"
+                {...register('descripcion')}
+                disabled={busy}
+              />
+              {errors.descripcion && (
+                <span className="text-[11px] text-red-500 font-medium">
+                  {errors.descripcion.message}
+                </span>
+              )}
+            </div>
+
+            <div className="flex gap-4 pt-4">
               <Button
                 type="button"
                 variant="outline"
-                className="flex-1 h-12 rounded-md border-gray-200"
+                className="flex-1 h-11 rounded-lg border-gray-300 text-gray-700 font-semibold"
                 onClick={closeDialog}
                 disabled={busy}
               >
@@ -225,10 +234,10 @@ const RegisterNewCost = ({ open, onClose, onOpen }: RegisterNewCostProps) => {
               </Button>
               <Button
                 type="submit"
-                className="flex-1 h-12 rounded-md bg-[#29845A] hover:bg-[#174a3b] text-white font-bold"
+                className="flex-1 h-11 rounded-lg bg-[#659711] hover:bg-[#537d0d] text-white font-bold"
                 disabled={busy}
               >
-                {busy ? 'Guardando...' : 'Agregar Gasto'}
+                {busy ? 'Guardando...' : 'Aceptar'}
               </Button>
             </div>
           </form>

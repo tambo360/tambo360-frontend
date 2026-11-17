@@ -12,7 +12,12 @@ export interface AnimalRow {
   nombre: string
   categoria: string // 'ORDENE' | 'SECAS'
   del: number | null // Días de leche
-  produccionHoy: number | null // litros
+  /**
+   * BACKEND: Envía `produccion.litros_promedio` como string ("18", "0").
+   * FRONTEND: Lo convertimos a número. Si viene "0" o nulo, lo guardamos como `null`
+   * para que en la tabla mostremos un "—" (guion) como pide el diseño de Figma.
+   */
+  promedioLitros: number | null
   estado: EstadoSanitario
   observacion: string
 }
@@ -55,7 +60,6 @@ function extraerLista(res: any): any[] {
 
 /**
  * ÚNICO lugar donde se leen los campos que vienen del backend.
- * TODO: confirmar nombres reales con la respuesta de GET /conf/animal/listar
  */
 function normalizarAnimal(a: any): AnimalRow {
   const estadoRaw = aEnum(a.estado ?? 'NORMAL')
@@ -66,13 +70,21 @@ function normalizarAnimal(a: any): AnimalRow {
 
   const codigo = a.codigo ?? ''
 
+  // ── LÓGICA DE PRODUCCIÓN (Nuevo Backend) ──
+  // El backend manda: a.produccion.litros_promedio (ej: "18" o "0")
+  const litrosRaw = a.produccion?.litros_promedio ?? a.litros_promedio
+  const litrosNum = toNumber(litrosRaw)
+
+  // Si es 0 o nulo, no tiene producción real (lo tratamos como null para la vista)
+  const promedioLitros = litrosNum !== null && litrosNum > 0 ? litrosNum : null
+
   return {
     id: String(a.idAnimal ?? a.id ?? codigo),
     codigo,
     nombre: a.nombre ?? '',
     categoria: aEnum(a.categoria ?? a.situacion),
     del: toNumber(a.DEL ?? a.del ?? a.diasLeche),
-    produccionHoy: toNumber(a.litros_hoy ?? a.litrosHoy ?? a.produccionHoy),
+    promedioLitros, // Reemplaza al viejo produccionHoy
     estado,
     observacion: a.observacion ?? '',
   }
@@ -141,20 +153,23 @@ export function useInventarioAnimales() {
     [filtered, currentPage]
   )
 
+  // ── CÁLCULOS DE LAS TARJETAS DE ARRIBA (FRONTEND) ──
   const stats = useMemo(() => {
     const enOrdene = animales.filter((a) => a.categoria.includes('ORDENE'))
     const secas = animales.filter((a) => a.categoria.includes('SECA'))
     const enTratamiento = animales.filter((a) => a.estado !== 'NORMAL')
 
-    // Promedio: solo vacas en ordeñe, sanas y con producción registrada hoy
+    // Promedio general: solo vacas en ordeñe, sanas, y que tengan un promedio mayor a 0
     const conLitros = enOrdene.filter(
-      (a) => a.estado === 'NORMAL' && a.produccionHoy !== null
+      (a) => a.estado === 'NORMAL' && a.promedioLitros !== null
     )
+
+    // Si hay vacas con litros, sumamos todos sus promedios y dividimos por la cantidad
     const promedio =
       conLitros.length > 0
-        ? conLitros.reduce((acc, a) => acc + (a.produccionHoy ?? 0), 0) /
+        ? conLitros.reduce((acc, a) => acc + (a.promedioLitros ?? 0), 0) /
           conLitros.length
-        : null
+        : null // Si nadie tiene producción, devuelve null para mostrar "—"
 
     return {
       total: animales.length,
