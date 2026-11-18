@@ -9,6 +9,7 @@ export default function manifest(): MetadataRoute.Manifest {
       'Tambo360 es un sistema de gestión de producción para tambos y la industria láctea: controla lotes, mermas y costos, incluso sin conexión.',
     start_url: '/iniciar-sesion',
     display: 'standalone',
+    orientation: 'natural',
     background_color: '#ffffff',
     theme_color: '#ffffff',
     icons: [
