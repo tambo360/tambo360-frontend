@@ -3,23 +3,12 @@
 import { useEffect } from 'react'
 import { toast } from 'sonner'
 
-const DECISION_KEY = 'pwa-install-decision'
-const DISMISSED_AT_KEY = 'pwa-install-dismissed-at'
-const DISMISS_DAYS = 7
 const TOAST_ID = 'pwa-install'
 
-const safeGet = (key: string) => {
-  try {
-    return localStorage.getItem(key)
-  } catch {
-    return null
+declare global {
+  interface Window {
+    __pwaPrompt?: Event
   }
-}
-
-const safeSet = (key: string, value: string) => {
-  try {
-    localStorage.setItem(key, value)
-  } catch {}
 }
 
 const isStandalone = () =>
@@ -30,11 +19,6 @@ const isIOS = () =>
   /iphone|ipad|ipod/i.test(navigator.userAgent) ||
   // iPadOS 13+ se identifica como Mac
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-
-const recentlyDismissed = () => {
-  const at = Number(safeGet(DISMISSED_AT_KEY))
-  return !!at && Date.now() - at < DISMISS_DAYS * 24 * 60 * 60 * 1000
-}
 
 const closeIcon = (
   <svg
@@ -81,7 +65,7 @@ function InstallCard({
     <div className="flex items-center gap-4 bg-background border rounded-lg p-4 shadow-lg w-full max-w-90">
       <div className="shrink-0 relative size-16">
         <img
-          src="/logos/isotipo_512x512.png"
+          src="/logos/isotipo_512x512.jpg"
           alt="Tambo360 Logo"
           className="object-contain rounded-md"
         />
@@ -106,42 +90,37 @@ function InstallCard({
 
 export function PWAInstallToast() {
   useEffect(() => {
+    // Ya instalada y abierta como app: no se muestra.
     if (isStandalone()) return
-    if (safeGet(DECISION_KEY) === 'installed') return
-    if (recentlyDismissed()) return
 
-    const dismiss = () => {
-      safeSet(DISMISSED_AT_KEY, String(Date.now()))
-      toast.dismiss(TOAST_ID)
-    }
+    // El cierre es solo de esta carga: al recargar sin tener la app instalada
+    // el toast vuelve a aparecer (no se persiste nada en localStorage).
+    const dismiss = () => toast.dismiss(TOAST_ID)
 
     // iOS (Safari/Chrome) no dispara `beforeinstallprompt`: se muestran instrucciones.
     if (isIOS()) {
-      const timer = window.setTimeout(() => {
-        toast.custom(
-          () => (
-            <InstallCard
-              onClose={dismiss}
-              description={
-                <>
-                  Toca {shareIcon} y luego &quot;Agregar a pantalla de
-                  inicio&quot; para usarla sin conexión.
-                </>
-              }
-            />
-          ),
-          { id: TOAST_ID, duration: Infinity, position: 'bottom-right' }
-        )
-      }, 2000)
+      toast.custom(
+        () => (
+          <InstallCard
+            onClose={dismiss}
+            description={
+              <>
+                Toca {shareIcon} y luego &quot;Agregar a pantalla de
+                inicio&quot; para usarla sin conexión.
+              </>
+            }
+          />
+        ),
+        { id: TOAST_ID, duration: Infinity, position: 'bottom-right' }
+      )
 
       return () => {
-        window.clearTimeout(timer)
         toast.dismiss(TOAST_ID)
       }
     }
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault()
+    const showInstallToast = (e: Event) => {
+      window.__pwaPrompt = e
 
       toast.custom(
         () => (
@@ -153,14 +132,9 @@ export function PWAInstallToast() {
               <button
                 onClick={async () => {
                   toast.dismiss(TOAST_ID)
-                  const evt = e as any
-                  await evt.prompt()
-                  const { outcome } = await evt.userChoice
-                  if (outcome === 'accepted') {
-                    safeSet(DECISION_KEY, 'installed')
-                  } else {
-                    safeSet(DISMISSED_AT_KEY, String(Date.now()))
-                  }
+                  // El evento es de un solo uso: si cancela, el toast ya
+                  // se cerró y vuelve a aparecer en la próxima carga.
+                  await (e as any).prompt()
                 }}
                 className="text-xs bg-primary text-primary-foreground px-4 py-1.5 rounded-md font-medium flex-1"
               >
@@ -179,20 +153,24 @@ export function PWAInstallToast() {
       )
     }
 
-    const handleInstalled = () => {
-      safeSet(DECISION_KEY, 'installed')
-      toast.dismiss(TOAST_ID)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault()
+      showInstallToast(e)
     }
 
+    // El script de app/layout.tsx captura el evento antes de hidratar:
+    // si ya se disparó, se muestra de inmediato.
+    if (window.__pwaPrompt) showInstallToast(window.__pwaPrompt)
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    window.addEventListener('appinstalled', handleInstalled)
+    window.addEventListener('appinstalled', dismiss)
 
     return () => {
       window.removeEventListener(
         'beforeinstallprompt',
         handleBeforeInstallPrompt
       )
-      window.removeEventListener('appinstalled', handleInstalled)
+      window.removeEventListener('appinstalled', dismiss)
     }
   }, [])
 

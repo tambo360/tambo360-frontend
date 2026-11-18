@@ -4,6 +4,7 @@ import './globals.css'
 import { cn } from '@/lib/utils'
 import Providers from '@/utils/Providers'
 import { GoogleTagManager } from '@next/third-parties/google'
+import Script from 'next/script'
 import { PWAInstallToast } from '@/components/shared/PWAInstallToast'
 import DevSWUnregister from '@/components/shared/DevSWUnregister'
 
@@ -49,6 +50,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       {gtmId && <GoogleTagManager gtmId={gtmId} />}
+      {/* Captura `beforeinstallprompt` antes de hidratar para no perderlo;
+          PWAInstallToast lo lee de window.__pwaPrompt. */}
+      <Script id="pwa-early-capture" strategy="beforeInteractive">
+        {`window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__pwaPrompt=e});window.addEventListener('appinstalled',function(){window.__pwaPrompt=undefined});`}
+      </Script>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         <Providers>
           {process.env.NODE_ENV === 'development' && <DevSWUnregister />}
