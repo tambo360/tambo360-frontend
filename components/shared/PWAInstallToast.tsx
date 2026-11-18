@@ -65,7 +65,7 @@ function InstallCard({
     <div className="flex items-center gap-4 bg-background border rounded-lg p-4 shadow-lg w-full max-w-90">
       <div className="shrink-0 relative size-16">
         <img
-          src="/logos/isotipo_512x512.jpg"
+          src="/logos/isotipo_512x512.png"
           alt="Tambo360 Logo"
           className="object-contain rounded-md"
         />

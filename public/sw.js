@@ -23,8 +23,8 @@ if (!self.define) {
     if (a[c]) return
     let t = {}
     const r = (e) => s(e, c),
-      d = { module: { uri: c }, exports: t, require: r }
-    a[c] = Promise.all(n.map((e) => d[e] || r(e))).then((e) => (i(...e), t))
+      o = { module: { uri: c }, exports: t, require: r }
+    a[c] = Promise.all(n.map((e) => o[e] || r(e))).then((e) => (i(...e), t))
   }
 }
 define(['./workbox-62888b14'], function (e) {
@@ -35,11 +35,11 @@ define(['./workbox-62888b14'], function (e) {
     e.precacheAndRoute(
       [
         {
-          url: '/_next/static/PO3BwR_-m-3N9k_IgZL0v/_buildManifest.js',
+          url: '/_next/static/bCZm8g2CGKgoOKaxqUgwC/_buildManifest.js',
           revision: 'f489b124f7b272fdfcdeff4a6ca5c441',
         },
         {
-          url: '/_next/static/PO3BwR_-m-3N9k_IgZL0v/_ssgManifest.js',
+          url: '/_next/static/bCZm8g2CGKgoOKaxqUgwC/_ssgManifest.js',
           revision: 'b6652df95db52feb4daf4eca35380933',
         },
         {
@@ -287,8 +287,8 @@ define(['./workbox-62888b14'], function (e) {
           revision: '2b0651de4a82a629',
         },
         {
-          url: '/_next/static/chunks/app/layout-aa1badf832be35ed.js',
-          revision: 'aa1badf832be35ed',
+          url: '/_next/static/chunks/app/layout-2d7f663e71c52bee.js',
+          revision: '2d7f663e71c52bee',
         },
         {
           url: '/_next/static/chunks/app/manifest.webmanifest/route-2b0651de4a82a629.js',
@@ -396,12 +396,12 @@ define(['./workbox-62888b14'], function (e) {
           revision: '1c649db1ed4025ef923d2bac5dc6747f',
         },
         {
-          url: '/logos/isotipo_192x192.jpeg',
-          revision: '61ec0451f30fb108e0c99c3138d0d0c7',
+          url: '/logos/isotipo_192x192.png',
+          revision: '6b42e95aacc09090ff8b6574dea09644',
         },
         {
-          url: '/logos/isotipo_512x512.jpeg',
-          revision: '7ac27d8fe068b73d38d76c7974de060d',
+          url: '/logos/isotipo_512x512.png',
+          revision: '9ebc723b22a1f6edc4033709835a78c7',
         },
         {
           url: '/logos/isotipo_tambo_1.png',

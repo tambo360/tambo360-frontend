@@ -13,21 +13,21 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#ffffff',
     icons: [
       {
-        src: '/logos/isotipo_192x192.jpeg',
+        src: '/logos/isotipo_192x192.png',
         sizes: '192x192',
-        type: 'image/jpeg',
+        type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/logos/isotipo_512x512.jpeg',
+        src: '/logos/isotipo_512x512.png',
         sizes: '512x512',
-        type: 'image/jpeg',
+        type: 'image/png',
         purpose: 'any',
       },
       {
-        src: '/logos/isotipo_512x512.jpeg',
+        src: '/logos/isotipo_512x512.png',
         sizes: '512x512',
-        type: 'image/jpeg',
+        type: 'image/png',
         purpose: 'maskable',
       },
     ],
