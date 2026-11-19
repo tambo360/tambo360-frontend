@@ -25,16 +25,24 @@ import {
 const formatTipoOrdenieLabel = (value: string) =>
   value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ')
 
+// Compara textos sin importar mayúsculas, tildes ni espacios extra
+const normalize = (text?: string) =>
+  (text ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
 export default function GeneralTab() {
   const {
     register,
-    handleSubmit,
+    submitForm,
     setValue,
     watch,
     errors,
     isPending,
     isLoading,
-    onSubmit,
+    onCancel,
   } = useEstablishmentForm()
 
   // const cuencaLechera = watch('cuencaLechera')
@@ -43,11 +51,25 @@ export default function GeneralTab() {
   const localidad = watch('localidad')
 
   const { data: province } = useProvince({ name: '' })
-  const idProvince = useMemo(
-    () => province?.provincias.find((p) => p.nombre === provincia)?.id,
+
+  const provinciaOption = useMemo(
+    () =>
+      province?.provincias.find(
+        (p) => normalize(p.nombre) === normalize(provincia)
+      ),
     [provincia, province]
   )
+  const idProvince = provinciaOption?.id
+
   const { data: locality } = useLocality({ id: idProvince, search: '' })
+
+  const localidadOption = useMemo(
+    () =>
+      locality?.municipios.find(
+        (l) => normalize(l.nombre) === normalize(localidad)
+      ),
+    [localidad, locality]
+  )
 
   if (isLoading) {
     return (
@@ -70,7 +92,7 @@ export default function GeneralTab() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="w-full">
+      <form onSubmit={submitForm} className="w-full">
         {/* Distribución en 2 Columnas principales */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           {/* Columna Izquierda: Formulario (Ocupa 7 de 12 columnas) */}
@@ -86,6 +108,7 @@ export default function GeneralTab() {
               </Label>
               <input
                 {...register('nombre')}
+                maxLength={50}
                 placeholder="Tambo La Esperanza"
                 className={cn(
                   'h-10 w-full px-3 rounded-lg border text-sm outline-none bg-[#F1F3F5] text-black transition-colors',
@@ -100,7 +123,7 @@ export default function GeneralTab() {
                   <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#E11D48] text-white text-[10px]">
                     !
                   </span>
-                  Este campo es obligatorio para el registro del sistema
+                  {errors.nombre.message}
                 </div>
               )}
             </div>
@@ -137,10 +160,18 @@ export default function GeneralTab() {
               <Select
                 value={tipoOrdene}
                 onValueChange={(val) =>
-                  setValue('tipoOrdenie', val, { shouldValidate: true })
+                  setValue('tipoOrdenie', val, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  })
                 }
               >
-                <SelectTrigger className="h-10 w-full bg-[#F1F3F5] text-sm text-black border-gray-200/80 shadow-none">
+                <SelectTrigger
+                  className={cn(
+                    'h-10 w-full bg-[#F1F3F5] text-sm text-black shadow-none',
+                    errors.tipoOrdenie ? 'border-red-500' : 'border-gray-200/80'
+                  )}
+                >
                   <SelectValue placeholder="Seleccione una" />
                 </SelectTrigger>
                 <SelectContent>
@@ -151,6 +182,11 @@ export default function GeneralTab() {
                   ))}
                 </SelectContent>
               </Select>
+              {errors.tipoOrdenie && (
+                <p className="text-xs font-medium text-[#E11D48]">
+                  {errors.tipoOrdenie.message}
+                </p>
+              )}
             </div>
 
             {/* Campos: Ordeñes por día y Promedio de litros */}
@@ -162,7 +198,6 @@ export default function GeneralTab() {
                 <input
                   type="number"
                   min={1}
-                  max={3}
                   {...register('ordenie_dia', { valueAsNumber: true })}
                   placeholder="2"
                   className={cn(
@@ -211,10 +246,13 @@ export default function GeneralTab() {
                   Provincia
                 </Label>
                 <Select
-                  value={provincia}
+                  value={provinciaOption?.nombre ?? ''}
                   onValueChange={(val) => {
-                    setValue('provincia', val)
-                    setValue('localidad', '')
+                    setValue('provincia', val, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                    setValue('localidad', '', { shouldDirty: true })
                   }}
                 >
                   <SelectTrigger className="h-10 w-full bg-white rounded-full border-slate-300 text-sm text-gray-500 shadow-none">
@@ -240,9 +278,14 @@ export default function GeneralTab() {
                   Localidad
                 </Label>
                 <Select
-                  value={localidad}
+                  value={localidadOption?.nombre ?? ''}
                   disabled={!provincia}
-                  onValueChange={(val) => setValue('localidad', val)}
+                  onValueChange={(val) =>
+                    setValue('localidad', val, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                    })
+                  }
                 >
                   <SelectTrigger className="h-10 w-full bg-white rounded-full border-slate-300 text-sm text-gray-500 shadow-none">
                     <SelectValue
@@ -293,6 +336,8 @@ export default function GeneralTab() {
         <div className="flex items-center justify-center gap-4 mt-12 pt-4">
           <button
             type="button"
+            onClick={onCancel}
+            disabled={isPending}
             className="w-40 h-10 text-xs font-bold text-white bg-[#94A3B8] rounded-md hover:bg-[#64748B] tracking-wider transition-colors shadow-sm"
           >
             CANCELAR
