@@ -7,8 +7,6 @@ import {
   ChevronRight,
   Loader2,
   CloudOff,
-  Pencil,
-  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -60,6 +58,17 @@ export interface GeneralCostRow {
   isAutomatic?: boolean
 }
 
+// Cantidad de registros por página en el historial de gastos
+const ITEMS_PER_PAGE = 20
+
+// Formatos de número (es-AR): 4.850.200 y 27,55
+const formatMoney = (value: number) => value.toLocaleString('es-AR')
+const formatDecimal = (value: number) =>
+  value.toLocaleString('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+
 const GeneralCosts = () => {
   const [openRegister, setOpenRegister] = useState(false)
   const { period, label, isCurrentMonth, goPrev, goNext } = useMonthPeriod()
@@ -68,9 +77,19 @@ const GeneralCosts = () => {
 
   // Paginación Local
   const [page, setPage] = useState(1)
-  const ITEMS_PER_PAGE = 5
 
   const onNewCostClick = () => setOpenRegister(true)
+
+  // Al cambiar de mes, volvemos a la página 1
+  const handlePrevMonth = () => {
+    setPage(1)
+    goPrev()
+  }
+
+  const handleNextMonth = () => {
+    setPage(1)
+    goNext()
+  }
 
   const rawCosts: GeneralCost[] = extractCosts(costsData)
 
@@ -80,8 +99,6 @@ const GeneralCosts = () => {
     costType: c.tipoCosto,
     description: c.descripcion ?? '-',
     amount: Number(c.monto),
-    isAutomatic:
-      c.tipoCosto === 'ALIMENTACION' || c.idCostoGeneral === 'alimentacion',
   }))
 
   // Lógica de paginación
@@ -96,17 +113,6 @@ const GeneralCosts = () => {
   const prorrateoValue = summary?.prorrateoPromedio ?? 0
   const generalCostsValue = summary?.gastoCostosGenerales ?? 0
 
-  // Handlers para Editar y Eliminar
-  const handleEdit = (id: string) => {
-    alert(`Editar gasto ID: ${id}`)
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('¿Seguro que querés eliminar este gasto?')) {
-      alert(`Eliminar gasto ID: ${id}`)
-    }
-  }
-
   return (
     <div className="flex flex-col w-full gap-6 sm:gap-8 animate-in fade-in duration-500 bg-[#F9FAFB] p-4 sm:p-8 rounded-2xl">
       {/* TÍTULO PRINCIPAL + SELECTOR DE MES */}
@@ -120,7 +126,7 @@ const GeneralCosts = () => {
             variant="outline"
             size="icon"
             className="h-8 w-8 rounded-lg border-gray-200 bg-white"
-            onClick={goPrev}
+            onClick={handlePrevMonth}
             aria-label="Mes anterior"
           >
             <ChevronLeft className="w-4 h-4 text-gray-600" />
@@ -132,7 +138,7 @@ const GeneralCosts = () => {
             variant="outline"
             size="icon"
             className="h-8 w-8 rounded-lg border-gray-200 bg-white"
-            onClick={goNext}
+            onClick={handleNextMonth}
             disabled={isCurrentMonth}
             aria-label="Mes siguiente"
           >
@@ -141,48 +147,48 @@ const GeneralCosts = () => {
         </div>
       </div>
 
-      {/* TARJETAS SUPERIORES DINÁMICAS */}
+      {/* TARJETAS SUPERIORES */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <span className="text-xs font-semibold text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             Costos de alimentación
           </span>
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
-            $ {foodCostValue.toLocaleString('es-AR')}
+            ${formatMoney(foodCostValue)}
           </h2>
-          <span className="text-xs text-green-600 font-medium mt-2">
+          <span className="text-xs text-green-700 font-medium mt-2">
             +12% vs mes anterior
           </span>
         </div>
 
         <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <span className="text-xs font-semibold text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             Otros costos
           </span>
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
-            $ {generalCostsValue.toLocaleString('es-AR')}
+            ${formatMoney(generalCostsValue)}
           </h2>
-          <span className="text-xs text-green-600 font-medium mt-2">
+          <span className="text-xs text-green-700 font-medium mt-2">
             Fijos 65% · Var 35%
           </span>
         </div>
 
         <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
-          <span className="text-xs font-semibold text-gray-500">
+          <span className="text-xs font-medium text-gray-500">
             Costo Prorrateo/Lote
           </span>
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
-            ${prorrateoValue.toFixed(2)}/Lt
+            ${formatDecimal(prorrateoValue)}/Lt
           </h2>
-          <span className="text-xs text-green-600 font-medium mt-2">
+          <span className="text-xs text-green-700 font-medium mt-2">
             +12% vs mes anterior
           </span>
         </div>
       </div>
 
-      {/* SECCIÓN HISTORIAL DE GASTOS Y TABLA */}
+      {/* HISTORIAL DE GASTOS */}
       <Card className="border-gray-200 shadow-sm overflow-hidden rounded-2xl bg-white gap-0 py-0">
-        <CardHeader className="border-b border-gray-100 bg-white p-6">
+        <CardHeader className="bg-white p-6 pb-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <CardTitle className="text-lg font-bold text-gray-900">
               Historial de Gastos
@@ -190,7 +196,7 @@ const GeneralCosts = () => {
 
             <Button
               onClick={onNewCostClick}
-              className="bg-[#659711] hover:bg-[#537d0d] text-white font-semibold rounded-xl px-4 py-2 flex items-center gap-2 shadow-sm transition-all"
+              className="bg-[#659711] hover:bg-[#537d0d] text-white font-semibold rounded-md px-8 h-12 flex items-center gap-2 shadow-sm transition-all"
             >
               <Plus className="w-4 h-4" />
               Nuevo costo
@@ -198,10 +204,10 @@ const GeneralCosts = () => {
           </div>
         </CardHeader>
 
-        {/* FILTROS */}
-        <div className="flex flex-wrap gap-3 p-6 bg-white border-b border-gray-100">
+        {/* FILTROS (alineados a la derecha) */}
+        <div className="flex flex-wrap justify-end gap-3 px-6 pb-4 bg-white">
           <Select>
-            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+            <SelectTrigger className="w-40 h-9 rounded-md border-gray-200 text-xs bg-white shadow-sm">
               <SelectValue placeholder="Todas las fechas" />
             </SelectTrigger>
             <SelectContent>
@@ -209,7 +215,7 @@ const GeneralCosts = () => {
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+            <SelectTrigger className="w-40 h-9 rounded-md border-gray-200 text-xs bg-white shadow-sm">
               <SelectValue placeholder="Todos los valores" />
             </SelectTrigger>
             <SelectContent>
@@ -217,7 +223,7 @@ const GeneralCosts = () => {
             </SelectContent>
           </Select>
           <Select>
-            <SelectTrigger className="w-45 h-9 rounded-lg border-gray-200 text-xs bg-white">
+            <SelectTrigger className="w-44 h-9 rounded-md border-gray-200 text-xs bg-white shadow-sm">
               <SelectValue placeholder="Todas las categorías" />
             </SelectTrigger>
             <SelectContent>
@@ -242,21 +248,18 @@ const GeneralCosts = () => {
             <div className="overflow-x-auto">
               <Table className="min-w-full">
                 <TableHeader className="bg-[#E8EEF5]">
-                  <TableRow>
-                    <TableHead className="text-left font-bold text-gray-600 text-xs py-4 pl-6">
+                  <TableRow className="border-0">
+                    <TableHead className="text-left font-bold text-gray-900 text-xs py-4 pl-6">
                       Fecha
                     </TableHead>
-                    <TableHead className="text-left font-bold text-gray-600 text-xs">
+                    <TableHead className="text-left font-bold text-gray-900 text-xs">
                       Tipo de gasto
                     </TableHead>
-                    <TableHead className="text-left font-bold text-gray-600 text-xs">
+                    <TableHead className="text-left font-bold text-gray-900 text-xs">
                       Descripción
                     </TableHead>
-                    <TableHead className="text-right font-bold text-gray-600 text-xs">
+                    <TableHead className="text-right font-bold text-gray-900 text-xs pr-6">
                       Valor
-                    </TableHead>
-                    <TableHead className="text-center font-bold text-gray-600 text-xs pr-6">
-                      Acciones
                     </TableHead>
                   </TableRow>
                 </TableHeader>
@@ -266,48 +269,20 @@ const GeneralCosts = () => {
                       key={g.id}
                       className="border-b border-gray-100 hover:bg-gray-50/50"
                     >
-                      <TableCell className="text-xs font-bold text-gray-800 py-4 pl-6">
+                      <TableCell className="text-xs text-gray-800 py-4 pl-6">
                         {g.date}
                       </TableCell>
-                      <TableCell className="text-xs">
-                        <span className="inline-block bg-[#29845A]/10 text-[#29845A] font-semibold px-3 py-1 rounded-full text-[11px]">
-                          {capitalize(g.costType)}
-                        </span>
+                      <TableCell className="text-xs font-bold text-[#14532D]">
+                        {capitalize(g.costType)}
                       </TableCell>
                       <TableCell
-                        className="text-xs font-medium text-gray-600 max-w-50 truncate"
+                        className="text-xs text-gray-800 max-w-75 truncate"
                         title={g.description}
                       >
                         {g.description}
                       </TableCell>
-                      <TableCell className="text-xs font-extrabold text-gray-900 text-right">
-                        $ {g.amount.toLocaleString('es-AR')}
-                      </TableCell>
-                      <TableCell className="text-center pr-6">
-                        {!g.isAutomatic ? (
-                          <div className="flex items-center justify-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleEdit(g.id)}
-                            >
-                              <Pencil className="w-4 h-4 text-gray-500 hover:text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleDelete(g.id)}
-                            >
-                              <Trash2 className="w-4 h-4 text-gray-500 hover:text-red-600" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <span className="text-[10px] text-gray-400 font-medium">
-                            Automático
-                          </span>
-                        )}
+                      <TableCell className="text-xs text-gray-900 text-right pr-6">
+                        $ {formatMoney(g.amount)}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -318,26 +293,28 @@ const GeneralCosts = () => {
 
           {/* PAGINACIÓN */}
           {rows.length > 0 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-white">
+            <div className="flex items-center justify-between px-6 py-4 bg-white">
               <span className="text-xs text-gray-500">
-                Página {page} de {totalPages || 1}
+                Página {page} de {totalPages || 1} • {rows.length} registros
               </span>
               <div className="flex gap-1.5">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7 rounded border-gray-200"
+                  className="h-7 w-7 rounded border-[#B6C8E0] bg-[#EEF3FA]"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page === 1}
+                  aria-label="Página anterior"
                 >
                   <ChevronLeft className="w-4 h-4 text-gray-500" />
                 </Button>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-7 w-7 rounded border-gray-200"
+                  className="h-7 w-7 rounded border-[#B6C8E0] bg-[#EEF3FA]"
                   onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                   disabled={page >= totalPages}
+                  aria-label="Página siguiente"
                 >
                   <ChevronRight className="w-4 h-4 text-gray-500" />
                 </Button>

@@ -11,13 +11,34 @@ export const GENERAL_COST_TYPE_LABELS: Record<GeneralCostType, string> = {
   OTRO: 'Otro',
 }
 
+// Reglas del formulario de nuevo costo
+export const COST_MAX_DAYS_BACK = 7
+export const COST_DESCRIPTION_MAX = 100
+
+const pad = (n: number) => String(n).padStart(2, '0')
+
+// Fecha local en formato YYYY-MM-DD (sin pasar por UTC)
+const toLocalISODate = (d: Date) =>
+  `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+// Rango permitido: desde 7 días atrás hasta hoy (hora local)
+export const getCostDateRange = () => {
+  const today = new Date()
+  const min = new Date(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate() - COST_MAX_DAYS_BACK
+  )
+  return { min: toLocalISODate(min), max: toLocalISODate(today) }
+}
+
 export const newGeneralCostSchema = z.object({
   tipoCosto: z.enum(GeneralCostType, {
     message: 'Tipo de costo requerido',
   }),
   descripcion: z
     .string()
-    .max(500, 'Máximo 500 caracteres')
+    .max(COST_DESCRIPTION_MAX, `Máximo ${COST_DESCRIPTION_MAX} caracteres`)
     .optional()
     .refine((v) => !v || v.trim().length > 0, {
       message: 'La descripción no puede contener solo espacios',
@@ -35,7 +56,16 @@ export const newGeneralCostSchema = z.object({
   fecha: z
     .string()
     .min(1, 'Fecha requerida')
-    .refine((v) => !isNaN(Date.parse(v)), 'Fecha no válida'),
+    .refine((v) => !isNaN(Date.parse(v)), 'Fecha no válida')
+    .refine(
+      (v) => {
+        const { min, max } = getCostDateRange()
+        return v >= min && v <= max
+      },
+      {
+        message: `La fecha debe estar entre los últimos ${COST_MAX_DAYS_BACK} días y hoy`,
+      }
+    ),
 })
 
 export type CreateNewCostRequest = z.infer<typeof newGeneralCostSchema>

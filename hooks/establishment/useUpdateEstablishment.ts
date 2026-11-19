@@ -25,6 +25,13 @@ export function useUpdateEstablishment() {
 
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.auth.currentUser })
+      // Refresca los datos que muestra Configuración / General
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.establishment.configuration(),
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['establishment'],
+      })
     },
   })
 }

@@ -6,11 +6,28 @@ import {
   establishmentFormSchema,
   EstablishmentFormData,
 } from '@/types/establishment'
+import { TipoOrdenie } from '@/types/enums'
 import { useParams } from 'next/navigation'
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { toast } from 'sonner'
+import { AxiosError } from 'axios'
+
+type ApiRecord = Record<string, unknown>
+
+// Convierte el valor del backend (ej. "BALDE" o "balde") al valor del enum
+const toTipoOrdenie = (raw: unknown): string => {
+  const value = String(raw ?? '')
+    .trim()
+    .toLowerCase()
+  return Object.values(TipoOrdenie).find((t) => t === value) ?? ''
+}
+
+const toPositiveNumber = (raw: unknown, fallback: number): number => {
+  const n = Number(raw)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
 
 export function useEstablishmentForm() {
   const params = useParams()
@@ -45,12 +62,19 @@ export function useEstablishmentForm() {
   useEffect(() => {
     if (!establishmentData?.data) return
     const est = establishmentData.data?.establecimiento
+    const cfg = (config?.data ?? {}) as ApiRecord
+
     reset({
       nombre: est?.nombre ?? '',
       // cuencaLechera: est?.provincia ?? '',
-      tipoOrdenie: config?.data?.tipo_ordeñe ?? '',
-      ordenie_dia: config?.data?.ordeñe_por_dia ?? 1,
-      promLitros: config?.data?.litros_por_dia ?? 1,
+      tipoOrdenie: toTipoOrdenie(
+        cfg.tipo_ordeñe ?? cfg.tipoOrdenie ?? cfg.tipo_ordenie
+      ),
+      ordenie_dia: toPositiveNumber(
+        cfg.ordeñe_por_dia ?? cfg.cantOrdenies ?? cfg.cantOrdenie,
+        1
+      ),
+      promLitros: toPositiveNumber(cfg.litros_por_dia ?? cfg.promLitros, 1),
       provincia: est?.provincia ?? '',
       localidad: est?.localidad ?? '',
     })
@@ -71,16 +95,28 @@ export function useEstablishmentForm() {
           localidad: data.localidad,
         },
       })
+      reset(data)
       toast.success('Cambios guardados correctamente', {
         position: 'top-center',
         duration: 4000,
       })
-    } catch {
-      toast.error('No se pudieron guardar los cambios', {
+    } catch (error) {
+      const message = (error as AxiosError<{ message?: string }>)?.response
+        ?.data?.message
+      toast.error(message ?? 'No se pudieron guardar los cambios', {
         position: 'top-center',
       })
     }
   }
+
+  // Si la validación falla, avisamos en vez de quedarnos sin respuesta
+  const onInvalid = () => {
+    toast.error('Revisa los campos marcados en rojo antes de guardar', {
+      position: 'top-center',
+    })
+  }
+
+  const submitForm = handleSubmit(onSubmit, onInvalid)
 
   const onCancel = () => {
     reset()
@@ -89,6 +125,7 @@ export function useEstablishmentForm() {
   return {
     register,
     handleSubmit,
+    submitForm,
     setValue,
     watch,
     errors,
