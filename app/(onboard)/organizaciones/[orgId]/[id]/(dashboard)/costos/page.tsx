@@ -156,9 +156,6 @@ const GeneralCosts = () => {
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
             ${formatMoney(foodCostValue)}
           </h2>
-          <span className="text-xs text-green-700 font-medium mt-2">
-            +12% vs mes anterior
-          </span>
         </div>
 
         <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
@@ -168,9 +165,6 @@ const GeneralCosts = () => {
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
             ${formatMoney(generalCostsValue)}
           </h2>
-          <span className="text-xs text-green-700 font-medium mt-2">
-            Fijos 65% · Var 35%
-          </span>
         </div>
 
         <div className="bg-linear-to-br from-white to-[#f0f9ff] border border-gray-100 rounded-2xl p-6 shadow-sm flex flex-col justify-between">
@@ -180,9 +174,6 @@ const GeneralCosts = () => {
           <h2 className="text-3xl font-extrabold text-gray-900 mt-2">
             ${formatDecimal(prorrateoValue)}/Lt
           </h2>
-          <span className="text-xs text-green-700 font-medium mt-2">
-            +12% vs mes anterior
-          </span>
         </div>
       </div>
 
