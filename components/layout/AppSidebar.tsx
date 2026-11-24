@@ -6,7 +6,6 @@ import {
   Settings,
   Wallet,
   User,
-  LogOut,
 } from 'lucide-react'
 import {
   Sidebar,
@@ -20,14 +19,6 @@ import Link from 'next/link'
 import { useParams, usePathname } from 'next/navigation'
 import { useConfiguration } from '@/hooks/establishment/useConfiguration'
 import { useNoViewedAlerts } from '@/hooks/alerts/useNoViewedAlerts'
-import { Button } from '@/components/ui/button'
-import { useAuth } from '@/context/AuthContext'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '../ui/dropdown-menu'
 
 interface AppSidebarProps {
   forcedCollapsed?: boolean
@@ -36,7 +27,6 @@ interface AppSidebarProps {
 export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
   const pathname = usePathname()
   const params = useParams()
-  const { logout } = useAuth()
   const { data: configData } = useConfiguration()
   const { data: noViewedAlerts } = useNoViewedAlerts({
     id: configData?.data.idEstablecimiento,
@@ -49,6 +39,9 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
     orgId && estId
       ? `/organizaciones/${orgId}/${estId}`
       : pathname.split('/').slice(0, 4).join('/')
+
+  const perfilUrl = baseUrl + '/perfil'
+  const isPerfilActive = pathname.includes(perfilUrl)
 
   const mainMenuItems = [
     {
@@ -150,30 +143,37 @@ export function AppSidebar({ forcedCollapsed }: AppSidebarProps) {
         </SidebarMenu>
 
         <SidebarMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className={`w-full ${isCollapsed ? 'justify-center' : 'justify-start gap-3 text-gray-400 hover:bg-gray-100 hover:text-gray-500'}`}
-              >
-                <User className="h-5 w-5 shrink-0" />
-                {!isCollapsed && <span className="font-semibold">Perfil</span>}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              side="top"
-              align="start"
-              className={`bg-white z-80 ${isCollapsed ? 'w-full' : 'w-61.75'}`}
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              className={`relative overflow-hidden py-4 transition-all duration-200 rounded-lg shadow-none! flex items-center ${
+                isCollapsed ? 'justify-center' : 'justify-start'
+              } ${isPerfilActive ? 'bg-[#D7ECAF] hover:bg-[#D7ECAF]/60' : 'bg-transparent text-gray-400 hover:bg-gray-100'}`}
             >
-              <DropdownMenuItem
-                onClick={logout}
-                className="cursor-pointer text-gray-600"
+              <Link
+                href={perfilUrl}
+                aria-label="Perfil"
+                aria-current={isPerfilActive ? 'page' : undefined}
+                title={isCollapsed ? 'Perfil' : undefined}
+                className={`flex items-center gap-3 w-full ${isCollapsed ? 'justify-center' : ''}`}
+                data-test-id="perfil-link"
               >
-                <LogOut className="h-4 w-4" />
-                Cerrar sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                {isPerfilActive && (
+                  <span className="absolute left-0 top-0 h-full w-1 bg-[#669213]" />
+                )}
+                <User
+                  className={`h-5 w-5 shrink-0 ${isPerfilActive ? 'text-[#669213]' : 'text-gray-400'}`}
+                />
+                {!isCollapsed && (
+                  <span
+                    className={`font-semibold ${isPerfilActive ? 'text-[#669213]' : 'text-gray-400'}`}
+                  >
+                    Perfil
+                  </span>
+                )}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
     </Sidebar>
