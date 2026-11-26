@@ -72,6 +72,15 @@ const ESTADO_ANIMAL_OPTIONS: { value: EstadoAnimal; label: string }[] = [
   { value: EstadoAnimal.PREPARTO, label: 'Preparto' },
 ]
 
+// Ordeñe → solo Sano; Secas → todo menos Sano
+const getEstadoOptions = (categoria?: string) => {
+  if (categoria === CategoriaAnimal.ORDENE)
+    return ESTADO_ANIMAL_OPTIONS.filter((o) => o.value === EstadoAnimal.SANO)
+  if (categoria === CategoriaAnimal.SECAS)
+    return ESTADO_ANIMAL_OPTIONS.filter((o) => o.value !== EstadoAnimal.SANO)
+  return ESTADO_ANIMAL_OPTIONS
+}
+
 const RADIO_DOT_CLASS =
   'appearance-none w-5 h-5 shrink-0 rounded-full border-2 border-slate-300 bg-white ' +
   'checked:border-[#29845A] checked:bg-[#29845A] ' +
@@ -153,11 +162,7 @@ const Configuration = () => {
   )
   const { data: locality } = useLocality({ id: idProvince, search: '' })
 
-  const {
-    mutateAsync: sendConfiguration,
-    isPending,
-    error,
-  } = useUpdateConfiguration()
+  const { mutateAsync: sendConfiguration, isPending } = useUpdateConfiguration()
 
   const animales = watch('animales')
   const promLitros = watch('promLitros')
@@ -766,7 +771,7 @@ const Configuration = () => {
                         const categoriaField = register(
                           `animales.${idx}.categoria` as const
                         )
-                        const soloSano = a?.categoria === CategoriaAnimal.ORDENE
+                        const estadoOptions = getEstadoOptions(a?.categoria)
                         const codigoValue = (a?.codigo ?? '').toString().trim()
                         const codigoDuplicado =
                           codigoValue !== '' &&
@@ -829,6 +834,23 @@ const Configuration = () => {
                                 {...categoriaField}
                                 onChange={(e) => {
                                   categoriaField.onChange(e)
+                                  // Si el estado actual no es válido para la
+                                  // nueva categoría, se ajusta (Ordeñe → Sano;
+                                  // Secas → sin "Sano", obliga a elegir).
+                                  const opciones = getEstadoOptions(
+                                    e.target.value
+                                  )
+                                  if (
+                                    !opciones.some((o) => o.value === a?.estado)
+                                  ) {
+                                    setValue(
+                                      `animales.${idx}.estado` as const,
+                                      opciones.length === 1
+                                        ? opciones[0].value
+                                        : '',
+                                      { shouldValidate: true }
+                                    )
+                                  }
                                 }}
                               >
                                 <option value="" disabled>
@@ -851,12 +873,7 @@ const Configuration = () => {
                                 <option value="" disabled>
                                   Seleccioná
                                 </option>
-                                {(soloSano
-                                  ? ESTADO_ANIMAL_OPTIONS.filter(
-                                      ({ value }) => value === EstadoAnimal.SANO
-                                    )
-                                  : ESTADO_ANIMAL_OPTIONS
-                                ).map(({ value, label }) => (
+                                {estadoOptions.map(({ value, label }) => (
                                   <option key={value} value={value}>
                                     {label}
                                   </option>
@@ -892,14 +909,19 @@ const Configuration = () => {
                         type="button"
                         onClick={() => {
                           const current = animales ?? []
+                          // La fila nueva hereda raza/categoría/estado de la
+                          // anterior (RP/N° y nombre son únicos por animal).
+                          const anterior: any = current[current.length - 1]
                           setValue('animales', [
                             ...current,
                             {
                               codigo: '',
                               nombre: '',
-                              raza: RazasVacas.HOLANDO_ARGENTINO,
-                              categoria: CategoriaAnimal.ORDENE,
-                              estado: EstadoAnimal.SANO,
+                              raza:
+                                anterior?.raza || RazasVacas.HOLANDO_ARGENTINO,
+                              categoria:
+                                anterior?.categoria || CategoriaAnimal.ORDENE,
+                              estado: anterior?.estado || EstadoAnimal.SANO,
                             },
                           ])
                         }}

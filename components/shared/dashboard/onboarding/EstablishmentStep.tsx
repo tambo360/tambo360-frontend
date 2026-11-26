@@ -67,7 +67,7 @@ function EstablishmentStep() {
         </div>
         <img src="/successIcon.svg" alt="success" className="size-32" />
         <div className="grid place-items-center text-center space-y-2">
-          <h2 className="text-3xl text-center w-full font-bold tracking-tight text-[#0B1001] max-w-81.25">
+          <h2 className="text-3xl text-center w-full font-bold tracking-tight text-[#252525] max-w-81.25">
             ¡Establecimiento creado correctamente!
           </h2>
           <p className="text-sm">
