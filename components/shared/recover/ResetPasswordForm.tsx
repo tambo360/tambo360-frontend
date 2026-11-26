@@ -271,7 +271,9 @@ const ResetPasswordForm: React.FC = () => {
                 <div className="relative">
                   <Input
                     type={showPass ? 'text' : 'password'}
-                    {...passForm.register('contraseña')}
+                    {...passForm.register('contraseña', {
+                      deps: ['confirmarContraseña'],
+                    })}
                     className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.contraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                     disabled={isResetting}
                     data-testid="new-password-input"
@@ -314,7 +316,9 @@ const ResetPasswordForm: React.FC = () => {
                 <div className="relative">
                   <Input
                     type={showConfirmPass ? 'text' : 'password'}
-                    {...passForm.register('confirmarContraseña')}
+                    {...passForm.register('confirmarContraseña', {
+                      deps: ['contraseña'],
+                    })}
                     className={`h-14 ${passForm.formState.submitCount > 0 && passForm.formState.errors.confirmarContraseña ? 'border-[#F87171] bg-[#FCE8E5]/30' : 'border-[#D1CFCA] bg-[#F9F9F7]'}`}
                     disabled={isResetting}
                     data-testid="confirm-password-input"
