@@ -57,12 +57,22 @@ api.interceptors.response.use(
     const isLogout = error.config?.url?.includes('/auth/logout')
     const isLogin = error.config?.url?.includes('/auth/iniciar-sesion')
 
+    // PATCH /perfil responde 401 "La contraseña actual es incorrecta": es un
+    // error del formulario, no una sesión vencida. Solo se redirige si el
+    // back dice que no hay sesión.
+    const isPerfilUpdate =
+      error.config?.url === '/perfil' && error.config?.method === 'patch'
+    const isWrongPassword =
+      isPerfilUpdate &&
+      error.response?.data?.message !== 'Usuario no autenticado'
+
     if (error.response?.status === 401) {
       const offline = typeof navigator !== 'undefined' && !navigator.onLine
       if (
         !isAuthMe &&
         !isLogout &&
         !isLogin &&
+        !isWrongPassword &&
         !offline &&
         typeof window !== 'undefined'
       ) {
