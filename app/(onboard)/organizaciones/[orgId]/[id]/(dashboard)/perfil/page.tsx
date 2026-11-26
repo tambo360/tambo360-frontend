@@ -1,7 +1,10 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ChevronRight, CircleHelp, LogOut, User } from 'lucide-react'
+import { ChevronRight, CircleHelp, Loader2, LogOut, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { usePerfil } from '@/hooks/profile/usePerfil'
 
 interface PerfilRowProps {
@@ -62,12 +65,19 @@ function PerfilRow({
 export default function PerfilPage() {
   const {
     nombre,
-    correo,
     inicial,
     establecimiento,
+    verificado,
     showDatos,
     toggleDatos,
     logout,
+    register,
+    errors,
+    onSubmit,
+    isPending,
+    hasChanges,
+    correoCambio,
+    notice,
   } = usePerfil()
 
   return (
@@ -98,20 +108,107 @@ export default function PerfilPage() {
         />
 
         {showDatos && (
-          <dl className="grid gap-3 rounded-lg border border-gray-100 px-4 py-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className="text-gray-400">Nombre</dt>
-              <dd className="wrap-break-word font-medium text-gray-800">
-                {nombre}
-              </dd>
+          <form
+            onSubmit={onSubmit}
+            noValidate
+            className="flex flex-col gap-4 rounded-lg border border-gray-100 px-4 py-4"
+          >
+            {!verificado && (
+              <p
+                role="status"
+                className="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800"
+              >
+                Tu correo está pendiente de verificación. Revisa tu bandeja de
+                entrada y confirma con el link que te enviamos.
+              </p>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-nombre" className="text-sm text-gray-600">
+                Nombre
+              </Label>
+              <Input
+                id="perfil-nombre"
+                autoComplete="name"
+                disabled={isPending}
+                {...register('nombre')}
+              />
+              {errors.nombre && (
+                <small className="text-red-700">{errors.nombre.message}</small>
+              )}
             </div>
-            <div>
-              <dt className="text-gray-400">Correo</dt>
-              <dd className="wrap-break-word font-medium text-gray-800">
-                {correo}
-              </dd>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="perfil-correo" className="text-sm text-gray-600">
+                Correo
+              </Label>
+              <Input
+                id="perfil-correo"
+                type="email"
+                autoComplete="email"
+                disabled={isPending}
+                {...register('correo')}
+              />
+              {errors.correo && (
+                <small className="text-red-700">{errors.correo.message}</small>
+              )}
             </div>
-          </dl>
+
+            {correoCambio && (
+              <div className="flex flex-col gap-1.5">
+                <Label
+                  htmlFor="perfil-contrasena"
+                  className="text-sm text-gray-600"
+                >
+                  Contraseña actual
+                </Label>
+                <Input
+                  id="perfil-contrasena"
+                  type="password"
+                  autoComplete="current-password"
+                  disabled={isPending}
+                  {...register('contraseñaActual')}
+                />
+                <small className="text-gray-500">
+                  La necesitamos para confirmar el cambio de correo. Te
+                  enviaremos un link de verificación al correo nuevo.
+                </small>
+                {errors.contraseñaActual && (
+                  <small className="text-red-700">
+                    {errors.contraseñaActual.message}
+                  </small>
+                )}
+              </div>
+            )}
+
+            {errors.root?.serverError && (
+              <small role="alert" className="text-red-700">
+                {errors.root.serverError.message}
+              </small>
+            )}
+
+            {notice && (
+              <p
+                role="status"
+                className="rounded-md bg-green-50 px-3 py-2 text-sm text-green-800"
+              >
+                {notice}
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              disabled={isPending || !hasChanges}
+              data-test-id="perfil-guardar"
+              className="h-11 w-full bg-[#659711] font-semibold text-white hover:bg-[#537d0d]"
+            >
+              {isPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                'Guardar cambios'
+              )}
+            </Button>
+          </form>
         )}
 
         <PerfilRow
